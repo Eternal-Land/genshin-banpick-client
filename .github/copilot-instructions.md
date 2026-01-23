@@ -3,6 +3,7 @@ You are working in a Vite + React + TypeScript client app for “genshin-banpick
 Project stack
 
 - Vite + React 19 + TypeScript.
+- Data fetching uses TanStack Query via src/components/providers.tsx and axios via src/lib/http.ts.
 - Routing uses TanStack Router with file-based routes under src/routes.
 - Styling uses Tailwind CSS v4 (see src/index.css) and tw-animate-css.
 - UI utilities use src/lib/utils.ts with `cn()` for class merging.
@@ -35,3 +36,9 @@ If you add new files
 - Place reusable UI in src/components.
 - Place hooks in src/hooks.
 - Keep route components inside src/routes.
+
+Data fetching
+
+- App-level providers are configured in src/components/providers.tsx (TanStack Query).
+- Use the axios instance from src/lib/http.ts for API calls.
+- Prefer TanStack Query hooks for server state and use the shared axios client for requests.
