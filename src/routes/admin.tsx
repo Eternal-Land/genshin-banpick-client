@@ -1,4 +1,9 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  redirect,
+} from "@tanstack/react-router";
 
 import {
   Sidebar,
@@ -14,9 +19,26 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { store } from "@/lib/redux";
+import { ACCOUNT_ROLES } from "@/lib/constants";
+import { authApi } from "@/apis/auth";
 
 export const Route = createFileRoute("/admin")({
   component: RouteComponent,
+  beforeLoad: async () => {
+    const { profile } = store.getState().auth;
+    if (!profile) {
+      throw redirect({
+        to: "/auth/login",
+      });
+    }
+
+    if (profile.role != ACCOUNT_ROLES.ADMIN) {
+      throw redirect({
+        to: "/user",
+      });
+    }
+  },
 });
 
 function RouteComponent() {
@@ -31,6 +53,15 @@ function RouteComponent() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <Link to="/admin">Dashboard</Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    className="text-destructive"
+                    onClick={() => authApi.logout()}
+                  >
+                    Logout
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

@@ -1,0 +1,153 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { basicLoginSchema, type BasicLoginInput } from "@/apis/auth/types";
+import { authApi } from "@/apis/auth";
+import { useMutation } from "@tanstack/react-query";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { AxiosError } from "axios";
+import type { BaseApiResponse } from "@/lib/types";
+import { toast } from "sonner";
+import { ACCOUNT_ROLES } from "@/lib/constants";
+import { useAppDispatch } from "@/hooks/use-app-dispatch";
+import { setProfile } from "@/lib/redux/auth.slice";
+
+export const Route = createFileRoute("/auth/login")({
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const form = useForm<BasicLoginInput>({
+    resolver: zodResolver(basicLoginSchema),
+    defaultValues: {
+      ingameUuidOrEmail: "",
+      password: "",
+    },
+  });
+
+  const handlePostLogin = async () => {
+    const response = await authApi.getProfile();
+    const profile = response.data;
+    dispatch(setProfile(profile!));
+    if (profile?.role === ACCOUNT_ROLES.USER) {
+      navigate({ to: "/user" });
+    } else {
+      navigate({ to: "/admin" });
+    }
+  };
+
+  const loginMutation = useMutation<
+    BaseApiResponse<{ accessToken: string }>,
+    AxiosError<BaseApiResponse>,
+    BasicLoginInput
+  >({
+    mutationFn: authApi.basicLogin,
+    onSuccess: (response) => {
+      const token = response.data?.accessToken;
+      if (token) {
+        localStorage.setItem("token", token);
+        toast.success("Logged in successfully.");
+        handlePostLogin();
+      }
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Welcome back</CardTitle>
+        {loginMutation.isError && (
+          <CardDescription className="text-destructive">
+            {loginMutation.error.response?.data.message ||
+              "An error occurred during login."}
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <form
+          id="login-form"
+          onSubmit={form.handleSubmit((values) => loginMutation.mutate(values))}
+        >
+          <FieldGroup>
+            <Controller
+              name="ingameUuidOrEmail"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>UID or Email</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Enter UID or email"
+                    autoComplete="username"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            <Controller
+              name="password"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    type="password"
+                    aria-invalid={fieldState.invalid}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          </FieldGroup>
+        </form>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Need an account?</span>
+          <Link
+            to="/auth/register"
+            className="text-primary font-medium hover:underline"
+          >
+            Create one
+          </Link>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-3">
+        <Button
+          type="submit"
+          className="w-full"
+          form="login-form"
+          disabled={loginMutation.isPending}
+        >
+          {loginMutation.isPending ? "Signing in..." : "Sign in"}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
