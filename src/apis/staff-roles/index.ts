@@ -43,10 +43,18 @@ async function copyStaffRole(id: number) {
   return response.data;
 }
 
+async function toggleStaffRoleActiveStatus(id: number) {
+  const response = await http.put<BaseApiResponse<StaffRoleResonse>>(
+    `/api/admin/staff-roles/${id}/toggle-active`,
+  );
+  return response.data;
+}
+
 export const staffRolesApi = {
   listStaffRoles,
   getStaffRole,
   createStaffRole,
   updateStaffRole,
   copyStaffRole,
+  toggleStaffRoleActiveStatus,
 } as const;

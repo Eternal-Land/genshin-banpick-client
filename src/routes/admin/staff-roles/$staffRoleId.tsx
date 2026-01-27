@@ -51,7 +51,6 @@ function RouteComponent() {
     resolver: zodResolver(updateStaffRoleSchema),
     defaultValues: {
       name: "",
-      isActive: true,
       permissionIds: [],
     },
   });
@@ -80,7 +79,6 @@ function RouteComponent() {
 
     form.reset({
       name: staffRole.name,
-      isActive: staffRole.isActive,
       permissionIds: staffRole.permissions.map((permission) => permission.id),
     });
   }, [form, staffRoleResponse]);
@@ -128,7 +126,6 @@ function RouteComponent() {
           onSubmit={form.handleSubmit((values) =>
             updateMutation.mutate({
               name: values.name,
-              isActive: values.isActive ?? true,
               permissionIds: values.permissionIds ?? [],
             }),
           )}
@@ -153,24 +150,6 @@ function RouteComponent() {
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="isActive"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal">
-                  <Checkbox
-                    id="staff-role-active"
-                    checked={field.value}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked === true)
-                    }
-                  />
-                  <FieldLabel htmlFor="staff-role-active">
-                    Active role
-                  </FieldLabel>
                 </Field>
               )}
             />

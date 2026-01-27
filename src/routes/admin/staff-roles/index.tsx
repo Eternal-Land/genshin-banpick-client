@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { staffRolesApi } from "@/apis/staff-roles";
 import type { StaffRoleResonse } from "@/apis/staff-roles/types";
+import type { BaseApiResponse } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +29,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { PenIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { BanIcon, PenIcon, SquareCheckIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/staff-roles/")({
   component: RouteComponent,
@@ -35,6 +46,9 @@ export const Route = createFileRoute("/admin/staff-roles/")({
 
 function RouteComponent() {
   const [query, setQuery] = useState("");
+  const [confirmTarget, setConfirmTarget] = useState<StaffRoleResonse | null>(
+    null,
+  );
 
   const {
     data: staffRolesResponse,
@@ -47,6 +61,25 @@ function RouteComponent() {
     queryFn: staffRolesApi.listStaffRoles,
   });
 
+  const toggleMutation = useMutation<
+    BaseApiResponse,
+    AxiosError<BaseApiResponse>,
+    number
+  >({
+    mutationFn: (id) => staffRolesApi.toggleStaffRoleActiveStatus(id),
+    onSuccess: () => {
+      toast.success("Staff role status updated.");
+      refetch();
+      setConfirmTarget(null);
+    },
+    onError: (mutationError) => {
+      toast.error(
+        mutationError.response?.data.message ||
+          "Unable to update staff role status.",
+      );
+    },
+  });
+
   const staffRoles = staffRolesResponse?.data ?? [];
 
   const filteredRoles = useMemo(() => {
@@ -57,6 +90,11 @@ function RouteComponent() {
       role.name.toLowerCase().includes(normalizedQuery),
     );
   }, [query, staffRoles]);
+
+  const handleConfirmToggle = () => {
+    if (!confirmTarget) return;
+    toggleMutation.mutate(confirmTarget.id);
+  };
 
   return (
     <div className="space-y-6">
@@ -152,19 +190,46 @@ function RouteComponent() {
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button asChild variant="outline" size="icon-sm">
-                              <Link
-                                to="/admin/staff-roles/$staffRoleId"
-                                params={{ staffRoleId: role.id.toString() }}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button asChild variant="outline" size="icon-sm">
+                                <Link
+                                  to="/admin/staff-roles/$staffRoleId"
+                                  params={{ staffRoleId: role.id.toString() }}
+                                >
+                                  <PenIcon className="size-3" />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit staff role</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant={
+                                  role.isActive ? "destructive" : "secondary"
+                                }
+                                size="icon-sm"
+                                disabled={toggleMutation.isPending}
+                                onClick={() => setConfirmTarget(role)}
+                                className="cursor-pointer"
                               >
-                                <PenIcon className="size-3" />
-                              </Link>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit staff role</TooltipContent>
-                        </Tooltip>
+                                {role.isActive ? (
+                                  <BanIcon className="size-3" />
+                                ) : (
+                                  <SquareCheckIcon className="size-3" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {role.isActive
+                                ? "Deactivate staff role"
+                                : "Activate staff role"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -183,6 +248,50 @@ function RouteComponent() {
           </Table>
         </CardContent>
       </Card>
+      <Dialog
+        open={Boolean(confirmTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmTarget?.isActive
+                ? "Deactivate staff role"
+                : "Activate staff role"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmTarget?.isActive
+                ? `Are you sure you want to deactivate ${confirmTarget.name}?`
+                : `Are you sure you want to activate ${confirmTarget?.name}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={confirmTarget?.isActive ? "destructive" : "secondary"}
+              onClick={handleConfirmToggle}
+              disabled={toggleMutation.isPending}
+            >
+              {toggleMutation.isPending
+                ? "Updating..."
+                : confirmTarget?.isActive
+                  ? "Deactivate"
+                  : "Activate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
