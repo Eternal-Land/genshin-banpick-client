@@ -6,6 +6,7 @@ export const createStaffSchema = z.object({
     email: z.email(),
     displayName: z.string().min(1, "Display name is required"),
     staffRoleId: z.number().min(1, "Staff role is required"),
+    avatar: z.url().optional(),
     password: z
         .string()
         .regex(
@@ -21,6 +22,7 @@ export const updateStaffSchema = z.object({
     email: z.email(),
     displayName: z.string().min(1, "Display name is required"),
     staffRoleId: z.number().min(1, "Staff role is required"),
+    avatar: z.url().optional(),
 });
 
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
@@ -37,4 +39,5 @@ export interface StaffResponse {
     lastLoginAt?: string;
     isActive: boolean;
     createdBy: ProfileResponse;
+    avatar?: string;
 }

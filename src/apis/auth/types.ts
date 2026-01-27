@@ -10,6 +10,7 @@ export const registerSchema = z
                 /^(?=.{6,30}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
                 "Password must be 6-30 characters and include upper, lower, number, and symbol"
             ),
+        avatar: z.url().optional(),
         confirmPassword: z.string(),
         displayName: z.string().min(1, "Display name is required")
     })
@@ -39,4 +40,5 @@ export interface ProfileResponse {
     role: number;
     staffRolename: string;
     permissions: string[];
+    avatar?: string;
 }

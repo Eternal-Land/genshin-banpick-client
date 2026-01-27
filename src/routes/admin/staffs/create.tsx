@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AxiosError } from "axios";
+import { AxiosError, type AxiosProgressEvent } from "axios";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { staffsApi } from "@/apis/staffs";
 import { staffRolesApi } from "@/apis/staff-roles";
 import { createStaffSchema, type CreateStaffInput } from "@/apis/staffs/types";
+import { filesApi } from "@/apis/files";
 import type { StaffRoleResonse } from "@/apis/staff-roles/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -43,6 +45,8 @@ export const Route = createFileRoute("/admin/staffs/create")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   type CreateStaffFormInput = z.input<typeof createStaffSchema>;
   const form = useForm<CreateStaffFormInput>({
     resolver: zodResolver(createStaffSchema),
@@ -65,14 +69,46 @@ function RouteComponent() {
   const createMutation = useMutation<
     BaseApiResponse,
     AxiosError<BaseApiResponse>,
-    CreateStaffInput
+    CreateStaffFormInput
   >({
-    mutationFn: staffsApi.createStaff,
+    mutationFn: async (values) => {
+      let avatarUrl = values.avatar;
+
+      if (fileNeedUpload) {
+        const uploadResult = await filesApi.uploadFile(
+          fileNeedUpload,
+          handleUploadProgress,
+        );
+        avatarUrl = uploadResult.secure_url;
+      }
+
+      const payload: CreateStaffInput = {
+        email: values.email,
+        displayName: values.displayName,
+        ingameUuid: values.ingameUuid || undefined,
+        staffRoleId: values.staffRoleId,
+        password: values.password,
+        avatar: avatarUrl || undefined,
+      };
+
+      return staffsApi.createStaff(payload);
+    },
     onSuccess: () => {
       toast.success("Staff created successfully.");
       navigate({ to: "/admin/staffs" });
     },
   });
+
+  const handleUploadProgress = (e: AxiosProgressEvent) => {
+    setProgress((e.progress ?? 0) * 100);
+  };
+
+  const handleOnFilesChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files.item(0)!;
+    setFileNeedUpload(file);
+    setProgress(0);
+  };
 
   const staffRoleCount = useMemo(() => staffRoles.length, [staffRoles]);
 
@@ -97,16 +133,30 @@ function RouteComponent() {
         <form
           id="staff-create-form"
           onSubmit={form.handleSubmit((values) =>
-            createMutation.mutate({
-              email: values.email,
-              displayName: values.displayName,
-              ingameUuid: values.ingameUuid || undefined,
-              staffRoleId: values.staffRoleId,
-              password: values.password,
-            }),
+            createMutation.mutate(values),
           )}
         >
           <FieldGroup>
+            <Controller
+              name="avatar"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  <Input {...field} id={field.name} type="hidden" />
+                  <Input
+                    type="file"
+                    onChange={(event) =>
+                      handleOnFilesChange(event.target.files)
+                    }
+                  />
+                  {progress ? <Progress value={progress} /> : null}
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
             <Controller
               name="displayName"
               control={form.control}

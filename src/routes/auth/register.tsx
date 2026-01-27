@@ -21,9 +21,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { AxiosError } from "axios";
-import type { BaseApiResponse } from "@/lib/types";
+import { AxiosError, type AxiosProgressEvent } from "axios";
 import { toast } from "sonner";
+import { useState } from "react";
+import { filesApi } from "@/apis/files";
+import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/auth/register")({
   component: RouteComponent,
@@ -31,6 +33,9 @@ export const Route = createFileRoute("/auth/register")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -42,17 +47,44 @@ function RouteComponent() {
     },
   });
 
-  const registerMutation = useMutation<
-    any,
-    AxiosError<BaseApiResponse>,
-    RegisterInput
-  >({
-    mutationFn: authApi.register,
+  const registerMutation = useMutation<void, any, RegisterInput>({
+    mutationFn: async (input: RegisterInput) => {
+      if (fileNeedUpload) {
+        const uploadResult = await filesApi.uploadFile(
+          fileNeedUpload,
+          handleUploadProgress,
+        );
+        input.avatar = uploadResult.secure_url;
+      }
+
+      await authApi.register(input);
+    },
     onSuccess: () => {
       toast.success("Account created successfully. You can now log in.");
       navigate({ to: "/auth/login" });
     },
+    onError: (error) => {
+      if (error instanceof AxiosError) {
+        if (error.response?.data?.message) {
+          setErrorMsg(error.response?.data?.message);
+        } else {
+          setErrorMsg(error.message);
+        }
+      } else {
+        setErrorMsg("An unknown error occurred.");
+      }
+    },
   });
+
+  const handleUploadProgress = (e: AxiosProgressEvent) => {
+    setProgress((e.progress ?? 0) * 100);
+  };
+
+  const handleOnFilesChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files.item(0)!;
+    setFileNeedUpload(file);
+  };
 
   return (
     <Card>
@@ -60,8 +92,7 @@ function RouteComponent() {
         <CardTitle>Create your account</CardTitle>
         {registerMutation.isError && (
           <CardDescription className="text-destructive">
-            {registerMutation.error.response?.data.message ||
-              "An error occurred during registration."}
+            {errorMsg}
           </CardDescription>
         )}
       </CardHeader>
@@ -73,6 +104,24 @@ function RouteComponent() {
           )}
         >
           <FieldGroup>
+            <Controller
+              name="avatar"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  <Input {...field} id={field.name} type="hidden" />
+                  <Input
+                    type="file"
+                    onChange={(e) => handleOnFilesChange(e.target.files)}
+                  />
+                  {progress ? <Progress value={progress} /> : null}
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
             <Controller
               name="displayName"
               control={form.control}

@@ -7,6 +7,7 @@ import type { StaffResponse } from "@/apis/staffs/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -49,6 +50,14 @@ function RouteComponent() {
   const [confirmTarget, setConfirmTarget] = useState<StaffResponse | null>(
     null,
   );
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("");
 
   const {
     data: staffsResponse,
@@ -177,7 +186,18 @@ function RouteComponent() {
                   : filteredStaffs.map((staff: StaffResponse) => (
                       <TableRow key={staff.id}>
                         <TableCell className="font-medium break-words">
-                          {staff.displayName}
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-9">
+                              <AvatarImage
+                                src={staff.avatar}
+                                alt={staff.displayName}
+                              />
+                              <AvatarFallback>
+                                {getInitials(staff.displayName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{staff.displayName}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="break-words">
                           {staff.email}

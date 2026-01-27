@@ -1,13 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AxiosError } from "axios";
+import { AxiosError, type AxiosProgressEvent } from "axios";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { staffsApi } from "@/apis/staffs";
 import { staffRolesApi } from "@/apis/staff-roles";
 import { updateStaffSchema, type UpdateStaffInput } from "@/apis/staffs/types";
+import { filesApi } from "@/apis/files";
 import type { StaffRoleResonse } from "@/apis/staff-roles/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -44,6 +46,8 @@ export const Route = createFileRoute("/admin/staffs/$staffId")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { staffId } = Route.useParams();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number>(0);
 
   type UpdateStaffFormInput = z.input<typeof updateStaffSchema>;
   const form = useForm<UpdateStaffFormInput>({
@@ -53,6 +57,7 @@ function RouteComponent() {
       displayName: "",
       ingameUuid: "",
       staffRoleId: undefined,
+      avatar: undefined,
     },
   });
 
@@ -82,6 +87,7 @@ function RouteComponent() {
       displayName: staff.displayName,
       ingameUuid: staff.ingameUuid ?? "",
       staffRoleId: staff.staffRoleId,
+      avatar: staff.avatar ?? undefined,
     });
 
     form.setValue("staffRoleId", staff.staffRoleId);
@@ -90,14 +96,45 @@ function RouteComponent() {
   const updateMutation = useMutation<
     BaseApiResponse,
     AxiosError<BaseApiResponse>,
-    UpdateStaffInput
+    UpdateStaffFormInput
   >({
-    mutationFn: (values) => staffsApi.updateStaff(staffId, values),
+    mutationFn: async (values) => {
+      let avatarUrl = values.avatar;
+
+      if (fileNeedUpload) {
+        const uploadResult = await filesApi.uploadFile(
+          fileNeedUpload,
+          handleUploadProgress,
+        );
+        avatarUrl = uploadResult.secure_url;
+      }
+
+      const payload: UpdateStaffInput = {
+        email: values.email,
+        displayName: values.displayName,
+        ingameUuid: values.ingameUuid || undefined,
+        staffRoleId: values.staffRoleId,
+        avatar: avatarUrl || undefined,
+      };
+
+      return staffsApi.updateStaff(staffId, payload);
+    },
     onSuccess: () => {
       toast.success("Staff updated successfully.");
       navigate({ to: "/admin/staffs" });
     },
   });
+
+  const handleUploadProgress = (e: AxiosProgressEvent) => {
+    setProgress((e.progress ?? 0) * 100);
+  };
+
+  const handleOnFilesChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files.item(0)!;
+    setFileNeedUpload(file);
+    setProgress(0);
+  };
 
   const staffRoleCount = useMemo(() => staffRoles.length, [staffRoles]);
 
@@ -127,15 +164,36 @@ function RouteComponent() {
         <form
           id="staff-update-form"
           onSubmit={form.handleSubmit((values) =>
-            updateMutation.mutate({
-              email: values.email,
-              displayName: values.displayName,
-              ingameUuid: values.ingameUuid || undefined,
-              staffRoleId: values.staffRoleId,
-            }),
+            updateMutation.mutate(values),
           )}
         >
           <FieldGroup>
+            <Controller
+              name="avatar"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  {isStaffLoading ? (
+                    <Skeleton className="h-9 w-full" />
+                  ) : (
+                    <>
+                      <Input {...field} id={field.name} type="hidden" />
+                      <Input
+                        type="file"
+                        onChange={(event) =>
+                          handleOnFilesChange(event.target.files)
+                        }
+                      />
+                      {progress ? <Progress value={progress} /> : null}
+                    </>
+                  )}
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
             <Controller
               name="displayName"
               control={form.control}
