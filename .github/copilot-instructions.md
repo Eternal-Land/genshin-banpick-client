@@ -37,6 +37,7 @@ You are working in a Vite + React + TypeScript client app for “genshin-banpick
 - For layouts, you can assign an id to a form (e.g., `register-form`) and place the submit button outside the form using `form="register-form"`.
 - Use TanStack Query `useMutation` for form submit handlers that call APIs.
 - For mutation errors, read `AxiosError<BaseApiResponse>` and surface `error.response?.data.message` in the UI (e.g., in a CardDescription with `text-destructive`).
+- ALWAYS handle file uploads when a schema includes a `z.url()` field (e.g., `avatar`). Use the files API, track upload progress, and only upload when a file is selected before submitting the form payload.
 
 ## Project hygiene
 

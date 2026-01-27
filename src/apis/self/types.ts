@@ -1,3 +1,5 @@
+import z from "zod";
+
 export interface ProfileResponse {
     id: string;
     email: string;
@@ -8,3 +10,11 @@ export interface ProfileResponse {
     permissions: string[];
     avatar?: string;
 }
+
+export const updateProfileSchema = z.object({
+    ingameUuid: z.string().optional(),
+    avatar: z.url().optional(),
+    displayName: z.string().optional(),
+})
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

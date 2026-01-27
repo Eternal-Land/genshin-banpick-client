@@ -1,5 +1,5 @@
 import z from "zod";
-import type { ProfileResponse } from "../auth/types";
+import type { ProfileResponse } from "../self/types";
 
 export const createStaffSchema = z.object({
     ingameUuid: z.string().optional(),
