@@ -1,4 +1,5 @@
 import z from "zod";
+import type { ProfileResponse } from "../auth/types";
 
 export const createStaffSchema = z.object({
     ingameUuid: z.string().optional(),
@@ -20,12 +21,6 @@ export const updateStaffSchema = z.object({
     email: z.email(),
     displayName: z.string().min(1, "Display name is required"),
     staffRoleId: z.number().min(1, "Staff role is required"),
-    password: z
-        .string()
-        .regex(
-            /^(?=.{6,30}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
-            "Password must be 6-30 characters and include upper, lower, number, and symbol"
-        ),
 });
 
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
@@ -40,4 +35,6 @@ export interface StaffResponse {
     staffRoleName: string;
     createdAt: string;
     lastLoginAt?: string;
+    isActive: boolean;
+    createdBy: ProfileResponse;
 }

@@ -22,6 +22,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PenIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/staff-roles/")({
   component: RouteComponent,
@@ -146,14 +152,19 @@ function RouteComponent() {
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        <Button asChild variant="outline" size="sm">
-                          <Link
-                            to="/admin/staff-roles/$staffRoleId"
-                            params={{ staffRoleId: role.id.toString() }}
-                          >
-                            Edit
-                          </Link>
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button asChild variant="outline" size="icon-sm">
+                              <Link
+                                to="/admin/staff-roles/$staffRoleId"
+                                params={{ staffRoleId: role.id.toString() }}
+                              >
+                                <PenIcon className="size-3" />
+                              </Link>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit staff role</TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}

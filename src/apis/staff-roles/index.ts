@@ -38,7 +38,7 @@ async function updateStaffRole(id: number, input: UpdateStaffRoleInput) {
 
 async function copyStaffRole(id: number) {
   const response = await http.post<BaseApiResponse<StaffRoleResonse>>(
-    `/api/admin/staff-roles/copy/${id}`,
+    `/api/admin/staff-roles/${id}/copy`,
   );
   return response.data;
 }

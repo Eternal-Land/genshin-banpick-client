@@ -141,12 +141,12 @@ function RouteComponent() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="max-w-full overflow-x-hidden">
         <header className="flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger />
           <div className="text-sm font-medium">Admin</div>
         </header>
-        <div className="flex-1 p-4">
+        <div className="flex-1 max-w-full overflow-x-hidden p-4">
           <Outlet />
         </div>
       </SidebarInset>
