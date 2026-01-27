@@ -38,7 +38,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { BanIcon, PenIcon, SquareCheckIcon } from "lucide-react";
+import {
+  BanIcon,
+  PenIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+  SquareCheckIcon,
+} from "lucide-react";
+import { RefreshSpinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/admin/staff-roles/")({
   component: RouteComponent,
@@ -118,20 +125,37 @@ function RouteComponent() {
               placeholder="Search by role name"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="sm:max-w-sm"
             />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => refetch()}
-                disabled={isFetching}
-              >
-                {isFetching ? "Refreshing..." : "Refresh"}
-              </Button>
-              <Button asChild>
-                <Link to="/admin/staff-roles/create">Create role</Link>
-              </Button>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    size="icon"
+                  >
+                    {isFetching ? (
+                      <RefreshSpinner className="size-4" />
+                    ) : (
+                      <RefreshCcwIcon className="size-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild size="icon">
+                    <Link to="/admin/staff-roles/create">
+                      <PlusIcon className="size-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Create new staff role</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 

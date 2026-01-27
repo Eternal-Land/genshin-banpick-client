@@ -33,6 +33,12 @@ import { store } from "@/lib/redux";
 import { ACCOUNT_ROLES } from "@/lib/constants";
 import { authApi } from "@/apis/auth";
 import { useAppSelector } from "@/hooks/use-app-selector";
+import {
+  BriefcaseIcon,
+  ContactIcon,
+  HouseIcon,
+  WrenchIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: RouteComponent,
@@ -56,18 +62,22 @@ const adminRoutes = [
   {
     to: "/admin",
     label: "Dashboard",
+    icon: <HouseIcon className="size-4" />,
   },
   {
     to: "/admin/permissions",
     label: "Permissions",
+    icon: <WrenchIcon className="size-4" />,
   },
   {
     to: "/admin/staff-roles",
     label: "Staff Roles",
+    icon: <BriefcaseIcon className="size-4" />,
   },
   {
     to: "/admin/staffs",
     label: "Staffs",
+    icon: <ContactIcon className="size-4" />,
   },
 ];
 
@@ -99,7 +109,9 @@ function RouteComponent() {
                       asChild
                       isActive={isRouteActive(route.to)}
                     >
-                      <Link to={route.to}>{route.label}</Link>
+                      <Link to={route.to}>
+                        {route.icon} {route.label}
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

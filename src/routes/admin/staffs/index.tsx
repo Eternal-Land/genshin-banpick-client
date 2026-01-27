@@ -26,7 +26,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { BanIcon, PenIcon, SquareCheckIcon } from "lucide-react";
+import {
+  RefreshCcwIcon,
+  UserCheckIcon,
+  UserPenIcon,
+  UserPlusIcon,
+  UserXIcon,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -40,6 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RefreshSpinner } from "@/components/ui/spinner";
 
 export const Route = createFileRoute("/admin/staffs/")({
   component: RouteComponent,
@@ -121,25 +128,41 @@ function RouteComponent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Input
               placeholder="Search by name, email, or role"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="sm:max-w-sm"
             />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => refetch()}
-                disabled={isFetching}
-              >
-                {isFetching ? "Refreshing..." : "Refresh"}
-              </Button>
-              <Button asChild>
-                <Link to="/admin/staffs/create">Create staff</Link>
-              </Button>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    size="icon"
+                  >
+                    {isFetching ? (
+                      <RefreshSpinner className="size-4" />
+                    ) : (
+                      <RefreshCcwIcon className="size-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Refresh</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild size="icon">
+                    <Link to="/admin/staffs/create">
+                      <UserPlusIcon className="size-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Create new staff</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
@@ -235,7 +258,7 @@ function RouteComponent() {
                                     to="/admin/staffs/$staffId"
                                     params={{ staffId: staff.id }}
                                   >
-                                    <PenIcon className="size-3" />
+                                    <UserPenIcon className="size-3" />
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
@@ -254,9 +277,9 @@ function RouteComponent() {
                                   className="cursor-pointer"
                                 >
                                   {staff.isActive ? (
-                                    <BanIcon className="size-3" />
+                                    <UserXIcon className="size-3" />
                                   ) : (
-                                    <SquareCheckIcon className="size-3" />
+                                    <UserCheckIcon className="size-3" />
                                   )}
                                 </Button>
                               </TooltipTrigger>

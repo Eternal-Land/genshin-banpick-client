@@ -22,6 +22,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { RefreshSpinner } from "@/components/ui/spinner";
+import { RefreshCcwIcon } from "lucide-react";
 
 export const Route = createFileRoute("/admin/permissions/")({
   component: RouteComponent,
@@ -88,14 +95,24 @@ function RouteComponent() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              {isFetching ? "Refreshing..." : "Refresh"}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  size="icon"
+                >
+                  {isFetching ? (
+                    <RefreshSpinner className="size-4" />
+                  ) : (
+                    <RefreshCcwIcon className="size-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh</TooltipContent>
+            </Tooltip>
           </div>
 
           <Table>
