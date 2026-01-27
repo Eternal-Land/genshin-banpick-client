@@ -31,14 +31,3 @@ export type BasicLoginInput = z.infer<typeof basicLoginSchema>;
 export interface TokenResponse {
     accessToken: string;
 }
-
-export interface ProfileResponse {
-    id: string;
-    email: string;
-    ingameUuid: string;
-    displayName: string;
-    role: number;
-    staffRolename: string;
-    permissions: string[];
-    avatar?: string;
-}

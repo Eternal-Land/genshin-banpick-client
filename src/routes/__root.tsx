@@ -1,4 +1,4 @@
-import { authApi } from "@/apis/auth";
+import { selfApi } from "@/apis/self";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { store } from "@/lib/redux";
@@ -11,7 +11,7 @@ export const Route = createRootRoute({
     const { profile } = store.getState().auth;
     if (!profile) {
       try {
-        const response = await authApi.getProfile();
+        const response = await selfApi.getSelf();
         const fetchedProfile = response.data;
         store.dispatch(setProfile(fetchedProfile!));
       } catch (err) {

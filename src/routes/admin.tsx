@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { store } from "@/lib/redux";
 import { ACCOUNT_ROLES } from "@/lib/constants";
 import { authApi } from "@/apis/auth";
@@ -126,6 +126,7 @@ function RouteComponent() {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton className="h-auto gap-3 py-2">
                     <Avatar className="size-8">
+                      <AvatarImage src={profile?.avatar} />
                       <AvatarFallback />
                     </Avatar>
                     <div className="flex min-w-0 flex-col text-left">
@@ -141,6 +142,7 @@ function RouteComponent() {
                 <DropdownMenuContent align="end" side="right" className="w-48">
                   <DropdownMenuLabel>Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem>Profile</DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => authApi.logout()}

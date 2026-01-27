@@ -1,7 +1,6 @@
-import { API_BASE, http } from "@/lib/http";
-import type { BasicLoginInput, ProfileResponse, RegisterInput, TokenResponse } from "./types";
+import { http } from "@/lib/http";
+import type { BasicLoginInput, RegisterInput, TokenResponse } from "./types";
 import type { BaseApiResponse } from "@/lib/types";
-import axios from "axios";
 import { store } from "@/lib/redux";
 import { setProfile } from "@/lib/redux/auth.slice";
 
@@ -14,15 +13,6 @@ async function basicLogin(input: BasicLoginInput) {
     return response.data;
 }
 
-async function getProfile() {
-    const response = await axios.get<BaseApiResponse<ProfileResponse>>(API_BASE + "/api/auth/profile", {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        }
-    });
-    return response.data;
-}
-
 function logout() {
     localStorage.removeItem("token");
     store.dispatch(setProfile(null));
@@ -32,6 +22,5 @@ function logout() {
 export const authApi = {
     register,
     basicLogin,
-    getProfile,
     logout
 } as const;

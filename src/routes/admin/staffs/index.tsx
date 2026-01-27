@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -28,6 +27,7 @@ import {
 import { toast } from "sonner";
 import {
   RefreshCcwIcon,
+  SearchIcon,
   UserCheckIcon,
   UserPenIcon,
   UserPlusIcon,
@@ -47,6 +47,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RefreshSpinner } from "@/components/ui/spinner";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import dayjs from "dayjs";
 
 export const Route = createFileRoute("/admin/staffs/")({
   component: RouteComponent,
@@ -129,11 +135,17 @@ function RouteComponent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Input
-              placeholder="Search by name, email, or role"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
+            <InputGroup>
+              <InputGroupInput
+                placeholder="Search by name, email, or role"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <InputGroupAddon align="inline-end">
+                <SearchIcon className="size-4" />
+              </InputGroupAddon>
+            </InputGroup>
+
             <div className="flex gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -237,16 +249,18 @@ function RouteComponent() {
                         </TableCell>
                         <TableCell>
                           {staff.lastLoginAt
-                            ? new Date(staff.lastLoginAt).toLocaleString()
+                            ? dayjs(staff.lastLoginAt).format(
+                                "DD/MM/YYYY HH:mm",
+                              )
                             : "-"}
                         </TableCell>
                         <TableCell>
                           {staff.createdAt
-                            ? new Date(staff.createdAt).toLocaleString()
+                            ? dayjs(staff.createdAt).format("DD/MM/YYYY HH:mm")
                             : "-"}
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

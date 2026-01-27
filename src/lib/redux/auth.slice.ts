@@ -1,4 +1,4 @@
-import type { ProfileResponse } from "@/apis/auth/types";
+import type { ProfileResponse } from "@/apis/self/types";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from ".";
 

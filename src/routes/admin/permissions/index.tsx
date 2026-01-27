@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -28,7 +27,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RefreshSpinner } from "@/components/ui/spinner";
-import { RefreshCcwIcon } from "lucide-react";
+import { RefreshCcwIcon, SearchIcon } from "lucide-react";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 
 export const Route = createFileRoute("/admin/permissions/")({
   component: RouteComponent,
@@ -88,13 +92,16 @@ function RouteComponent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
-              <Input
+            <InputGroup>
+              <InputGroupInput
                 placeholder="Search by code or description"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-            </div>
+              <InputGroupAddon align="inline-end">
+                <SearchIcon className="size-4" />
+              </InputGroupAddon>
+            </InputGroup>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

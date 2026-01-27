@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { ACCOUNT_ROLES } from "@/lib/constants";
 import { useAppDispatch } from "@/hooks/use-app-dispatch";
 import { setProfile } from "@/lib/redux/auth.slice";
+import { selfApi } from "@/apis/self";
 
 export const Route = createFileRoute("/auth/login")({
   component: RouteComponent,
@@ -44,7 +45,7 @@ function RouteComponent() {
   });
 
   const handlePostLogin = async () => {
-    const response = await authApi.getProfile();
+    const response = await selfApi.getSelf();
     const profile = response.data;
     dispatch(setProfile(profile!));
     if (profile?.role === ACCOUNT_ROLES.USER) {

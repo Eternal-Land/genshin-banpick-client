@@ -68,3 +68,7 @@ You are working in a Vite + React + TypeScript client app for “genshin-banpick
 - Use the files API in src/apis/files for uploads (see src/routes/auth/register.tsx for the reference flow).
 - Track upload progress via the Axios progress callback and surface it in the UI (e.g., Progress component).
 - When uploads are optional, only call upload if a file is selected, then set the returned URL on the form payload before the submit API call.
+
+## Dates
+
+- Use dayjs for formatting dates in tables and UI (avoid new Date().toLocaleString()).

@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -43,9 +42,16 @@ import {
   PenIcon,
   PlusIcon,
   RefreshCcwIcon,
+  SearchIcon,
   SquareCheckIcon,
 } from "lucide-react";
 import { RefreshSpinner } from "@/components/ui/spinner";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import dayjs from "dayjs";
 
 export const Route = createFileRoute("/admin/staff-roles/")({
   component: RouteComponent,
@@ -121,11 +127,17 @@ function RouteComponent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Input
-              placeholder="Search by role name"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
+            <InputGroup>
+              <InputGroupInput
+                placeholder="Search by role name"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <InputGroupAddon align="inline-end">
+                <SearchIcon className="size-4" />
+              </InputGroupAddon>
+            </InputGroup>
+
             <div className="flex gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -210,11 +222,11 @@ function RouteComponent() {
                       </TableCell>
                       <TableCell>
                         {role.updatedAt
-                          ? new Date(role.updatedAt).toLocaleString()
+                          ? dayjs(role.updatedAt).format("DD/MM/YYYY HH:mm")
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button asChild variant="outline" size="icon-sm">
