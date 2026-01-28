@@ -1,6 +1,6 @@
 import z from "zod";
 import type { PermissionResponse } from "../permissions/types";
-import type { ProfileResponse } from "../auth/types";
+import type { ProfileResponse } from "../self/types";
 
 export const createStaffRoleSchema = z.object({
   name: z.string().min(1, "Role name is required"),

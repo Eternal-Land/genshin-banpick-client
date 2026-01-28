@@ -1,0 +1,5 @@
+echo "Building project..."
+
+bun run build
+
+echo "Project built successfully."
