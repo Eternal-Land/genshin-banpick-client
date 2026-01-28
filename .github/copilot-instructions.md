@@ -116,6 +116,7 @@ export const {resource}Api = {
 ### Forms
 
 - Use React Hook Form with Zod resolver
+- When defining Zod validation messages, always use i18n message keys (not human-readable text) so errors are translated by `FieldError`.
 - Use `Controller` for custom components
 - Use shadcn/ui Field components for layout:
   ```tsx

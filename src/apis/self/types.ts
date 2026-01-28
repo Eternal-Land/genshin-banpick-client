@@ -13,7 +13,7 @@ export interface ProfileResponse {
 
 export const updateProfileSchema = z.object({
     ingameUuid: z.string().optional(),
-    avatar: z.url().optional(),
+    avatar: z.url({ message: "validation_url" }).optional(),
     displayName: z.string().optional(),
 })
 
