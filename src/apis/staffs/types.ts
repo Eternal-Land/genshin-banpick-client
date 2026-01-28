@@ -3,15 +3,15 @@ import type { ProfileResponse } from "../self/types";
 
 export const createStaffSchema = z.object({
     ingameUuid: z.string().optional(),
-    email: z.email(),
-    displayName: z.string().min(1, "Display name is required"),
-    staffRoleId: z.number().min(1, "Staff role is required"),
-    avatar: z.url().optional(),
+    email: z.email({ message: "validation_email" }),
+    displayName: z.string().min(1, "validation_required"),
+    staffRoleId: z.number().min(1, "validation_required"),
+    avatar: z.url({ message: "validation_url" }).optional(),
     password: z
         .string()
         .regex(
             /^(?=.{6,30}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
-            "Password must be 6-30 characters and include upper, lower, number, and symbol"
+            "validation_password_strength"
         ),
 });
 
@@ -19,10 +19,10 @@ export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 
 export const updateStaffSchema = z.object({
     ingameUuid: z.string().optional(),
-    email: z.email(),
-    displayName: z.string().min(1, "Display name is required"),
-    staffRoleId: z.number().min(1, "Staff role is required"),
-    avatar: z.url().optional(),
+    email: z.email({ message: "validation_email" }),
+    displayName: z.string().min(1, "validation_required"),
+    staffRoleId: z.number().min(1, "validation_required"),
+    avatar: z.url({ message: "validation_url" }).optional(),
 });
 
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;

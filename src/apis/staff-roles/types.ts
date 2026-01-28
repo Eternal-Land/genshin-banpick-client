@@ -3,15 +3,21 @@ import type { PermissionResponse } from "../permissions/types";
 import type { ProfileResponse } from "../self/types";
 
 export const createStaffRoleSchema = z.object({
-  name: z.string().min(1, "Role name is required"),
-  permissionIds: z.array(z.number()).min(1, "At least one permission is required").default([]),
+  name: z.string().min(1, "validation_required"),
+  permissionIds: z
+    .array(z.number())
+    .min(1, "validation_permission_required")
+    .default([]),
 });
 
 export type CreateStaffRoleInput = z.infer<typeof createStaffRoleSchema>;
 
 export const updateStaffRoleSchema = z.object({
-  name: z.string().min(1, "Role name is required"),
-  permissionIds: z.array(z.number()).min(1, "At least one permission is required").default([]),
+  name: z.string().min(1, "validation_required"),
+  permissionIds: z
+    .array(z.number())
+    .min(1, "validation_permission_required")
+    .default([]),
 });
 
 export type UpdateStaffRoleInput = z.infer<typeof updateStaffRoleSchema>;
