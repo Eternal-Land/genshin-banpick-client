@@ -1,75 +1,312 @@
-# Genshin Banpick Client Copilot Instructions
+# Genshin Ban-Pick Client - Copilot Instructions
 
-You are working in a Vite + React + TypeScript client app for “genshin-banpick-client”. Follow these project rules:
+## Project Overview
 
-## Project stack
+This is a React-based web application for a Genshin Impact ban-pick system. The client provides user authentication, admin management, and staff role management features.
 
-- Vite + React 19 + TypeScript.
-- Data fetching uses TanStack Query via src/components/providers.tsx and axios via src/lib/http.ts.
-- Routing uses TanStack Router with file-based routes under src/routes.
-- State management uses Redux Toolkit (see src/lib/redux).
-- Styling uses Tailwind CSS v4 (see src/index.css) and tw-animate-css.
-- UI utilities use src/lib/utils.ts with `cn()` for class merging.
-- Shadcn UI config is in components.json (aliases: @/components, @/lib, @/hooks).
+## Tech Stack
 
-## Routing conventions
+### Core
 
-- Add new pages as files in src/routes. Use createFileRoute in each route file.
-- Root layout is src/routes/\_\_root.tsx with an <Outlet />.
-- Do not edit src/routeTree.gen.ts manually; it is generated.
+- **Framework**: React 19 with TypeScript
+- **Build Tool**: Vite 7
+- **Routing**: TanStack Router with file-based routing
+- **State Management**: Redux Toolkit + TanStack Query (React Query)
+- **Styling**: Tailwind CSS v4 with shadcn/ui components
 
-## Imports and paths
+### Key Libraries
 
-- Use the @ alias for src (configured in tsconfig + Vite).
-- Prefer named exports for components and utilities.
-- Use typed Redux hooks from src/hooks/use-app-selector.ts and src/hooks/use-app-dispatch.ts instead of raw react-redux hooks.
+- **Form Handling**: React Hook Form + Zod validation + @hookform/resolvers
+- **UI Components**: Radix UI primitives (shadcn/ui)
+- **HTTP Client**: Axios
+- **Utilities**:
+  - `clsx` + `tailwind-merge` (via `cn()` utility)
+  - `class-variance-authority` for component variants
+  - `dayjs` for date/time
+  - `lucide-react` for icons
+  - `sonner` for toast notifications
 
-## Styling
+## Project Structure
 
-- Use Tailwind classes; rely on CSS variables defined in src/index.css for theme tokens.
-- Use `cn()` from src/lib/utils.ts when composing className strings.
+```
+src/
+├── apis/              # API client functions and types
+│   └── {resource}/
+│       ├── index.ts   # API functions
+│       └── types.ts   # Schemas & types
+├── components/
+│   ├── providers.tsx  # Global providers
+│   └── ui/           # shadcn/ui components
+├── hooks/            # Custom React hooks
+├── lib/
+│   ├── http.ts       # Axios instance with interceptors
+│   ├── utils.ts      # Utility functions (cn, etc.)
+│   ├── constants/    # App constants
+│   ├── redux/        # Redux store and slices
+│   └── types/        # Shared TypeScript types
+└── routes/           # TanStack Router file-based routes
+```
 
-## Forms
+## Code Conventions
 
-- Use React Hook Form for form state and validation.
-- Prefer `Controller` with `Field`, `FieldLabel`, `FieldDescription`, and `FieldError` from src/components/ui/field.tsx for consistent form UI.
-- Use Zod schemas in src/apis/\*\*/types.ts with `zodResolver` for validation.
-- For layouts, you can assign an id to a form (e.g., `register-form`) and place the submit button outside the form using `form="register-form"`.
-- Use TanStack Query `useMutation` for form submit handlers that call APIs.
-- For mutation errors, read `AxiosError<BaseApiResponse>` and surface `error.response?.data.message` in the UI (e.g., in a CardDescription with `text-destructive`).
-- ALWAYS handle file uploads when a schema includes a `z.url()` field (e.g., `avatar`). Use the files API, track upload progress, and only upload when a file is selected before submitting the form payload.
+### TypeScript
 
-## Project hygiene
+- Use TypeScript for all new files (`.ts`, `.tsx`)
+- Define types explicitly; avoid `any` unless necessary
+- Use `type` for object shapes, `interface` for extensible definitions
+- Export types alongside their related functions
 
-- Keep changes minimal and consistent with existing style (quotes, semicolons).
-- Avoid adding new dependencies unless required.
-- Prefer React function components and hooks.
+### Imports
 
-## If you add new files
+- Use path alias `@/` for src imports (configured in tsconfig and vite.config)
+- Import order: React → Third-party → Components → Hooks → Utils → Types
 
-- Place reusable UI in src/components.
-- Place hooks in src/hooks.
-- Keep route components inside src/routes.
+### Components
 
-## Data fetching
+- Use functional components with TypeScript
+- Name component files with PascalCase matching component name
+- Use `PropsWithChildren` for components wrapping children
+- Destructure props in function parameters
 
-- App-level providers are configured in src/components/providers.tsx (TanStack Query).
-- Use the axios instance from src/lib/http.ts for API calls.
-- Prefer TanStack Query hooks for server state and use the shared axios client for requests.
-- API responses are wrapped in the `BaseApiResponse<T>` type from src/lib/types/base-api-response.ts.
+### API Layer
 
-## API and auth conventions
+#### Structure
 
-- API base URL is read from VITE_API_BASE_URL with a fallback to http://localhost:8080.
-- The shared axios client in src/lib/http.ts already attaches the token from localStorage key "token" and redirects to /auth/login on 401.
-- Do not reimplement auth interceptors; use the shared client.
+```typescript
+// src/apis/{resource}/types.ts
+import { z } from 'zod';
 
-## File uploads
+export const {action}Schema = z.object({
+  field: z.string().min(1, "Error message"),
+});
 
-- Use the files API in src/apis/files for uploads (see src/routes/auth/register.tsx for the reference flow).
-- Track upload progress via the Axios progress callback and surface it in the UI (e.g., Progress component).
-- When uploads are optional, only call upload if a file is selected, then set the returned URL on the form payload before the submit API call.
+export type {Action}Input = z.infer<typeof {action}Schema>;
 
-## Dates
+export interface {Action}Response {
+  field: string;
+}
 
-- Use dayjs for formatting dates in tables and UI (avoid new Date().toLocaleString()).
+// src/apis/{resource}/index.ts
+import { http } from "@/lib/http";
+import type { BaseApiResponse } from "@/lib/types";
+import type { {Action}Input, {Action}Response } from "./types";
+
+async function {action}(input: {Action}Input) {
+  const response = await http.post<BaseApiResponse<{Action}Response>>(
+    "/api/{resource}/{action}",
+    input
+  );
+  return response.data;
+}
+
+export const {resource}Api = {
+  {action},
+} as const;
+```
+
+#### Patterns
+
+- All API calls go through `src/lib/http.ts` (Axios instance)
+- Use TanStack Query (`useMutation`, `useQuery`) for data fetching
+- Define Zod schemas for form validation
+- API responses follow `BaseApiResponse<T>` structure
+- Token stored in localStorage as `"token"`
+- 401 responses auto-redirect to `/auth/login`
+
+### Forms
+
+- Use React Hook Form with Zod resolver
+- Use `Controller` for custom components
+- Use shadcn/ui Field components for layout:
+  ```tsx
+  <Controller
+    name="fieldName"
+    control={form.control}
+    render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Label</FieldLabel>
+        <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+        <FieldError>{fieldState.error?.message}</FieldError>
+      </Field>
+    )}
+  />
+  ```
+
+### Routing (TanStack Router)
+
+#### File-Based Routes
+
+- Routes in `src/routes/` map to URL paths
+- `__root.tsx` is the root layout
+- `index.tsx` is the default route
+- `$param.tsx` for dynamic params
+- Nested folders create nested routes
+
+#### Route Guards
+
+```typescript
+export const Route = createFileRoute("/admin")({
+  component: RouteComponent,
+  beforeLoad: async () => {
+    const { profile } = store.getState().auth;
+    if (!profile) {
+      throw redirect({ to: "/auth/login" });
+    }
+    if (profile.role === ACCOUNT_ROLES.USER) {
+      throw redirect({ to: "/user" });
+    }
+  },
+});
+```
+
+#### Navigation
+
+- Use `<Link to="/path" />` for navigation
+- Use `useNavigate()` hook for programmatic navigation
+- Use `useRouterState()` to access current route state
+
+### State Management
+
+#### Redux (Global State)
+
+- Store in `src/lib/redux/index.ts`
+- Slices in `src/lib/redux/{feature}.slice.ts`
+- Use `useAppSelector` and `useAppDispatch` hooks (typed)
+- Current slices:
+  - `auth` - User profile and authentication state
+
+#### TanStack Query (Server State)
+
+- For all API data fetching
+- Use `useMutation` for mutations (POST, PUT, DELETE)
+- Use `useQuery` for queries (GET)
+- Configure in `Providers` component
+
+### Styling
+
+#### Tailwind CSS
+
+- Use Tailwind v4 classes
+- Use `cn()` utility to merge classes: `cn("base-classes", conditionalClass && "conditional", className)`
+- shadcn/ui components use CSS variables for theming
+
+#### Component Variants
+
+- Use `class-variance-authority` (cva) for component variants
+- Example pattern:
+  ```typescript
+  const variants = cva("base-classes", {
+    variants: {
+      variant: {
+        default: "variant-classes",
+        destructive: "destructive-classes",
+      },
+      size: {
+        default: "size-classes",
+        sm: "small-classes",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  });
+  ```
+
+### Authentication Flow
+
+1. User logs in via `/auth/login`
+2. Token stored in localStorage
+3. Token attached to all requests via http interceptor
+4. Profile fetched in `__root.tsx` beforeLoad
+5. Profile stored in Redux auth slice
+6. Routes check profile/role in beforeLoad guards
+7. 401 responses clear token and redirect to login
+
+### Constants
+
+- Define in `src/lib/constants/`
+- Export as `const` objects with `as const` assertion
+- Example: `ACCOUNT_ROLES`, `ERROR_CODES`
+
+## Best Practices
+
+### Error Handling
+
+- Use TanStack Query error handling in mutations
+- Display errors via `toast.error()` from sonner
+- Show inline errors in forms via Field components
+- AxiosError provides typed error responses
+
+### Performance
+
+- Use TanStack Router's automatic code splitting
+- Lazy load heavy components when appropriate
+- Memoize expensive computations
+- Use proper React keys in lists
+
+### Accessibility
+
+- Use semantic HTML elements
+- Include proper ARIA attributes (`aria-invalid`, `aria-label`, etc.)
+- Ensure form fields have associated labels
+- Use shadcn/ui components (built with accessibility in mind)
+
+### Testing
+
+- (No test setup currently - add as needed)
+
+## Commands
+
+```bash
+# Development
+npm run dev          # Start dev server (host: 0.0.0.0)
+
+# Build
+npm run build        # TypeScript check + production build
+npm run preview      # Preview production build
+
+# Linting
+npm run lint         # Run ESLint
+```
+
+## Environment Variables
+
+- `VITE_API_BASE_URL` - Backend API base URL (default: http://localhost:8080)
+
+## Code Generation Patterns
+
+### New API Resource
+
+1. Create `src/apis/{resource}/types.ts` with Zod schemas and interfaces
+2. Create `src/apis/{resource}/index.ts` with API functions
+3. Export as `{resource}Api` const object
+
+### New Route
+
+1. Create file in `src/routes/` following naming convention
+2. Export `Route` using `createFileRoute()`
+3. Add authentication/authorization in `beforeLoad` if needed
+4. Create component function
+
+### New Redux Slice
+
+1. Create `src/lib/redux/{feature}.slice.ts`
+2. Define state interface
+3. Create slice with `createSlice()`
+4. Export actions and selectors
+5. Add reducer to store in `src/lib/redux/index.ts`
+
+### New shadcn/ui Component
+
+```bash
+npx shadcn@latest add <component-name>
+```
+
+## Notes
+
+- Auto-generated files (like `routeTree.gen.ts`) should not be edited manually
+- The project uses shadcn/ui "new-york" style
+- Token-based authentication with Bearer tokens
+- Role-based access: USER (0), STAFF (1), ADMIN (2)
+- API base URL can be overridden via environment variable
