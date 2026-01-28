@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staffs/create")({
   component: RouteComponent,
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/admin/staffs/create")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   type CreateStaffFormInput = z.input<typeof createStaffSchema>;
@@ -94,7 +96,7 @@ function RouteComponent() {
       return staffsApi.createStaff(payload);
     },
     onSuccess: () => {
-      toast.success("Staff created successfully.");
+      toast.success(t("staffs_create_success"));
       navigate({ to: "/admin/staffs" });
     },
   });
@@ -115,16 +117,16 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create staff</CardTitle>
+        <CardTitle>{t("staffs_create_title")}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>Set up staff profile and assign a role.</span>
+          <span>{t("staffs_create_description")}</span>
           <span className="text-xs">
-            {staffRoleCount} role{staffRoleCount === 1 ? "" : "s"} available
+            {t("staffs_role_count", { count: staffRoleCount })}
           </span>
           {createMutation.isError && (
             <span className="text-destructive">
               {createMutation.error.response?.data.message ||
-                "Unable to create staff."}
+                t("staffs_create_error")}
             </span>
           )}
         </CardDescription>
@@ -142,7 +144,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_avatar_label")}
+                  </FieldLabel>
                   <Input {...field} id={field.name} type="hidden" />
                   <Input
                     type="file"
@@ -162,12 +166,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_display_name_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="e.g. Lumine Admin"
+                    placeholder={t("staffs_display_name_placeholder")}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -180,12 +186,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_email_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="staff@example.com"
+                    placeholder={t("staffs_email_placeholder")}
                     type="email"
                   />
                   {fieldState.invalid && (
@@ -199,12 +207,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>In-game UID</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_ingame_uid_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Optional"
+                    placeholder={t("staffs_ingame_uid_placeholder")}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -218,10 +228,10 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="staff-role-select">
-                    Staff role
+                    {t("staffs_staff_role_label")}
                   </FieldLabel>
                   <FieldDescription>
-                    Choose a role to apply permissions.
+                    {t("staffs_staff_role_description")}
                   </FieldDescription>
                   {isRolesLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -240,7 +250,9 @@ function RouteComponent() {
                         className="w-full"
                         aria-invalid={fieldState.invalid}
                       >
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue
+                          placeholder={t("staffs_staff_role_placeholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {staffRoles.map((role: StaffRoleResonse) => (
@@ -262,16 +274,18 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_password_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
                     type="password"
-                    placeholder="Create a strong password"
+                    placeholder={t("staffs_password_placeholder")}
                   />
                   <FieldDescription>
-                    6-30 characters with upper, lower, number, and symbol.
+                    {t("staffs_password_description")}
                   </FieldDescription>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -288,14 +302,16 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staffs" })}
         >
-          Cancel
+          {t("staffs_cancel")}
         </Button>
         <Button
           type="submit"
           form="staff-create-form"
           disabled={createMutation.isPending}
         >
-          {createMutation.isPending ? "Creating..." : "Create staff"}
+          {createMutation.isPending
+            ? t("staffs_create_pending")
+            : t("staffs_create_submit")}
         </Button>
       </CardFooter>
     </Card>

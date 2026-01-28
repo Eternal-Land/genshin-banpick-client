@@ -36,6 +36,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staff-roles/$staffRoleId")({
   component: RouteComponent,
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/admin/staff-roles/$staffRoleId")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { staffRoleId } = Route.useParams();
   const roleId = Number(staffRoleId);
 
@@ -90,7 +92,7 @@ function RouteComponent() {
   >({
     mutationFn: (values) => staffRolesApi.updateStaffRole(roleId, values),
     onSuccess: () => {
-      toast.success("Staff role updated successfully.");
+      toast.success(t("staff_roles_edit_success"));
       navigate({ to: "/admin/staff-roles" });
     },
   });
@@ -100,22 +102,21 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit staff role</CardTitle>
+        <CardTitle>{t("staff_roles_edit_title")}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>Update role name, status, and permissions.</span>
+          <span>{t("staff_roles_edit_description")}</span>
           <span className="text-xs">
-            {permissionCount} permission{permissionCount === 1 ? "" : "s"}{" "}
-            available
+            {t("staff_roles_permission_count", { count: permissionCount })}
           </span>
           {roleError ? (
             <span className="text-destructive">
-              Failed to load staff role details.
+              {t("staff_roles_edit_load_error")}
             </span>
           ) : null}
           {updateMutation.isError && (
             <span className="text-destructive">
               {updateMutation.error.response?.data.message ||
-                "Unable to update staff role."}
+                t("staff_roles_edit_error")}
             </span>
           )}
         </CardDescription>
@@ -136,7 +137,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Role name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staff_roles_name_label")}
+                  </FieldLabel>
                   {isRoleLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -144,7 +147,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder="e.g. Match Moderator"
+                      placeholder={t("staff_roles_name_placeholder")}
                     />
                   )}
                   {fieldState.invalid && (
@@ -158,9 +161,11 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <FieldSet>
-                  <FieldLegend>Permissions</FieldLegend>
+                  <FieldLegend>
+                    {t("staff_roles_permissions_label")}
+                  </FieldLegend>
                   <FieldDescription>
-                    Select permissions granted to this role.
+                    {t("staff_roles_permissions_description")}
                   </FieldDescription>
                   {isPermissionsLoading || isRoleLoading ? (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -210,10 +215,13 @@ function RouteComponent() {
                                 {permission.code}
                               </span>
                               <span className="text-muted-foreground text-xs">
-                                {permission.description || "No description"}
+                                {permission.description ||
+                                  t("staff_roles_permission_no_description")}
                               </span>
                               {permission.deprecated ? (
-                                <Badge variant="destructive">Deprecated</Badge>
+                                <Badge variant="destructive">
+                                  {t("staff_roles_permission_deprecated")}
+                                </Badge>
                               ) : null}
                             </FieldLabel>
                           </Field>
@@ -236,14 +244,16 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staff-roles" })}
         >
-          Cancel
+          {t("staff_roles_cancel")}
         </Button>
         <Button
           type="submit"
           form="staff-role-update-form"
           disabled={updateMutation.isPending || isRoleLoading}
         >
-          {updateMutation.isPending ? "Saving..." : "Save changes"}
+          {updateMutation.isPending
+            ? t("staff_roles_edit_pending")
+            : t("staff_roles_edit_submit")}
         </Button>
       </CardFooter>
     </Card>

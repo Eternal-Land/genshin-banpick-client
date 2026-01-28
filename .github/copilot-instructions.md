@@ -213,6 +213,17 @@ export const Route = createFileRoute("/admin")({
   });
   ```
 
+### Internationalization (i18n)
+
+- Setup is in [src/i18n/index.ts](src/i18n/index.ts) and initialized by importing it in [src/main.tsx](src/main.tsx).
+- Libraries: `i18next`, `react-i18next`, `i18next-browser-languagedetector`.
+- Supported languages: `en`, `vi` with `common` namespace. Resource files live in:
+  - [src/i18n/locales/en/common.json](src/i18n/locales/en/common.json)
+  - [src/i18n/locales/vi/common.json](src/i18n/locales/vi/common.json)
+- Language detection order: `localStorage` then `navigator`; cached in localStorage by the detector (key: `i18nextLng`).
+- Use `useTranslation()` and `t("key")` for strings. Change language via `i18n.changeLanguage("vi")`.
+- ALWAYS update i18n locales in [src/i18n/locales/en/common.json](src/i18n/locales/en/common.json) and [src/i18n/locales/vi/common.json](src/i18n/locales/vi/common.json) when creating, editing, or deleting user-facing features/pages.
+
 ### Authentication Flow
 
 1. User logs in via `/auth/login`

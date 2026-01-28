@@ -33,12 +33,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/permissions/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
   const {
@@ -76,16 +78,17 @@ function RouteComponent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Permissions</CardTitle>
+          <CardTitle>{t("permissions_title")}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
             <span>
-              {permissions?.length ?? 0} total permission
-              {(permissions?.length ?? 0) === 1 ? "" : "s"}
+              {t("permissions_total", { count: permissions?.length ?? 0 })}
             </span>
-            <Badge variant="secondary">{deprecatedCount} deprecated</Badge>
+            <Badge variant="secondary">
+              {t("permissions_deprecated_count", { count: deprecatedCount })}
+            </Badge>
             {error ? (
               <span className="text-destructive">
-                Failed to load permissions.
+                {t("permissions_load_error")}
               </span>
             ) : null}
           </CardDescription>
@@ -94,7 +97,7 @@ function RouteComponent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder="Search by code or description"
+                placeholder={t("permissions_search_placeholder")}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -118,17 +121,21 @@ function RouteComponent() {
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Refresh</TooltipContent>
+              <TooltipContent>{t("permissions_refresh")}</TooltipContent>
             </Tooltip>
           </div>
 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[80px]">ID</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-[140px]">Status</TableHead>
+                <TableHead className="w-[80px]">
+                  {t("permissions_table_id")}
+                </TableHead>
+                <TableHead>{t("permissions_table_code")}</TableHead>
+                <TableHead>{t("permissions_table_description")}</TableHead>
+                <TableHead className="w-[140px]">
+                  {t("permissions_table_status")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,13 +163,17 @@ function RouteComponent() {
                         {permission.code}
                       </TableCell>
                       <TableCell className="whitespace-normal">
-                        {permission.description || "-"}
+                        {permission.description || t("permissions_no_desc")}
                       </TableCell>
                       <TableCell>
                         {permission.deprecated ? (
-                          <Badge variant="destructive">Deprecated</Badge>
+                          <Badge variant="destructive">
+                            {t("permissions_status_deprecated")}
+                          </Badge>
                         ) : (
-                          <Badge variant="secondary">Active</Badge>
+                          <Badge variant="secondary">
+                            {t("permissions_status_active")}
+                          </Badge>
                         )}
                       </TableCell>
                     </TableRow>
@@ -174,7 +185,7 @@ function RouteComponent() {
                     colSpan={4}
                     className="text-muted-foreground text-center"
                   >
-                    No permissions found.
+                    {t("permissions_empty")}
                   </TableCell>
                 </TableRow>
               ) : null}

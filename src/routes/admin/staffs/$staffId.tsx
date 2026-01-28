@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staffs/$staffId")({
   component: RouteComponent,
@@ -45,6 +46,7 @@ export const Route = createFileRoute("/admin/staffs/$staffId")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { staffId } = Route.useParams();
   const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -120,7 +122,7 @@ function RouteComponent() {
       return staffsApi.updateStaff(staffId, payload);
     },
     onSuccess: () => {
-      toast.success("Staff updated successfully.");
+      toast.success(t("staffs_edit_success"));
       navigate({ to: "/admin/staffs" });
     },
   });
@@ -141,21 +143,21 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Edit staff</CardTitle>
+        <CardTitle>{t("staffs_edit_title")}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>Update profile details and assigned role.</span>
+          <span>{t("staffs_edit_description")}</span>
           <span className="text-xs">
-            {staffRoleCount} role{staffRoleCount === 1 ? "" : "s"} available
+            {t("staffs_role_count", { count: staffRoleCount })}
           </span>
           {staffError ? (
             <span className="text-destructive">
-              Failed to load staff details.
+              {t("staffs_edit_load_error")}
             </span>
           ) : null}
           {updateMutation.isError && (
             <span className="text-destructive">
               {updateMutation.error.response?.data.message ||
-                "Unable to update staff."}
+                t("staffs_edit_error")}
             </span>
           )}
         </CardDescription>
@@ -173,7 +175,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_avatar_label")}
+                  </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -199,7 +203,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_display_name_label")}
+                  </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -207,7 +213,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder="e.g. Lumine Admin"
+                      placeholder={t("staffs_display_name_placeholder")}
                     />
                   )}
                   {fieldState.invalid && (
@@ -221,7 +227,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_email_label")}
+                  </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -229,7 +237,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder="staff@example.com"
+                      placeholder={t("staffs_email_placeholder")}
                       type="email"
                     />
                   )}
@@ -244,7 +252,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>In-game UID</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staffs_ingame_uid_label")}
+                  </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
@@ -252,7 +262,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder="Optional"
+                      placeholder={t("staffs_ingame_uid_placeholder")}
                     />
                   )}
                   {fieldState.invalid && (
@@ -267,10 +277,10 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="staff-role-select">
-                    Staff role
+                    {t("staffs_staff_role_label")}
                   </FieldLabel>
                   <FieldDescription>
-                    Choose a role to apply permissions.
+                    {t("staffs_staff_role_description")}
                   </FieldDescription>
                   {isRolesLoading || isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -289,7 +299,9 @@ function RouteComponent() {
                         className="w-full"
                         aria-invalid={fieldState.invalid}
                       >
-                        <SelectValue placeholder="Select a role" />
+                        <SelectValue
+                          placeholder={t("staffs_staff_role_placeholder")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {staffRoles.map((role: StaffRoleResonse) => (
@@ -315,14 +327,16 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staffs" })}
         >
-          Cancel
+          {t("staffs_cancel")}
         </Button>
         <Button
           type="submit"
           form="staff-update-form"
           disabled={updateMutation.isPending || isStaffLoading}
         >
-          {updateMutation.isPending ? "Saving..." : "Save changes"}
+          {updateMutation.isPending
+            ? t("staffs_edit_pending")
+            : t("staffs_edit_submit")}
         </Button>
       </CardFooter>
     </Card>

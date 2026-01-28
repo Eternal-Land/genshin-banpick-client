@@ -53,12 +53,14 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staffs/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState<StaffResponse | null>(
     null,
@@ -90,13 +92,13 @@ function RouteComponent() {
   >({
     mutationFn: (id) => staffsApi.toggleStaffActiveStatus(id),
     onSuccess: () => {
-      toast.success("Staff status updated.");
+      toast.success(t("staffs_status_updated"));
       refetch();
       setConfirmTarget(null);
     },
     onError: (mutationError) => {
       toast.error(
-        mutationError.response?.data.message || "Unable to update status.",
+        mutationError.response?.data.message || t("staffs_status_update_error"),
       );
     },
   });
@@ -123,13 +125,11 @@ function RouteComponent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Staffs</CardTitle>
+          <CardTitle>{t("staffs_title")}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
-            <span>
-              {staffs.length} staff{staffs.length === 1 ? "" : "s"}
-            </span>
+            <span>{t("staffs_count", { count: staffs.length })}</span>
             {error ? (
-              <span className="text-destructive">Failed to load staffs.</span>
+              <span className="text-destructive">{t("staffs_load_error")}</span>
             ) : null}
           </CardDescription>
         </CardHeader>
@@ -137,7 +137,7 @@ function RouteComponent() {
           <div className="flex gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder="Search by name, email, or role"
+                placeholder={t("staffs_search_placeholder")}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -163,7 +163,7 @@ function RouteComponent() {
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Refresh</TooltipContent>
+                <TooltipContent>{t("staffs_refresh")}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -173,7 +173,7 @@ function RouteComponent() {
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Create new staff</TooltipContent>
+                <TooltipContent>{t("staffs_create_new")}</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -182,13 +182,13 @@ function RouteComponent() {
             <Table className="w-full table-auto">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last login</TableHead>
-                  <TableHead>Created at</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>{t("staffs_table_name")}</TableHead>
+                  <TableHead>{t("staffs_table_email")}</TableHead>
+                  <TableHead>{t("staffs_table_role")}</TableHead>
+                  <TableHead>{t("staffs_table_status")}</TableHead>
+                  <TableHead>{t("staffs_table_last_login")}</TableHead>
+                  <TableHead>{t("staffs_table_created_at")}</TableHead>
+                  <TableHead>{t("staffs_table_action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -242,9 +242,13 @@ function RouteComponent() {
                         </TableCell>
                         <TableCell>
                           {staff.isActive ? (
-                            <Badge variant="secondary">Active</Badge>
+                            <Badge variant="secondary">
+                              {t("staffs_status_active")}
+                            </Badge>
                           ) : (
-                            <Badge variant="destructive">Inactive</Badge>
+                            <Badge variant="destructive">
+                              {t("staffs_status_inactive")}
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell>
@@ -276,7 +280,9 @@ function RouteComponent() {
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>Edit Staff</TooltipContent>
+                              <TooltipContent>
+                                {t("staffs_edit_tooltip")}
+                              </TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -299,8 +305,8 @@ function RouteComponent() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 {staff.isActive
-                                  ? "Deactivate Staff"
-                                  : "Activate Staff"}
+                                  ? t("staffs_deactivate_tooltip")
+                                  : t("staffs_activate_tooltip")}
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -314,7 +320,7 @@ function RouteComponent() {
                       colSpan={7}
                       className="text-muted-foreground text-center"
                     >
-                      No staffs found.
+                      {t("staffs_empty")}
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -334,12 +340,18 @@ function RouteComponent() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {confirmTarget?.isActive ? "Deactivate staff" : "Activate staff"}
+              {confirmTarget?.isActive
+                ? t("staffs_confirm_deactivate_title")
+                : t("staffs_confirm_activate_title")}
             </DialogTitle>
             <DialogDescription>
               {confirmTarget?.isActive
-                ? `Are you sure you want to deactivate ${confirmTarget.displayName}?`
-                : `Are you sure you want to activate ${confirmTarget?.displayName}?`}
+                ? t("staffs_confirm_deactivate_desc", {
+                    name: confirmTarget.displayName,
+                  })
+                : t("staffs_confirm_activate_desc", {
+                    name: confirmTarget?.displayName,
+                  })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -348,7 +360,7 @@ function RouteComponent() {
               variant="outline"
               onClick={() => setConfirmTarget(null)}
             >
-              Cancel
+              {t("staffs_cancel")}
             </Button>
             <Button
               type="button"
@@ -357,10 +369,10 @@ function RouteComponent() {
               disabled={toggleMutation.isPending}
             >
               {toggleMutation.isPending
-                ? "Updating..."
+                ? t("staffs_update_pending")
                 : confirmTarget?.isActive
-                  ? "Deactivate"
-                  : "Activate"}
+                  ? t("staffs_deactivate")
+                  : t("staffs_activate")}
             </Button>
           </DialogFooter>
         </DialogContent>

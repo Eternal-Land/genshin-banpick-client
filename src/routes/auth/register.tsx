@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { filesApi } from "@/apis/files";
 import { Progress } from "@/components/ui/progress";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/auth/register")({
   component: RouteComponent,
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/auth/register")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -60,7 +62,7 @@ function RouteComponent() {
       await authApi.register(input);
     },
     onSuccess: () => {
-      toast.success("Account created successfully. You can now log in.");
+      toast.success(t("register_success"));
       navigate({ to: "/auth/login" });
     },
     onError: (error) => {
@@ -71,7 +73,7 @@ function RouteComponent() {
           setErrorMsg(error.message);
         }
       } else {
-        setErrorMsg("An unknown error occurred.");
+        setErrorMsg(t("register_error_unknown"));
       }
     },
   });
@@ -89,7 +91,7 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create your account</CardTitle>
+        <CardTitle>{t("register_title")}</CardTitle>
         {registerMutation.isError && (
           <CardDescription className="text-destructive">
             {errorMsg}
@@ -109,7 +111,9 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Avatar</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_avatar_label")}
+                  </FieldLabel>
                   <Input {...field} id={field.name} type="hidden" />
                   <Input
                     type="file"
@@ -127,12 +131,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_display_name_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Your in-game name"
+                    placeholder={t("register_display_name_placeholder")}
                     autoComplete="nickname"
                   />
                   {fieldState.invalid && (
@@ -146,12 +152,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>In-game UID</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_ingame_uid_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="e.g. 800123456"
+                    placeholder={t("register_ingame_uid_placeholder")}
                     autoComplete="off"
                     inputMode="numeric"
                   />
@@ -166,13 +174,15 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_email_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="email"
                     aria-invalid={fieldState.invalid}
-                    placeholder="you@example.com"
+                    placeholder={t("register_email_placeholder")}
                     autoComplete="email"
                   />
                   {fieldState.invalid && (
@@ -186,13 +196,15 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_password_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Create a secure password"
+                    placeholder={t("register_password_placeholder")}
                     autoComplete="new-password"
                   />
                   {fieldState.invalid && (
@@ -206,13 +218,15 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Confirm password</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("register_confirm_password_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Re-enter your password"
+                    placeholder={t("register_confirm_password_placeholder")}
                     autoComplete="new-password"
                   />
                   {fieldState.invalid && (
@@ -225,13 +239,13 @@ function RouteComponent() {
         </form>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            Already have an account?
+            {t("register_have_account")}
           </span>
           <Link
             to="/auth/login"
             className="text-primary font-medium hover:underline"
           >
-            Sign in
+            {t("register_sign_in")}
           </Link>
         </div>
       </CardContent>
@@ -243,11 +257,11 @@ function RouteComponent() {
           disabled={registerMutation.isPending}
         >
           {registerMutation.isPending
-            ? "Creating account..."
-            : "Create account"}
+            ? t("register_creating_account")
+            : t("register_create_account")}
         </Button>
         <p className="text-muted-foreground text-xs text-center">
-          By registering, you accept the team&apos;s conduct and privacy terms.
+          {t("register_terms_notice")}
         </p>
       </CardFooter>
     </Card>

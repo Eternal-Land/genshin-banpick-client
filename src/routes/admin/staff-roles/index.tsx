@@ -52,12 +52,14 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staff-roles/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState<StaffRoleResonse | null>(
     null,
@@ -81,14 +83,14 @@ function RouteComponent() {
   >({
     mutationFn: (id) => staffRolesApi.toggleStaffRoleActiveStatus(id),
     onSuccess: () => {
-      toast.success("Staff role status updated.");
+      toast.success(t("staff_roles_status_updated"));
       refetch();
       setConfirmTarget(null);
     },
     onError: (mutationError) => {
       toast.error(
         mutationError.response?.data.message ||
-          "Unable to update staff role status.",
+          t("staff_roles_status_update_error"),
       );
     },
   });
@@ -113,14 +115,12 @@ function RouteComponent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Staff roles</CardTitle>
+          <CardTitle>{t("staff_roles_title")}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
-            <span>
-              {staffRoles.length} role{staffRoles.length === 1 ? "" : "s"}
-            </span>
+            <span>{t("staff_roles_count", { count: staffRoles.length })}</span>
             {error ? (
               <span className="text-destructive">
-                Failed to load staff roles.
+                {t("staff_roles_load_error")}
               </span>
             ) : null}
           </CardDescription>
@@ -129,7 +129,7 @@ function RouteComponent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder="Search by role name"
+                placeholder={t("staff_roles_search_placeholder")}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -155,7 +155,7 @@ function RouteComponent() {
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Refresh</TooltipContent>
+                <TooltipContent>{t("staff_roles_refresh")}</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -166,7 +166,7 @@ function RouteComponent() {
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Create new staff role</TooltipContent>
+                <TooltipContent>{t("staff_roles_create_new")}</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -174,12 +174,20 @@ function RouteComponent() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-30">Status</TableHead>
-                <TableHead className="w-35">Permissions</TableHead>
-                <TableHead>Updated by</TableHead>
-                <TableHead className="w-50">Updated at</TableHead>
-                <TableHead className="w-30">Action</TableHead>
+                <TableHead>{t("staff_roles_table_name")}</TableHead>
+                <TableHead className="w-30">
+                  {t("staff_roles_table_status")}
+                </TableHead>
+                <TableHead className="w-35">
+                  {t("staff_roles_table_permissions")}
+                </TableHead>
+                <TableHead>{t("staff_roles_table_updated_by")}</TableHead>
+                <TableHead className="w-50">
+                  {t("staff_roles_table_updated_at")}
+                </TableHead>
+                <TableHead className="w-30">
+                  {t("staff_roles_table_action")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -211,9 +219,13 @@ function RouteComponent() {
                       <TableCell className="font-medium">{role.name}</TableCell>
                       <TableCell>
                         {role.isActive ? (
-                          <Badge variant="secondary">Active</Badge>
+                          <Badge variant="secondary">
+                            {t("staff_roles_status_active")}
+                          </Badge>
                         ) : (
-                          <Badge variant="destructive">Inactive</Badge>
+                          <Badge variant="destructive">
+                            {t("staff_roles_status_inactive")}
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>{role.permissions.length}</TableCell>
@@ -238,7 +250,9 @@ function RouteComponent() {
                                 </Link>
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Edit staff role</TooltipContent>
+                            <TooltipContent>
+                              {t("staff_roles_edit_tooltip")}
+                            </TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -261,8 +275,8 @@ function RouteComponent() {
                             </TooltipTrigger>
                             <TooltipContent>
                               {role.isActive
-                                ? "Deactivate staff role"
-                                : "Activate staff role"}
+                                ? t("staff_roles_deactivate_tooltip")
+                                : t("staff_roles_activate_tooltip")}
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -276,7 +290,7 @@ function RouteComponent() {
                     colSpan={6}
                     className="text-muted-foreground text-center"
                   >
-                    No staff roles found.
+                    {t("staff_roles_empty")}
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -296,13 +310,17 @@ function RouteComponent() {
           <DialogHeader>
             <DialogTitle>
               {confirmTarget?.isActive
-                ? "Deactivate staff role"
-                : "Activate staff role"}
+                ? t("staff_roles_confirm_deactivate_title")
+                : t("staff_roles_confirm_activate_title")}
             </DialogTitle>
             <DialogDescription>
               {confirmTarget?.isActive
-                ? `Are you sure you want to deactivate ${confirmTarget.name}?`
-                : `Are you sure you want to activate ${confirmTarget?.name}?`}
+                ? t("staff_roles_confirm_deactivate_desc", {
+                    name: confirmTarget.name,
+                  })
+                : t("staff_roles_confirm_activate_desc", {
+                    name: confirmTarget?.name,
+                  })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -311,7 +329,7 @@ function RouteComponent() {
               variant="outline"
               onClick={() => setConfirmTarget(null)}
             >
-              Cancel
+              {t("staff_roles_cancel")}
             </Button>
             <Button
               type="button"
@@ -320,10 +338,10 @@ function RouteComponent() {
               disabled={toggleMutation.isPending}
             >
               {toggleMutation.isPending
-                ? "Updating..."
+                ? t("staff_roles_update_pending")
                 : confirmTarget?.isActive
-                  ? "Deactivate"
-                  : "Activate"}
+                  ? t("staff_roles_deactivate")
+                  : t("staff_roles_activate")}
             </Button>
           </DialogFooter>
         </DialogContent>
