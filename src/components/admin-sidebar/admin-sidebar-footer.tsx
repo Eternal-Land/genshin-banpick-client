@@ -20,7 +20,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useTranslation } from "react-i18next";
-import { supportedLanguages } from "@/lib/constants";
+import { SupportedLanguages } from "@/lib/constants";
 import { GlobeIcon, LogOutIcon, UserIcon } from "lucide-react";
 
 type AdminSidebarFooterProps = {
@@ -71,7 +71,7 @@ export default function AdminSidebarFooter({
                     value={language}
                     onValueChange={(value) => i18n.changeLanguage(value)}
                   >
-                    {supportedLanguages.map(({ code, label }) => (
+                    {SupportedLanguages.map(({ code, label }) => (
                       <DropdownMenuRadioItem key={code} value={code}>
                         {label}
                       </DropdownMenuRadioItem>

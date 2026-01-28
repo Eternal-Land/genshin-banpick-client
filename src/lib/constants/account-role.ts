@@ -1,4 +1,4 @@
-export const ACCOUNT_ROLES = {
+export const AccountRole = {
     USER: 0,
     STAFF: 1,
     ADMIN: 2

@@ -7,7 +7,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { store } from "@/lib/redux";
-import { ACCOUNT_ROLES } from "@/lib/constants";
+import { AccountRole, LocaleKeys } from "@/lib/constants";
 import { authApi } from "@/apis/auth";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import AdminSidebarContent from "@/components/admin-sidebar/admin-sidebar-content";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/admin")({
       });
     }
 
-    if (profile.role != ACCOUNT_ROLES.ADMIN) {
+    if (profile.role != AccountRole.ADMIN) {
       throw redirect({
         to: "/user",
       });
@@ -45,7 +45,9 @@ function RouteComponent() {
       <SidebarInset className="max-w-full overflow-x-hidden">
         <header className="flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger />
-          <div className="text-sm font-medium">{t("admin_sidebar_label")}</div>
+          <div className="text-sm font-medium">
+            {t(LocaleKeys.admin_sidebar_label)}
+          </div>
         </header>
         <div className="flex-1 max-w-full overflow-x-hidden p-4">
           <Outlet />

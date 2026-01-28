@@ -27,7 +27,7 @@ import {
   type ThemeMode,
 } from "@/lib/redux/theme.slice";
 import { useTranslation } from "react-i18next";
-import { supportedLanguages } from "@/lib/constants";
+import { SupportedLanguages } from "@/lib/constants";
 
 export default function FixedMenu() {
   const dispatch = useAppDispatch();
@@ -105,7 +105,7 @@ export default function FixedMenu() {
                   value={language}
                   onValueChange={(value) => i18n.changeLanguage(value)}
                 >
-                  {supportedLanguages.map(({ code, label }) => (
+                  {SupportedLanguages.map(({ code, label }) => (
                     <DropdownMenuRadioItem key={code} value={code}>
                       {label}
                     </DropdownMenuRadioItem>

@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 export const Route = createFileRoute("/admin/staff-roles/create")({
   component: RouteComponent,
@@ -69,7 +70,7 @@ function RouteComponent() {
   >({
     mutationFn: staffRolesApi.createStaffRole,
     onSuccess: () => {
-      toast.success(t("staff_roles_create_success"));
+      toast.success(t(LocaleKeys.staff_roles_create_success));
       navigate({ to: "/admin/staff-roles" });
     },
   });
@@ -79,16 +80,18 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("staff_roles_create_title")}</CardTitle>
+        <CardTitle>{t(LocaleKeys.staff_roles_create_title)}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>{t("staff_roles_create_description")}</span>
+          <span>{t(LocaleKeys.staff_roles_create_description)}</span>
           <span className="text-xs">
-            {t("staff_roles_permission_count", { count: permissionCount })}
+            {t(LocaleKeys.staff_roles_permission_count, {
+              count: permissionCount,
+            })}
           </span>
           {createMutation.isError && (
             <span className="text-destructive">
               {createMutation.error.response?.data.message ||
-                t("staff_roles_create_error")}
+                t(LocaleKeys.staff_roles_create_error)}
             </span>
           )}
         </CardDescription>
@@ -110,13 +113,13 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("staff_roles_name_label")}
+                    {t(LocaleKeys.staff_roles_name_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("staff_roles_name_placeholder")}
+                    placeholder={t(LocaleKeys.staff_roles_name_placeholder)}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -130,10 +133,10 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <FieldSet>
                   <FieldLegend>
-                    {t("staff_roles_permissions_label")}
+                    {t(LocaleKeys.staff_roles_permissions_label)}
                   </FieldLegend>
                   <FieldDescription>
-                    {t("staff_roles_permissions_description")}
+                    {t(LocaleKeys.staff_roles_permissions_description)}
                   </FieldDescription>
                   {isPermissionsLoading ? (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -184,11 +187,15 @@ function RouteComponent() {
                               </span>
                               <span className="text-muted-foreground text-xs">
                                 {permission.description ||
-                                  t("staff_roles_permission_no_description")}
+                                  t(
+                                    LocaleKeys.staff_roles_permission_no_description,
+                                  )}
                               </span>
                               {permission.deprecated ? (
                                 <Badge variant="destructive">
-                                  {t("staff_roles_permission_deprecated")}
+                                  {t(
+                                    LocaleKeys.staff_roles_permission_deprecated,
+                                  )}
                                 </Badge>
                               ) : null}
                             </FieldLabel>
@@ -212,7 +219,7 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staff-roles" })}
         >
-          {t("staff_roles_cancel")}
+          {t(LocaleKeys.staff_roles_cancel)}
         </Button>
         <Button
           type="submit"
@@ -220,8 +227,8 @@ function RouteComponent() {
           disabled={createMutation.isPending}
         >
           {createMutation.isPending
-            ? t("staff_roles_create_pending")
-            : t("staff_roles_create_submit")}
+            ? t(LocaleKeys.staff_roles_create_pending)
+            : t(LocaleKeys.staff_roles_create_submit)}
         </Button>
       </CardFooter>
     </Card>

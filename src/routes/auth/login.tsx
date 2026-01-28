@@ -24,7 +24,7 @@ import {
 import { AxiosError } from "axios";
 import type { BaseApiResponse } from "@/lib/types";
 import { toast } from "sonner";
-import { ACCOUNT_ROLES } from "@/lib/constants";
+import { AccountRole, LocaleKeys } from "@/lib/constants";
 import { useAppDispatch } from "@/hooks/use-app-dispatch";
 import { setProfile } from "@/lib/redux/auth.slice";
 import { selfApi } from "@/apis/self";
@@ -50,7 +50,7 @@ function RouteComponent() {
     const response = await selfApi.getSelf();
     const profile = response.data;
     dispatch(setProfile(profile!));
-    if (profile?.role === ACCOUNT_ROLES.USER) {
+    if (profile?.role === AccountRole.USER) {
       navigate({ to: "/user" });
     } else {
       navigate({ to: "/admin" });
@@ -76,11 +76,11 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("login_welcome")}</CardTitle>
+        <CardTitle>{t(LocaleKeys.login_welcome)}</CardTitle>
         {loginMutation.isError && (
           <CardDescription className="text-destructive">
             {loginMutation.error.response?.data.message ||
-              t("login_error_generic")}
+              t(LocaleKeys.login_error_generic)}
           </CardDescription>
         )}
       </CardHeader>
@@ -96,13 +96,13 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("login_uid_or_email_label")}
+                    {t(LocaleKeys.login_uid_or_email_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("login_uid_or_email_placeholder")}
+                    placeholder={t(LocaleKeys.login_uid_or_email_placeholder)}
                     autoComplete="username"
                   />
                   {fieldState.invalid && (
@@ -117,14 +117,14 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("login_password_label")}
+                    {t(LocaleKeys.login_password_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("login_password_placeholder")}
+                    placeholder={t(LocaleKeys.login_password_placeholder)}
                     autoComplete="current-password"
                   />
                   {fieldState.invalid && (
@@ -137,13 +137,13 @@ function RouteComponent() {
         </form>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {t("login_need_account")}
+            {t(LocaleKeys.login_need_account)}
           </span>
           <Link
             to="/auth/register"
             className="text-primary font-medium hover:underline"
           >
-            {t("login_create_one")}
+            {t(LocaleKeys.login_create_one)}
           </Link>
         </div>
       </CardContent>
@@ -154,7 +154,9 @@ function RouteComponent() {
           form="login-form"
           disabled={loginMutation.isPending}
         >
-          {loginMutation.isPending ? t("login_signing_in") : t("login_sign_in")}
+          {loginMutation.isPending
+            ? t(LocaleKeys.login_signing_in)
+            : t(LocaleKeys.login_sign_in)}
         </Button>
       </CardFooter>
     </Card>
