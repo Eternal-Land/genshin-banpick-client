@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/input-group";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 export const Route = createFileRoute("/admin/staffs/")({
   component: RouteComponent,
@@ -92,13 +93,14 @@ function RouteComponent() {
   >({
     mutationFn: (id) => staffsApi.toggleStaffActiveStatus(id),
     onSuccess: () => {
-      toast.success(t("staffs_status_updated"));
+      toast.success(t(LocaleKeys.staffs_status_updated));
       refetch();
       setConfirmTarget(null);
     },
     onError: (mutationError) => {
       toast.error(
-        mutationError.response?.data.message || t("staffs_status_update_error"),
+        mutationError.response?.data.message ||
+          t(LocaleKeys.staffs_status_update_error),
       );
     },
   });
@@ -125,11 +127,13 @@ function RouteComponent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("staffs_title")}</CardTitle>
+          <CardTitle>{t(LocaleKeys.staffs_title)}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
-            <span>{t("staffs_count", { count: staffs.length })}</span>
+            <span>{t(LocaleKeys.staffs_count, { count: staffs.length })}</span>
             {error ? (
-              <span className="text-destructive">{t("staffs_load_error")}</span>
+              <span className="text-destructive">
+                {t(LocaleKeys.staffs_load_error)}
+              </span>
             ) : null}
           </CardDescription>
         </CardHeader>
@@ -137,7 +141,7 @@ function RouteComponent() {
           <div className="flex gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder={t("staffs_search_placeholder")}
+                placeholder={t(LocaleKeys.staffs_search_placeholder)}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -163,7 +167,7 @@ function RouteComponent() {
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{t("staffs_refresh")}</TooltipContent>
+                <TooltipContent>{t(LocaleKeys.staffs_refresh)}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -173,7 +177,9 @@ function RouteComponent() {
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>{t("staffs_create_new")}</TooltipContent>
+                <TooltipContent>
+                  {t(LocaleKeys.staffs_create_new)}
+                </TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -182,13 +188,13 @@ function RouteComponent() {
             <Table className="w-full table-auto">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("staffs_table_name")}</TableHead>
-                  <TableHead>{t("staffs_table_email")}</TableHead>
-                  <TableHead>{t("staffs_table_role")}</TableHead>
-                  <TableHead>{t("staffs_table_status")}</TableHead>
-                  <TableHead>{t("staffs_table_last_login")}</TableHead>
-                  <TableHead>{t("staffs_table_created_at")}</TableHead>
-                  <TableHead>{t("staffs_table_action")}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_name)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_email)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_role)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_status)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_last_login)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_created_at)}</TableHead>
+                  <TableHead>{t(LocaleKeys.staffs_table_action)}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,11 +249,11 @@ function RouteComponent() {
                         <TableCell>
                           {staff.isActive ? (
                             <Badge variant="secondary">
-                              {t("staffs_status_active")}
+                              {t(LocaleKeys.staffs_status_active)}
                             </Badge>
                           ) : (
                             <Badge variant="destructive">
-                              {t("staffs_status_inactive")}
+                              {t(LocaleKeys.staffs_status_inactive)}
                             </Badge>
                           )}
                         </TableCell>
@@ -281,7 +287,7 @@ function RouteComponent() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {t("staffs_edit_tooltip")}
+                                {t(LocaleKeys.staffs_edit_tooltip)}
                               </TooltipContent>
                             </Tooltip>
                             <Tooltip>
@@ -305,8 +311,8 @@ function RouteComponent() {
                               </TooltipTrigger>
                               <TooltipContent>
                                 {staff.isActive
-                                  ? t("staffs_deactivate_tooltip")
-                                  : t("staffs_activate_tooltip")}
+                                  ? t(LocaleKeys.staffs_deactivate_tooltip)
+                                  : t(LocaleKeys.staffs_activate_tooltip)}
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -320,7 +326,7 @@ function RouteComponent() {
                       colSpan={7}
                       className="text-muted-foreground text-center"
                     >
-                      {t("staffs_empty")}
+                      {t(LocaleKeys.staffs_empty)}
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -341,15 +347,15 @@ function RouteComponent() {
           <DialogHeader>
             <DialogTitle>
               {confirmTarget?.isActive
-                ? t("staffs_confirm_deactivate_title")
-                : t("staffs_confirm_activate_title")}
+                ? t(LocaleKeys.staffs_confirm_deactivate_title)
+                : t(LocaleKeys.staffs_confirm_activate_title)}
             </DialogTitle>
             <DialogDescription>
               {confirmTarget?.isActive
-                ? t("staffs_confirm_deactivate_desc", {
+                ? t(LocaleKeys.staffs_confirm_deactivate_desc, {
                     name: confirmTarget.displayName,
                   })
-                : t("staffs_confirm_activate_desc", {
+                : t(LocaleKeys.staffs_confirm_activate_desc, {
                     name: confirmTarget?.displayName,
                   })}
             </DialogDescription>
@@ -360,7 +366,7 @@ function RouteComponent() {
               variant="outline"
               onClick={() => setConfirmTarget(null)}
             >
-              {t("staffs_cancel")}
+              {t(LocaleKeys.staffs_cancel)}
             </Button>
             <Button
               type="button"
@@ -369,10 +375,10 @@ function RouteComponent() {
               disabled={toggleMutation.isPending}
             >
               {toggleMutation.isPending
-                ? t("staffs_update_pending")
+                ? t(LocaleKeys.staffs_update_pending)
                 : confirmTarget?.isActive
-                  ? t("staffs_deactivate")
-                  : t("staffs_activate")}
+                  ? t(LocaleKeys.staffs_deactivate)
+                  : t(LocaleKeys.staffs_activate)}
             </Button>
           </DialogFooter>
         </DialogContent>

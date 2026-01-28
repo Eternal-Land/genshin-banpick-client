@@ -13,7 +13,7 @@ import {
 } from "@/apis/self/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { filesApi } from "@/apis/files";
-import { ACCOUNT_ROLES } from "@/lib/constants/account-role";
+import { AccountRole } from "@/lib/constants/account-role";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -124,8 +124,8 @@ function RouteComponent() {
 
   const roleLabel = useMemo(() => {
     if (!profile) return "";
-    if (profile.role === ACCOUNT_ROLES.ADMIN) return "Admin";
-    if (profile.role === ACCOUNT_ROLES.STAFF) return "Staff";
+    if (profile.role === AccountRole.ADMIN) return "Admin";
+    if (profile.role === AccountRole.STAFF) return "Staff";
     return "User";
   }, [profile]);
 

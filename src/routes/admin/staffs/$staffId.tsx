@@ -39,6 +39,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 export const Route = createFileRoute("/admin/staffs/$staffId")({
   component: RouteComponent,
@@ -122,7 +123,7 @@ function RouteComponent() {
       return staffsApi.updateStaff(staffId, payload);
     },
     onSuccess: () => {
-      toast.success(t("staffs_edit_success"));
+      toast.success(t(LocaleKeys.staffs_edit_success));
       navigate({ to: "/admin/staffs" });
     },
   });
@@ -143,21 +144,21 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("staffs_edit_title")}</CardTitle>
+        <CardTitle>{t(LocaleKeys.staffs_edit_title)}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>{t("staffs_edit_description")}</span>
+          <span>{t(LocaleKeys.staffs_edit_description)}</span>
           <span className="text-xs">
-            {t("staffs_role_count", { count: staffRoleCount })}
+            {t(LocaleKeys.staffs_role_count, { count: staffRoleCount })}
           </span>
           {staffError ? (
             <span className="text-destructive">
-              {t("staffs_edit_load_error")}
+              {t(LocaleKeys.staffs_edit_load_error)}
             </span>
           ) : null}
           {updateMutation.isError && (
             <span className="text-destructive">
               {updateMutation.error.response?.data.message ||
-                t("staffs_edit_error")}
+                t(LocaleKeys.staffs_edit_error)}
             </span>
           )}
         </CardDescription>
@@ -176,7 +177,7 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("staffs_avatar_label")}
+                    {t(LocaleKeys.staffs_avatar_label)}
                   </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -204,7 +205,7 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("staffs_display_name_label")}
+                    {t(LocaleKeys.staffs_display_name_label)}
                   </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -213,7 +214,9 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder={t("staffs_display_name_placeholder")}
+                      placeholder={t(
+                        LocaleKeys.staffs_display_name_placeholder,
+                      )}
                     />
                   )}
                   {fieldState.invalid && (
@@ -228,7 +231,7 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("staffs_email_label")}
+                    {t(LocaleKeys.staffs_email_label)}
                   </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -237,7 +240,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder={t("staffs_email_placeholder")}
+                      placeholder={t(LocaleKeys.staffs_email_placeholder)}
                       type="email"
                     />
                   )}
@@ -253,7 +256,7 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("staffs_ingame_uid_label")}
+                    {t(LocaleKeys.staffs_ingame_uid_label)}
                   </FieldLabel>
                   {isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -262,7 +265,7 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder={t("staffs_ingame_uid_placeholder")}
+                      placeholder={t(LocaleKeys.staffs_ingame_uid_placeholder)}
                     />
                   )}
                   {fieldState.invalid && (
@@ -277,10 +280,10 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="staff-role-select">
-                    {t("staffs_staff_role_label")}
+                    {t(LocaleKeys.staffs_staff_role_label)}
                   </FieldLabel>
                   <FieldDescription>
-                    {t("staffs_staff_role_description")}
+                    {t(LocaleKeys.staffs_staff_role_description)}
                   </FieldDescription>
                   {isRolesLoading || isStaffLoading ? (
                     <Skeleton className="h-9 w-full" />
@@ -300,7 +303,9 @@ function RouteComponent() {
                         aria-invalid={fieldState.invalid}
                       >
                         <SelectValue
-                          placeholder={t("staffs_staff_role_placeholder")}
+                          placeholder={t(
+                            LocaleKeys.staffs_staff_role_placeholder,
+                          )}
                         />
                       </SelectTrigger>
                       <SelectContent>
@@ -327,7 +332,7 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staffs" })}
         >
-          {t("staffs_cancel")}
+          {t(LocaleKeys.staffs_cancel)}
         </Button>
         <Button
           type="submit"
@@ -335,8 +340,8 @@ function RouteComponent() {
           disabled={updateMutation.isPending || isStaffLoading}
         >
           {updateMutation.isPending
-            ? t("staffs_edit_pending")
-            : t("staffs_edit_submit")}
+            ? t(LocaleKeys.staffs_edit_pending)
+            : t(LocaleKeys.staffs_edit_submit)}
         </Button>
       </CardFooter>
     </Card>

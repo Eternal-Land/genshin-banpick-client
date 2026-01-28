@@ -116,7 +116,7 @@ export const {resource}Api = {
 ### Forms
 
 - Use React Hook Form with Zod resolver
-- When defining Zod validation messages, always use i18n message keys (not human-readable text) so errors are translated by `FieldError`.
+- When defining Zod validation messages, always use `LocaleKeys` (not raw strings) so errors are translated by `FieldError`.
 - Use `Controller` for custom components
 - Use shadcn/ui Field components for layout:
   ```tsx
@@ -153,7 +153,7 @@ export const Route = createFileRoute("/admin")({
     if (!profile) {
       throw redirect({ to: "/auth/login" });
     }
-    if (profile.role === ACCOUNT_ROLES.USER) {
+    if (profile.role === AccountRole.USER) {
       throw redirect({ to: "/user" });
     }
   },
@@ -219,11 +219,13 @@ export const Route = createFileRoute("/admin")({
 - Setup is in [src/i18n/index.ts](src/i18n/index.ts) and initialized by importing it in [src/main.tsx](src/main.tsx).
 - Libraries: `i18next`, `react-i18next`, `i18next-browser-languagedetector`.
 - Supported languages: `en`, `vi` with `common` namespace. Resource files live in:
-  - [src/i18n/locales/en/common.json](src/i18n/locales/en/common.json)
-  - [src/i18n/locales/vi/common.json](src/i18n/locales/vi/common.json)
+  - [src/i18n/locales/en/common.ts](src/i18n/locales/en/common.ts)
+  - [src/i18n/locales/vi/common.ts](src/i18n/locales/vi/common.ts)
 - Language detection order: `localStorage` then `navigator`; cached in localStorage by the detector (key: `i18nextLng`).
-- Use `useTranslation()` and `t("key")` for strings. Change language via `i18n.changeLanguage("vi")`.
-- ALWAYS update i18n locales in [src/i18n/locales/en/common.json](src/i18n/locales/en/common.json) and [src/i18n/locales/vi/common.json](src/i18n/locales/vi/common.json) when creating, editing, or deleting user-facing features/pages.
+- Use `useTranslation()` and `t(LocaleKeys.some_key)` for strings. Change language via `i18n.changeLanguage("vi")`.
+- `LocaleKeys` lives in [src/lib/constants/locale-keys.ts](src/lib/constants/locale-keys.ts) and is the single source of truth for all translation keys.
+- `LocaleObject` typing is defined in [src/i18n/types.ts](src/i18n/types.ts) and is enforced by `common.ts` locale files.
+- ALWAYS update the `common.ts` locale files in both languages when creating, editing, or deleting user-facing features/pages.
 
 ### Authentication Flow
 
@@ -239,7 +241,7 @@ export const Route = createFileRoute("/admin")({
 
 - Define in `src/lib/constants/`
 - Export as `const` objects with `as const` assertion
-- Example: `ACCOUNT_ROLES`, `ERROR_CODES`
+- Example: `AccountRole`, `ErrorCode`, `LocaleKeys`
 
 ## Best Practices
 

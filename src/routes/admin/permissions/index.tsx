@@ -34,6 +34,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 export const Route = createFileRoute("/admin/permissions/")({
   component: RouteComponent,
@@ -78,17 +79,21 @@ function RouteComponent() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t("permissions_title")}</CardTitle>
+          <CardTitle>{t(LocaleKeys.permissions_title)}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
             <span>
-              {t("permissions_total", { count: permissions?.length ?? 0 })}
+              {t(LocaleKeys.permissions_total, {
+                count: permissions?.length ?? 0,
+              })}
             </span>
             <Badge variant="secondary">
-              {t("permissions_deprecated_count", { count: deprecatedCount })}
+              {t(LocaleKeys.permissions_deprecated_count, {
+                count: deprecatedCount,
+              })}
             </Badge>
             {error ? (
               <span className="text-destructive">
-                {t("permissions_load_error")}
+                {t(LocaleKeys.permissions_load_error)}
               </span>
             ) : null}
           </CardDescription>
@@ -97,7 +102,7 @@ function RouteComponent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder={t("permissions_search_placeholder")}
+                placeholder={t(LocaleKeys.permissions_search_placeholder)}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -121,7 +126,9 @@ function RouteComponent() {
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{t("permissions_refresh")}</TooltipContent>
+              <TooltipContent>
+                {t(LocaleKeys.permissions_refresh)}
+              </TooltipContent>
             </Tooltip>
           </div>
 
@@ -129,12 +136,14 @@ function RouteComponent() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[80px]">
-                  {t("permissions_table_id")}
+                  {t(LocaleKeys.permissions_table_id)}
                 </TableHead>
-                <TableHead>{t("permissions_table_code")}</TableHead>
-                <TableHead>{t("permissions_table_description")}</TableHead>
+                <TableHead>{t(LocaleKeys.permissions_table_code)}</TableHead>
+                <TableHead>
+                  {t(LocaleKeys.permissions_table_description)}
+                </TableHead>
                 <TableHead className="w-[140px]">
-                  {t("permissions_table_status")}
+                  {t(LocaleKeys.permissions_table_status)}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -163,16 +172,17 @@ function RouteComponent() {
                         {permission.code}
                       </TableCell>
                       <TableCell className="whitespace-normal">
-                        {permission.description || t("permissions_no_desc")}
+                        {permission.description ||
+                          t(LocaleKeys.permissions_no_desc)}
                       </TableCell>
                       <TableCell>
                         {permission.deprecated ? (
                           <Badge variant="destructive">
-                            {t("permissions_status_deprecated")}
+                            {t(LocaleKeys.permissions_status_deprecated)}
                           </Badge>
                         ) : (
                           <Badge variant="secondary">
-                            {t("permissions_status_active")}
+                            {t(LocaleKeys.permissions_status_active)}
                           </Badge>
                         )}
                       </TableCell>
@@ -185,7 +195,7 @@ function RouteComponent() {
                     colSpan={4}
                     className="text-muted-foreground text-center"
                   >
-                    {t("permissions_empty")}
+                    {t(LocaleKeys.permissions_empty)}
                   </TableCell>
                 </TableRow>
               ) : null}

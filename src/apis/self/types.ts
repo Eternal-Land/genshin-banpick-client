@@ -1,4 +1,5 @@
 import z from "zod";
+import { LocaleKeys } from "@/lib/constants";
 
 export interface ProfileResponse {
     id: string;
@@ -13,7 +14,7 @@ export interface ProfileResponse {
 
 export const updateProfileSchema = z.object({
     ingameUuid: z.string().optional(),
-    avatar: z.url({ message: "validation_url" }).optional(),
+    avatar: z.url({ message: LocaleKeys.validation_url }).optional(),
     displayName: z.string().optional(),
 })
 

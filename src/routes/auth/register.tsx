@@ -27,6 +27,7 @@ import { useState } from "react";
 import { filesApi } from "@/apis/files";
 import { Progress } from "@/components/ui/progress";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 export const Route = createFileRoute("/auth/register")({
   component: RouteComponent,
@@ -62,7 +63,7 @@ function RouteComponent() {
       await authApi.register(input);
     },
     onSuccess: () => {
-      toast.success(t("register_success"));
+      toast.success(t(LocaleKeys.register_success));
       navigate({ to: "/auth/login" });
     },
     onError: (error) => {
@@ -73,7 +74,7 @@ function RouteComponent() {
           setErrorMsg(error.message);
         }
       } else {
-        setErrorMsg(t("register_error_unknown"));
+        setErrorMsg(t(LocaleKeys.register_error_unknown));
       }
     },
   });
@@ -91,7 +92,7 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("register_title")}</CardTitle>
+        <CardTitle>{t(LocaleKeys.register_title)}</CardTitle>
         {registerMutation.isError && (
           <CardDescription className="text-destructive">
             {errorMsg}
@@ -112,7 +113,7 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_avatar_label")}
+                    {t(LocaleKeys.register_avatar_label)}
                   </FieldLabel>
                   <Input {...field} id={field.name} type="hidden" />
                   <Input
@@ -132,13 +133,15 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_display_name_label")}
+                    {t(LocaleKeys.register_display_name_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("register_display_name_placeholder")}
+                    placeholder={t(
+                      LocaleKeys.register_display_name_placeholder,
+                    )}
                     autoComplete="nickname"
                   />
                   {fieldState.invalid && (
@@ -153,13 +156,13 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_ingame_uid_label")}
+                    {t(LocaleKeys.register_ingame_uid_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("register_ingame_uid_placeholder")}
+                    placeholder={t(LocaleKeys.register_ingame_uid_placeholder)}
                     autoComplete="off"
                     inputMode="numeric"
                   />
@@ -175,14 +178,14 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_email_label")}
+                    {t(LocaleKeys.register_email_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="email"
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("register_email_placeholder")}
+                    placeholder={t(LocaleKeys.register_email_placeholder)}
                     autoComplete="email"
                   />
                   {fieldState.invalid && (
@@ -197,14 +200,14 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_password_label")}
+                    {t(LocaleKeys.register_password_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("register_password_placeholder")}
+                    placeholder={t(LocaleKeys.register_password_placeholder)}
                     autoComplete="new-password"
                   />
                   {fieldState.invalid && (
@@ -219,14 +222,16 @@ function RouteComponent() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>
-                    {t("register_confirm_password_label")}
+                    {t(LocaleKeys.register_confirm_password_label)}
                   </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder={t("register_confirm_password_placeholder")}
+                    placeholder={t(
+                      LocaleKeys.register_confirm_password_placeholder,
+                    )}
                     autoComplete="new-password"
                   />
                   {fieldState.invalid && (
@@ -239,13 +244,13 @@ function RouteComponent() {
         </form>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
-            {t("register_have_account")}
+            {t(LocaleKeys.register_have_account)}
           </span>
           <Link
             to="/auth/login"
             className="text-primary font-medium hover:underline"
           >
-            {t("register_sign_in")}
+            {t(LocaleKeys.register_sign_in)}
           </Link>
         </div>
       </CardContent>
@@ -257,11 +262,11 @@ function RouteComponent() {
           disabled={registerMutation.isPending}
         >
           {registerMutation.isPending
-            ? t("register_creating_account")
-            : t("register_create_account")}
+            ? t(LocaleKeys.register_creating_account)
+            : t(LocaleKeys.register_create_account)}
         </Button>
         <p className="text-muted-foreground text-xs text-center">
-          {t("register_terms_notice")}
+          {t(LocaleKeys.register_terms_notice)}
         </p>
       </CardFooter>
     </Card>
