@@ -13,6 +13,7 @@ import {
   BriefcaseIcon,
   ContactIcon,
   HouseIcon,
+  SparklesIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -43,6 +44,11 @@ const adminRoutes: AdminSidebarRoute[] = [
     to: "/admin/staffs",
     label: "admin_sidebar_staffs",
     icon: <ContactIcon className="size-4" />,
+  },
+  {
+    to: "/admin/characters",
+    label: "admin_sidebar_characters",
+    icon: <SparklesIcon className="size-4" />,
   },
 ];
 
