@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AxiosError } from "axios";
+import { AxiosError, type AxiosProgressEvent } from "axios";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { charactersApi } from "@/apis/characters";
@@ -35,6 +35,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useState } from "react";
+import { filesApi } from "@/apis/files";
+import { Progress } from "@/components/ui/progress";
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
 import { useElementOptions } from "@/hooks/use-element-label";
@@ -47,6 +50,8 @@ export const Route = createFileRoute("/admin/characters/create")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   type CreateCharacterFormInput = z.input<typeof createCharacterSchema>;
 
   const form = useForm<CreateCharacterFormInput>({
@@ -70,7 +75,17 @@ function RouteComponent() {
     AxiosError<BaseApiResponse>,
     CreateCharacterInput
   >({
-    mutationFn: charactersApi.createCharacter,
+    mutationFn: async (input: CreateCharacterInput) => {
+      if (fileNeedUpload) {
+        const uploadResult = await filesApi.uploadFile(
+          fileNeedUpload,
+          handleUploadProgress,
+        );
+        input.iconUrl = uploadResult.secure_url;
+      }
+
+      return charactersApi.createCharacter(input);
+    },
     onSuccess: () => {
       toast.success(t(LocaleKeys.characters_create_success));
       navigate({ to: "/admin/characters" });
@@ -82,6 +97,16 @@ function RouteComponent() {
       );
     },
   });
+
+  const handleUploadProgress = (e: AxiosProgressEvent) => {
+    setProgress((e.progress ?? 0) * 100);
+  };
+
+  const handleOnFilesChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files.item(0)!;
+    setFileNeedUpload(file);
+  };
 
   return (
     <Card>
@@ -247,12 +272,12 @@ function RouteComponent() {
                   <FieldLabel htmlFor={field.name}>
                     {t(LocaleKeys.characters_icon_label)}
                   </FieldLabel>
+                  <Input {...field} id={field.name} type="hidden" />
                   <Input
-                    {...field}
-                    id={field.name}
-                    aria-invalid={fieldState.invalid}
-                    placeholder={t(LocaleKeys.characters_icon_placeholder)}
+                    type="file"
+                    onChange={(e) => handleOnFilesChange(e.target.files)}
                   />
+                  {progress ? <Progress value={progress} /> : null}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}

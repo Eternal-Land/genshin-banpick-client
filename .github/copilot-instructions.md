@@ -112,12 +112,14 @@ export const {resource}Api = {
 - API responses follow `BaseApiResponse<T>` structure
 - Token stored in localStorage as `"token"`
 - 401 responses auto-redirect to `/auth/login`
+- File uploads use [src/apis/files/index.ts](src/apis/files/index.ts) to request an upload signature and post to Cloudinary. Use the `onUploadProgress` callback for progress and set the form field to the returned `secure_url`.
 
 ### Forms
 
 - Use React Hook Form with Zod resolver
 - When defining Zod validation messages, always use `LocaleKeys` (not raw strings) so errors are translated by `FieldError`.
 - Use `Controller` for custom components
+- When a schema field uses `z.url()`, implement file upload via `filesApi.uploadFile` and set the field value to the uploaded URL. Follow the flow in [src/routes/auth/register.tsx](src/routes/auth/register.tsx), including progress tracking with `AxiosProgressEvent` and `Progress`.
 - Use shadcn/ui Field components for layout:
   ```tsx
   <Controller

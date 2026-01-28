@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AxiosError } from "axios";
+import { AxiosError, type AxiosProgressEvent } from "axios";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { charactersApi } from "@/apis/characters";
@@ -35,10 +35,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
+import { filesApi } from "@/apis/files";
 import { useWeaponTypeOptions } from "@/hooks/use-weapon-type-label";
 import { useElementOptions } from "@/hooks/use-element-label";
 
@@ -49,6 +51,8 @@ export const Route = createFileRoute("/admin/characters/$characterId")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
+  const [progress, setProgress] = useState<number>(0);
   const { characterId } = Route.useParams();
   const id = Number(characterId);
   type UpdateCharacterFormInput = z.input<typeof updateCharacterSchema>;
@@ -99,12 +103,32 @@ function RouteComponent() {
     AxiosError<BaseApiResponse>,
     UpdateCharacterInput
   >({
-    mutationFn: (values) => charactersApi.updateCharacter(id, values),
+    mutationFn: async (values) => {
+      if (fileNeedUpload) {
+        const uploadResult = await filesApi.uploadFile(
+          fileNeedUpload,
+          handleUploadProgress,
+        );
+        values.iconUrl = uploadResult.secure_url;
+      }
+
+      return charactersApi.updateCharacter(id, values);
+    },
     onSuccess: () => {
       toast.success(t(LocaleKeys.characters_edit_success));
       navigate({ to: "/admin/characters" });
     },
   });
+
+  const handleUploadProgress = (e: AxiosProgressEvent) => {
+    setProgress((e.progress ?? 0) * 100);
+  };
+
+  const handleOnFilesChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files.item(0)!;
+    setFileNeedUpload(file);
+  };
 
   return (
     <Card>
@@ -298,12 +322,14 @@ function RouteComponent() {
                   {isCharacterLoading ? (
                     <Skeleton className="h-9 w-full" />
                   ) : (
-                    <Input
-                      {...field}
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      placeholder={t(LocaleKeys.characters_icon_placeholder)}
-                    />
+                    <>
+                      <Input {...field} id={field.name} type="hidden" />
+                      <Input
+                        type="file"
+                        onChange={(e) => handleOnFilesChange(e.target.files)}
+                      />
+                      {progress ? <Progress value={progress} /> : null}
+                    </>
                   )}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
