@@ -7,7 +7,7 @@ export const createStaffSchema = z.object({
     email: z.email({ message: LocaleKeys.validation_email }),
     displayName: z.string().min(1, LocaleKeys.validation_required),
     staffRoleId: z.number().min(1, LocaleKeys.validation_required),
-    avatar: z.url({ message: LocaleKeys.validation_url }).optional(),
+    avatar: z.string().optional(),
     password: z
         .string()
         .regex(

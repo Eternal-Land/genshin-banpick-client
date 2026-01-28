@@ -11,7 +11,7 @@ export const registerSchema = z
                 /^(?=.{6,30}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
                 LocaleKeys.validation_password_strength
             ),
-        avatar: z.url({ message: LocaleKeys.validation_url }).optional(),
+        avatar: z.string().optional(),
         confirmPassword: z.string().min(1, LocaleKeys.validation_required),
         displayName: z.string().min(1, LocaleKeys.validation_required)
     })

@@ -26,9 +26,8 @@ export const createCharacterSchema = z.object({
     weaponType: z.enum(WeaponType, {
         message: LocaleKeys.validation_required,
     }),
-    iconUrl: z.url({ message: LocaleKeys.validation_url }),
+    iconUrl: z.string().optional(),
     rarity: z.number().int({ message: LocaleKeys.validation_required }),
-    isActive: z.boolean().optional(),
 });
 
 export type CreateCharacterInput = z.infer<typeof createCharacterSchema>;
@@ -48,7 +47,6 @@ export const updateCharacterSchema = z.object({
         .optional(),
     iconUrl: z.url({ message: LocaleKeys.validation_url }).optional(),
     rarity: z.number().int({ message: LocaleKeys.validation_required }).optional(),
-    isActive: z.boolean().optional(),
 });
 
 export type UpdateCharacterInput = z.infer<typeof updateCharacterSchema>;

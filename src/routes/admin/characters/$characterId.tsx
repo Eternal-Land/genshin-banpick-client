@@ -34,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -64,9 +63,8 @@ function RouteComponent() {
       name: "",
       element: undefined,
       weaponType: undefined,
-      iconUrl: "",
+      iconUrl: undefined,
       rarity: undefined,
-      isActive: undefined,
     },
   });
 
@@ -89,9 +87,8 @@ function RouteComponent() {
       name: character.name,
       element: character.element,
       weaponType: character.weaponType,
-      iconUrl: character.iconUrl,
+      iconUrl: character.iconUrl ?? undefined,
       rarity: character.rarity,
-      isActive: character.isActive,
     });
   }, [characterResponse, form]);
 
@@ -160,7 +157,6 @@ function RouteComponent() {
               weaponType: values.weaponType,
               iconUrl: values.iconUrl,
               rarity: values.rarity,
-              isActive: values.isActive,
             }),
           )}
         >
@@ -365,30 +361,6 @@ function RouteComponent() {
                   )}
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="isActive"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal" className="items-center">
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-4 w-20" />
-                  ) : (
-                    <>
-                      <Checkbox
-                        id="character-active"
-                        checked={field.value ?? false}
-                        onCheckedChange={(value) =>
-                          field.onChange(value === true)
-                        }
-                      />
-                      <FieldLabel htmlFor="character-active">
-                        {t(LocaleKeys.characters_is_active_label)}
-                      </FieldLabel>
-                    </>
                   )}
                 </Field>
               )}

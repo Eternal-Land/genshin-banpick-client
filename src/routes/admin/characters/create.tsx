@@ -33,7 +33,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
 import { filesApi } from "@/apis/files";
@@ -61,9 +60,7 @@ function RouteComponent() {
       name: "",
       element: undefined,
       weaponType: undefined,
-      iconUrl: "",
       rarity: 5,
-      isActive: true,
     },
   });
 
@@ -133,7 +130,6 @@ function RouteComponent() {
               weaponType: values.weaponType,
               iconUrl: values.iconUrl,
               rarity: values.rarity,
-              isActive: values.isActive ?? true,
             }),
           )}
         >
@@ -309,22 +305,6 @@ function RouteComponent() {
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="isActive"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal" className="items-center">
-                  <Checkbox
-                    id="character-active"
-                    checked={field.value ?? false}
-                    onCheckedChange={(value) => field.onChange(value === true)}
-                  />
-                  <FieldLabel htmlFor="character-active">
-                    {t(LocaleKeys.characters_is_active_label)}
-                  </FieldLabel>
                 </Field>
               )}
             />
