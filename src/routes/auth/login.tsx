@@ -28,12 +28,14 @@ import { ACCOUNT_ROLES } from "@/lib/constants";
 import { useAppDispatch } from "@/hooks/use-app-dispatch";
 import { setProfile } from "@/lib/redux/auth.slice";
 import { selfApi } from "@/apis/self";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/auth/login")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const form = useForm<BasicLoginInput>({
@@ -74,11 +76,11 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
+        <CardTitle>{t("login_welcome")}</CardTitle>
         {loginMutation.isError && (
           <CardDescription className="text-destructive">
             {loginMutation.error.response?.data.message ||
-              "An error occurred during login."}
+              t("login_error_generic")}
           </CardDescription>
         )}
       </CardHeader>
@@ -93,12 +95,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>UID or Email</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("login_uid_or_email_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="Enter UID or email"
+                    placeholder={t("login_uid_or_email_placeholder")}
                     autoComplete="username"
                   />
                   {fieldState.invalid && (
@@ -112,13 +116,15 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("login_password_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     type="password"
                     aria-invalid={fieldState.invalid}
-                    placeholder="Enter your password"
+                    placeholder={t("login_password_placeholder")}
                     autoComplete="current-password"
                   />
                   {fieldState.invalid && (
@@ -130,12 +136,14 @@ function RouteComponent() {
           </FieldGroup>
         </form>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Need an account?</span>
+          <span className="text-muted-foreground">
+            {t("login_need_account")}
+          </span>
           <Link
             to="/auth/register"
             className="text-primary font-medium hover:underline"
           >
-            Create one
+            {t("login_create_one")}
           </Link>
         </div>
       </CardContent>
@@ -146,7 +154,7 @@ function RouteComponent() {
           form="login-form"
           disabled={loginMutation.isPending}
         >
-          {loginMutation.isPending ? "Signing in..." : "Sign in"}
+          {loginMutation.isPending ? t("login_signing_in") : t("login_sign_in")}
         </Button>
       </CardFooter>
     </Card>

@@ -36,6 +36,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/admin/staff-roles/create")({
   component: RouteComponent,
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/admin/staff-roles/create")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   type CreateStaffRoleFormInput = z.input<typeof createStaffRoleSchema>;
   const form = useForm<CreateStaffRoleFormInput>({
     resolver: zodResolver(createStaffRoleSchema),
@@ -67,7 +69,7 @@ function RouteComponent() {
   >({
     mutationFn: staffRolesApi.createStaffRole,
     onSuccess: () => {
-      toast.success("Staff role created successfully.");
+      toast.success(t("staff_roles_create_success"));
       navigate({ to: "/admin/staff-roles" });
     },
   });
@@ -77,17 +79,16 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create staff role</CardTitle>
+        <CardTitle>{t("staff_roles_create_title")}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>Define role name and assign permissions.</span>
+          <span>{t("staff_roles_create_description")}</span>
           <span className="text-xs">
-            {permissionCount} permission{permissionCount === 1 ? "" : "s"}{" "}
-            available
+            {t("staff_roles_permission_count", { count: permissionCount })}
           </span>
           {createMutation.isError && (
             <span className="text-destructive">
               {createMutation.error.response?.data.message ||
-                "Unable to create staff role."}
+                t("staff_roles_create_error")}
             </span>
           )}
         </CardDescription>
@@ -108,12 +109,14 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Role name</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>
+                    {t("staff_roles_name_label")}
+                  </FieldLabel>
                   <Input
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="e.g. Match Moderator"
+                    placeholder={t("staff_roles_name_placeholder")}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -126,9 +129,11 @@ function RouteComponent() {
               control={form.control}
               render={({ field, fieldState }) => (
                 <FieldSet>
-                  <FieldLegend>Permissions</FieldLegend>
+                  <FieldLegend>
+                    {t("staff_roles_permissions_label")}
+                  </FieldLegend>
                   <FieldDescription>
-                    Select permissions granted to this role.
+                    {t("staff_roles_permissions_description")}
                   </FieldDescription>
                   {isPermissionsLoading ? (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -178,10 +183,13 @@ function RouteComponent() {
                                 {permission.code}
                               </span>
                               <span className="text-muted-foreground text-xs">
-                                {permission.description || "No description"}
+                                {permission.description ||
+                                  t("staff_roles_permission_no_description")}
                               </span>
                               {permission.deprecated ? (
-                                <Badge variant="destructive">Deprecated</Badge>
+                                <Badge variant="destructive">
+                                  {t("staff_roles_permission_deprecated")}
+                                </Badge>
                               ) : null}
                             </FieldLabel>
                           </Field>
@@ -204,14 +212,16 @@ function RouteComponent() {
           variant="outline"
           onClick={() => navigate({ to: "/admin/staff-roles" })}
         >
-          Cancel
+          {t("staff_roles_cancel")}
         </Button>
         <Button
           type="submit"
           form="staff-role-create-form"
           disabled={createMutation.isPending}
         >
-          {createMutation.isPending ? "Creating..." : "Create role"}
+          {createMutation.isPending
+            ? t("staff_roles_create_pending")
+            : t("staff_roles_create_submit")}
         </Button>
       </CardFooter>
     </Card>
