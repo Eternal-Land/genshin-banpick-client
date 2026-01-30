@@ -1,11 +1,13 @@
 import * as React from "react";
 
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+type PlayerSideButtonProps = React.ComponentProps<typeof Button>;
 
 const PlayerSideButton = React.forwardRef<
 	React.ElementRef<typeof Button>,
-	ButtonProps
+  PlayerSideButtonProps
 >(({ className, size = "lg", variant = "secondary", ...props }, ref) => {
 	return (
 		<Button
