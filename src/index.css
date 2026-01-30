@@ -121,3 +121,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+@font-face {
+  font-family: HYWenHei;
+  src: url('./assets/fonts/HYWenhei.TTF');
+}
+
+* {
+  font-family: HYWenHei;
+}
+
+@keyframes fadeInSoft {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInSoft 0.9s ease-out both;
+}
