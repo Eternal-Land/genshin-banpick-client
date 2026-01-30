@@ -67,6 +67,18 @@ src/
 - Name component files with PascalCase matching component name
 - Use `PropsWithChildren` for components wrapping children
 - Destructure props in function parameters
+- **ALWAYS check `src/components/{feature}/` for existing reusable components before creating new ones in routes**
+- Feature-specific components (forms, tables, dialogs) should be extracted to `src/components/{feature}/` folder
+- Export components and their types via barrel file (`index.ts`) in each feature folder
+- Example structure (see `src/components/staff-roles/`):
+  ```
+  src/components/{feature}/
+  ├── index.ts                    # Barrel exports
+  ├── {Feature}Form.tsx           # Reusable form component
+  ├── {Feature}Table.tsx          # Table/list component
+  └── {Feature}ToggleDialog.tsx   # Toggle/action dialogs
+  ```
+- Routes should import and compose these components rather than duplicating logic
 
 ### API Layer
 
