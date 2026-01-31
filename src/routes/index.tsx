@@ -13,8 +13,7 @@ function RouteComponent() {
   const profile = useAppSelector(selectAuthProfile);
 
   const handleStart = () => {
-    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
-    if (profile || hasToken) {
+    if (profile) {
       navigate({ to: "/match" });
       return;
     }

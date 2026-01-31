@@ -4,11 +4,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { charactersApi } from "@/apis/characters";
+import { weaponApis } from "@/apis/weapons";
 import {
-  createCharacterSchema,
-  type CreateCharacterInput,
-} from "@/apis/characters/types";
+  createWeaponSchema,
+  type CreateWeaponInput,
+} from "@/apis/weapons/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +22,9 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
-import { CharacterForm, type CharacterFormValues } from "@/components/characters";
+import { WeaponForm, type WeaponFormValues } from "@/components/weapons";
 
-export const Route = createFileRoute("/admin/characters/create")({
+export const Route = createFileRoute("/admin/weapons/create")({
   component: RouteComponent,
 });
 
@@ -32,14 +32,13 @@ function RouteComponent() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  type CreateCharacterFormInput = z.input<typeof createCharacterSchema>;
-  const form = useForm<CreateCharacterFormInput>({
-    resolver: zodResolver(createCharacterSchema),
+  type CreateWeaponFormInput = z.input<typeof createWeaponSchema>;
+  const form = useForm<CreateWeaponFormInput>({
+    resolver: zodResolver(createWeaponSchema),
     defaultValues: {
       key: "",
       name: "",
-      element: undefined,
-      weaponType: undefined,
+      type: undefined,
       rarity: 5,
       iconUrl: undefined,
     },
@@ -48,27 +47,26 @@ function RouteComponent() {
   const createMutation = useMutation<
     BaseApiResponse,
     AxiosError<BaseApiResponse>,
-    CreateCharacterInput
+    CreateWeaponInput
   >({
-    mutationFn: (input: CreateCharacterInput) => charactersApi.createCharacter(input),
+    mutationFn: (input: CreateWeaponInput) => weaponApis.createWeapon(input),
     onSuccess: () => {
-      toast.success(t(LocaleKeys.characters_create_success));
-      navigate({ to: "/admin/characters" });
+      toast.success(t(LocaleKeys.weapons_create_success));
+      navigate({ to: "/admin/weapons" });
     },
     onError: (mutationError) => {
       toast.error(
         mutationError.response?.data.message ||
-          t(LocaleKeys.characters_create_error),
+          t(LocaleKeys.weapons_create_error),
       );
     },
   });
 
-  const handleSubmit = (values: CharacterFormValues) => {
+  const handleSubmit = (values: WeaponFormValues) => {
     createMutation.mutate({
       key: values.key,
       name: values.name,
-      element: values.element!,
-      weaponType: values.weaponType!,
+      type: values.type!,
       rarity: values.rarity,
       iconUrl: values.iconUrl,
     });
@@ -77,20 +75,20 @@ function RouteComponent() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t(LocaleKeys.characters_create_title)}</CardTitle>
+        <CardTitle>{t(LocaleKeys.weapons_create_title)}</CardTitle>
         <CardDescription className="space-y-1">
-          <span>{t(LocaleKeys.characters_create_description)}</span>
+          <span>{t(LocaleKeys.weapons_create_description)}</span>
           {createMutation.isError && (
             <span className="text-destructive">
               {createMutation.error.response?.data.message ||
-                t(LocaleKeys.characters_create_error)}
+                t(LocaleKeys.weapons_create_error)}
             </span>
           )}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <CharacterForm
-          formId="character-create-form"
+        <WeaponForm
+          formId="weapon-create-form"
           form={form}
           onSubmit={handleSubmit}
         />
@@ -99,18 +97,18 @@ function RouteComponent() {
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate({ to: "/admin/characters" })}
+          onClick={() => navigate({ to: "/admin/weapons" })}
         >
-          {t(LocaleKeys.characters_cancel)}
+          {t(LocaleKeys.weapons_cancel)}
         </Button>
         <Button
           type="submit"
-          form="character-create-form"
+          form="weapon-create-form"
           disabled={createMutation.isPending}
         >
           {createMutation.isPending
-            ? t(LocaleKeys.characters_create_pending)
-            : t(LocaleKeys.characters_create_submit)}
+            ? t(LocaleKeys.weapons_create_pending)
+            : t(LocaleKeys.weapons_create_submit)}
         </Button>
       </CardFooter>
     </Card>
