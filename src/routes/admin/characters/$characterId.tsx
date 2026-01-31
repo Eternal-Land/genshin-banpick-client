@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { AxiosError, type AxiosProgressEvent } from "axios";
-import { Controller, useForm } from "react-hook-form";
+import { AxiosError } from "axios";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { charactersApi } from "@/apis/characters";
 import {
-  updateCharacterSchema,
+  createCharacterSchema,
   type UpdateCharacterInput,
 } from "@/apis/characters/types";
 import type { BaseApiResponse } from "@/lib/types";
@@ -20,28 +20,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
-import { filesApi } from "@/apis/files";
-import { useWeaponTypeOptions } from "@/hooks/use-weapon-type-label";
-import { useElementOptions } from "@/hooks/use-element-label";
+import { CharacterForm, type CharacterFormValues } from "@/components/characters";
 
 export const Route = createFileRoute("/admin/characters/$characterId")({
   component: RouteComponent,
@@ -50,21 +32,19 @@ export const Route = createFileRoute("/admin/characters/$characterId")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
-  const [progress, setProgress] = useState<number>(0);
   const { characterId } = Route.useParams();
-  const id = Number(characterId);
-  type UpdateCharacterFormInput = z.input<typeof updateCharacterSchema>;
+  const [isFormReady, setIsFormReady] = useState(false);
 
-  const form = useForm<UpdateCharacterFormInput>({
-    resolver: zodResolver(updateCharacterSchema),
+  type CharacterFormInput = z.input<typeof createCharacterSchema>;
+  const form = useForm<CharacterFormInput>({
+    resolver: zodResolver(createCharacterSchema),
     defaultValues: {
       key: "",
       name: "",
       element: undefined,
       weaponType: undefined,
+      rarity: 5,
       iconUrl: undefined,
-      rarity: undefined,
     },
   });
 
@@ -73,9 +53,9 @@ function RouteComponent() {
     isLoading: isCharacterLoading,
     error: characterError,
   } = useQuery({
-    queryKey: ["character", id],
-    queryFn: () => charactersApi.getCharacter(id),
-    enabled: Number.isFinite(id) && id > 0,
+    queryKey: ["character", characterId],
+    queryFn: () => charactersApi.getCharacter(Number(characterId)),
+    enabled: Boolean(characterId),
   });
 
   useEffect(() => {
@@ -87,44 +67,40 @@ function RouteComponent() {
       name: character.name,
       element: character.element,
       weaponType: character.weaponType,
-      iconUrl: character.iconUrl ?? undefined,
       rarity: character.rarity,
+      iconUrl: character.iconUrl ?? undefined,
     });
-  }, [characterResponse, form]);
-
-  const elementOptions = useElementOptions();
-  const weaponOptions = useWeaponTypeOptions();
+    setIsFormReady(true);
+  }, [form, characterResponse]);
 
   const updateMutation = useMutation<
     BaseApiResponse,
     AxiosError<BaseApiResponse>,
     UpdateCharacterInput
   >({
-    mutationFn: async (values) => {
-      if (fileNeedUpload) {
-        const uploadResult = await filesApi.uploadFile(
-          fileNeedUpload,
-          handleUploadProgress,
-        );
-        values.iconUrl = uploadResult.secure_url;
-      }
-
-      return charactersApi.updateCharacter(id, values);
-    },
+    mutationFn: (input: UpdateCharacterInput) =>
+      charactersApi.updateCharacter(Number(characterId), input),
     onSuccess: () => {
       toast.success(t(LocaleKeys.characters_edit_success));
       navigate({ to: "/admin/characters" });
     },
+    onError: (mutationError) => {
+      toast.error(
+        mutationError.response?.data.message ||
+          t(LocaleKeys.characters_edit_error),
+      );
+    },
   });
 
-  const handleUploadProgress = (e: AxiosProgressEvent) => {
-    setProgress((e.progress ?? 0) * 100);
-  };
-
-  const handleOnFilesChange = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files.item(0)!;
-    setFileNeedUpload(file);
+  const handleSubmit = (values: CharacterFormValues) => {
+    updateMutation.mutate({
+      key: values.key,
+      name: values.name,
+      element: values.element!,
+      weaponType: values.weaponType!,
+      rarity: values.rarity,
+      iconUrl: values.iconUrl,
+    });
   };
 
   return (
@@ -146,227 +122,13 @@ function RouteComponent() {
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <form
-          id="character-update-form"
-          onSubmit={form.handleSubmit((values) =>
-            updateMutation.mutate({
-              key: values.key,
-              name: values.name,
-              element: values.element,
-              weaponType: values.weaponType,
-              iconUrl: values.iconUrl,
-              rarity: values.rarity,
-            }),
-          )}
-        >
-          <FieldGroup>
-            <Controller
-              name="key"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    {t(LocaleKeys.characters_key_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <Input
-                      {...field}
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      placeholder={t(LocaleKeys.characters_key_placeholder)}
-                    />
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    {t(LocaleKeys.characters_name_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <Input
-                      {...field}
-                      id={field.name}
-                      aria-invalid={fieldState.invalid}
-                      placeholder={t(LocaleKeys.characters_name_placeholder)}
-                    />
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="element"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="character-element-select">
-                    {t(LocaleKeys.characters_element_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <Select
-                      name={field.name}
-                      value={
-                        field.value != undefined ? String(field.value) : ""
-                      }
-                      onValueChange={(value) =>
-                        field.onChange(value ? Number(value) : undefined)
-                      }
-                    >
-                      <SelectTrigger
-                        id="character-element-select"
-                        className="w-full"
-                        aria-invalid={fieldState.invalid}
-                      >
-                        <SelectValue
-                          placeholder={t(
-                            LocaleKeys.characters_element_placeholder,
-                          )}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {elementOptions.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={String(option.value)}
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="weaponType"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="character-weapon-select">
-                    {t(LocaleKeys.characters_weapon_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <Select
-                      name={field.name}
-                      value={
-                        field.value != undefined ? String(field.value) : ""
-                      }
-                      onValueChange={(value) =>
-                        field.onChange(value ? Number(value) : undefined)
-                      }
-                    >
-                      <SelectTrigger
-                        id="character-weapon-select"
-                        className="w-full"
-                        aria-invalid={fieldState.invalid}
-                      >
-                        <SelectValue
-                          placeholder={t(
-                            LocaleKeys.characters_weapon_placeholder,
-                          )}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {weaponOptions.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={String(option.value)}
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="iconUrl"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    {t(LocaleKeys.characters_icon_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <>
-                      <Input {...field} id={field.name} type="hidden" />
-                      <Input
-                        type="file"
-                        onChange={(e) => handleOnFilesChange(e.target.files)}
-                      />
-                      {progress ? <Progress value={progress} /> : null}
-                    </>
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="rarity"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    {t(LocaleKeys.characters_rarity_label)}
-                  </FieldLabel>
-                  {isCharacterLoading ? (
-                    <Skeleton className="h-9 w-full" />
-                  ) : (
-                    <Input
-                      {...field}
-                      id={field.name}
-                      type="number"
-                      min={1}
-                      max={5}
-                      aria-invalid={fieldState.invalid}
-                      placeholder={t(LocaleKeys.characters_rarity_placeholder)}
-                      value={field.value ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        field.onChange(value ? Number(value) : undefined);
-                      }}
-                    />
-                  )}
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
-        </form>
+      <CardContent>
+        <CharacterForm
+          formId="character-update-form"
+          form={form}
+          isLoading={isCharacterLoading || !isFormReady}
+          onSubmit={handleSubmit}
+        />
       </CardContent>
       <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <Button
@@ -379,7 +141,7 @@ function RouteComponent() {
         <Button
           type="submit"
           form="character-update-form"
-          disabled={updateMutation.isPending || isCharacterLoading}
+          disabled={updateMutation.isPending || !isFormReady}
         >
           {updateMutation.isPending
             ? t(LocaleKeys.characters_edit_pending)

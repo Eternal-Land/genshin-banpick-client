@@ -67,6 +67,18 @@ src/
 - Name component files with PascalCase matching component name
 - Use `PropsWithChildren` for components wrapping children
 - Destructure props in function parameters
+- **ALWAYS check `src/components/{feature}/` for existing reusable components before creating new ones in routes**
+- Feature-specific components (forms, tables, dialogs) should be extracted to `src/components/{feature}/` folder
+- Export components and their types via barrel file (`index.ts`) in each feature folder
+- Example structure (see `src/components/staff-roles/`):
+  ```
+  src/components/{feature}/
+  ├── index.ts                    # Barrel exports
+  ├── {Feature}Form.tsx           # Reusable form component
+  ├── {Feature}Table.tsx          # Table/list component
+  └── {Feature}ToggleDialog.tsx   # Toggle/action dialogs
+  ```
+- Routes should import and compose these components rather than duplicating logic
 
 ### API Layer
 
@@ -134,6 +146,26 @@ export const {resource}Api = {
     )}
   />
   ```
+
+#### Edit Forms with Async Data
+
+When populating form fields (especially Select components) with data fetched via `useQuery`, track form initialization separately from query loading state. Radix UI Select components may not properly sync if rendered before `form.reset()` runs.
+
+```tsx
+const [isFormReady, setIsFormReady] = useState(false);
+
+const { data, isLoading } = useQuery({ ... });
+
+useEffect(() => {
+  if (!data) return;
+  form.reset({ ...data });
+  setIsFormReady(true);
+}, [form, data]);
+
+// Use combined loading state for skeleton/disabled states
+<FormComponent isLoading={isLoading || !isFormReady} />
+<Button disabled={isPending || !isFormReady}>Submit</Button>
+```
 
 ### Routing (TanStack Router)
 
@@ -304,6 +336,212 @@ npm run lint         # Run ESLint
 2. Export `Route` using `createFileRoute()`
 3. Add authentication/authorization in `beforeLoad` if needed
 4. Create component function
+
+### New Admin CRUD Resource
+
+When creating a new admin CRUD resource (e.g., weapons, characters), follow this exact pattern:
+
+#### 1. Component Structure
+
+Create reusable components in `src/components/{resource}/`:
+
+```
+src/components/{resource}/
+├── index.ts                      # Barrel exports
+├── {Resource}Form.tsx            # Form component (receives form prop)
+├── {Resource}sTable.tsx          # Table listing items
+└── {Resource}ToggleDialog.tsx    # Activate/deactivate confirmation dialog
+```
+
+#### 2. Form Component Pattern
+
+Form components are **presentational only** - they receive form state from the route:
+
+```tsx
+// src/components/{resource}/{Resource}Form.tsx
+import { Controller, type UseFormReturn } from "react-hook-form";
+
+export interface {Resource}FormValues {
+  // Define form field types
+}
+
+export interface {Resource}FormProps {
+  formId: string;                               // Links form to external submit button
+  form: UseFormReturn<{Resource}FormValues>;    // Form state from route
+  isLoading?: boolean;                          // Show skeletons when loading
+  onSubmit: (values: {Resource}FormValues) => void;
+}
+
+export default function {Resource}Form({
+  formId,
+  form,
+  isLoading,
+  onSubmit,
+}: {Resource}FormProps) {
+  // NO useForm here - form is passed as prop
+  // NO submit buttons - route provides them via formId
+  return (
+    <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
+      {/* Form fields with Controller */}
+      {/* Use isLoading to show Skeleton components */}
+    </form>
+  );
+}
+```
+
+#### 3. Table Component Pattern
+
+```tsx
+// src/components/{resource}/{Resource}sTable.tsx
+export interface {Resource}sTableProps {
+  isLoading?: boolean;
+  {resource}s?: {Resource}Response[];
+  onActivateDeactivate?: (item: {Resource}Response) => void;
+}
+
+export default function {Resource}sTable({
+  isLoading,
+  {resource}s,
+  onActivateDeactivate,
+}: {Resource}sTableProps) {
+  // Show skeleton rows when isLoading
+  // Map items to table rows with edit link and toggle button
+}
+```
+
+#### 4. Toggle Dialog Component Pattern
+
+```tsx
+// src/components/{resource}/{Resource}ToggleDialog.tsx
+export interface {Resource}ToggleDialogProps {
+  {resource}: {Resource}Response | null;  // null = dialog closed
+  isPending?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+```
+
+#### 5. Route Files
+
+**List Route (`index.tsx`):**
+```tsx
+// src/routes/admin/{resource}/index.tsx
+function RouteComponent() {
+  const [confirmTarget, setConfirmTarget] = useState<{Resource}Response | null>(null);
+  
+  const { data, isLoading, refetch } = useQuery({...});
+  const toggleMutation = useMutation({...});
+
+  return (
+    <>
+      <{Resource}sTable
+        isLoading={isLoading}
+        {resource}s={data}
+        onActivateDeactivate={setConfirmTarget}
+      />
+      <{Resource}ToggleDialog
+        {resource}={confirmTarget}
+        isPending={toggleMutation.isPending}
+        onConfirm={() => toggleMutation.mutate(confirmTarget.id)}
+        onCancel={() => setConfirmTarget(null)}
+      />
+    </>
+  );
+}
+```
+
+**Create Route (`create.tsx`):**
+```tsx
+// src/routes/admin/{resource}/create.tsx
+function RouteComponent() {
+  // Route OWNS the form state
+  const form = useForm<FormInput>({
+    resolver: zodResolver(createSchema),
+    defaultValues: {...},
+  });
+
+  const createMutation = useMutation({...});
+
+  const handleSubmit = (values: FormValues) => {
+    createMutation.mutate({...values});
+  };
+
+  return (
+    <Card>
+      <CardContent>
+        <{Resource}Form
+          formId="{resource}-create-form"
+          form={form}
+          onSubmit={handleSubmit}
+        />
+      </CardContent>
+      <CardFooter>
+        <Button type="submit" form="{resource}-create-form">
+          Submit
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+```
+
+**Edit Route (`${resource}Id.tsx`):**
+```tsx
+// src/routes/admin/{resource}/${resource}Id.tsx
+function RouteComponent() {
+  const { {resource}Id } = Route.useParams();
+  const [isFormReady, setIsFormReady] = useState(false);  // CRITICAL for Select fields
+
+  // Route OWNS the form state
+  const form = useForm<FormInput>({
+    resolver: zodResolver(updateSchema),
+    defaultValues: {...},
+  });
+
+  const { data, isLoading } = useQuery({...});
+
+  // Reset form when data loads - set isFormReady AFTER reset
+  useEffect(() => {
+    if (!data) return;
+    form.reset({...data});
+    setIsFormReady(true);
+  }, [form, data]);
+
+  const updateMutation = useMutation({...});
+
+  return (
+    <Card>
+      <CardContent>
+        <{Resource}Form
+          formId="{resource}-update-form"
+          form={form}
+          isLoading={isLoading || !isFormReady}  // Combined loading state
+          onSubmit={handleSubmit}
+        />
+      </CardContent>
+      <CardFooter>
+        <Button
+          type="submit"
+          form="{resource}-update-form"
+          disabled={isPending || !isFormReady}
+        >
+          Submit
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+```
+
+#### 6. Key Principles
+
+- **Routes own form state**: Use `useForm` in route, pass to component as prop
+- **Form components are stateless**: Receive `form: UseFormReturn` prop, no internal `useForm`
+- **Submit buttons in routes**: Use `formId` prop to link external button to form
+- **`isFormReady` pattern**: Required for edit forms with Select fields (Radix UI sync issue)
+- **Use `createSchema` type for form**: Even in edit routes, use the create schema for `UseFormReturn` type to avoid type incompatibility with optional fields
+- **Barrel exports**: Export all components and types from `index.ts`
+- **Locale keys**: All user-facing strings must use `LocaleKeys` constants
 
 ### New Redux Slice
 

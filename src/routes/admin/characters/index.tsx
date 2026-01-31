@@ -5,8 +5,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { charactersApi } from "@/apis/characters";
 import type { CharacterResponse } from "@/apis/characters/types";
 import type { BaseApiResponse } from "@/lib/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,47 +14,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { PlusIcon, RefreshCcwIcon, SearchIcon } from "lucide-react";
+import { RefreshSpinner } from "@/components/ui/spinner";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { RefreshSpinner } from "@/components/ui/spinner";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { LocaleKeys } from "@/lib/constants";
-import dayjs from "dayjs";
-import {
-  BanIcon,
-  PenIcon,
-  PlusIcon,
-  RefreshCcwIcon,
-  SearchIcon,
-  SquareCheckIcon,
-} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { useElementLabel } from "@/hooks/use-element-label";
-import { useWeaponTypeLabel } from "@/hooks/use-weapon-type-label";
+import { LocaleKeys } from "@/lib/constants";
+import {
+  CharactersTable,
+  CharacterToggleDialog,
+} from "@/components/characters";
 
 export const Route = createFileRoute("/admin/characters/")({
   component: RouteComponent,
@@ -64,8 +39,6 @@ export const Route = createFileRoute("/admin/characters/")({
 
 function RouteComponent() {
   const { t } = useTranslation();
-  const elementLabelMap = useElementLabel();
-  const weaponTypeLabelMap = useWeaponTypeLabel();
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState<CharacterResponse | null>(
     null,
@@ -118,14 +91,6 @@ function RouteComponent() {
     if (!confirmTarget) return;
     toggleMutation.mutate(confirmTarget.id);
   };
-
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("");
 
   return (
     <div className="space-y-6">
@@ -194,222 +159,21 @@ function RouteComponent() {
           </div>
 
           <div className="w-full max-w-full overflow-x-auto">
-            <Table className="w-full table-auto">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t(LocaleKeys.characters_table_icon)}</TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_name)}</TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_key)}</TableHead>
-                  <TableHead>
-                    {t(LocaleKeys.characters_table_element)}
-                  </TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_weapon)}</TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_rarity)}</TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_status)}</TableHead>
-                  <TableHead>
-                    {t(LocaleKeys.characters_table_updated_at)}
-                  </TableHead>
-                  <TableHead>{t(LocaleKeys.characters_table_action)}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading
-                  ? Array.from({ length: 5 }).map((_, index) => (
-                      <TableRow key={`character-skeleton-${index}`}>
-                        <TableCell>
-                          <Skeleton className="h-9 w-9" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-28" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-20" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-20" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-12" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-16" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-28" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-16" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : filteredCharacters.map((character) => (
-                      <TableRow key={character.id}>
-                        <TableCell>
-                          <Avatar className="size-9">
-                            <AvatarImage
-                              src={character.iconUrl}
-                              alt={character.name}
-                            />
-                            <AvatarFallback>
-                              {getInitials(character.name)}
-                            </AvatarFallback>
-                          </Avatar>
-                        </TableCell>
-                        <TableCell className="font-medium break-words">
-                          {character.name}
-                        </TableCell>
-                        <TableCell className="break-words">
-                          {character.key}
-                        </TableCell>
-                        <TableCell>
-                          {elementLabelMap[character.element]}
-                        </TableCell>
-                        <TableCell>
-                          {weaponTypeLabelMap[character.weaponType]}
-                        </TableCell>
-                        <TableCell>
-                          {character.rarity ? `${character.rarity}★` : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {character.isActive ? (
-                            <Badge variant="secondary">
-                              {t(LocaleKeys.characters_status_active)}
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              {t(LocaleKeys.characters_status_inactive)}
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {character.updatedAt
-                            ? dayjs(character.updatedAt).format(
-                                "DD/MM/YYYY HH:mm",
-                              )
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  size="icon-sm"
-                                >
-                                  <Link
-                                    to="/admin/characters/$characterId"
-                                    params={{
-                                      characterId: character.id.toString(),
-                                    }}
-                                  >
-                                    <PenIcon className="size-3" />
-                                  </Link>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {t(LocaleKeys.characters_edit_tooltip)}
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant={
-                                    character.isActive
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                  size="icon-sm"
-                                  disabled={toggleMutation.isPending}
-                                  onClick={() => setConfirmTarget(character)}
-                                  className="cursor-pointer"
-                                >
-                                  {character.isActive ? (
-                                    <BanIcon className="size-3" />
-                                  ) : (
-                                    <SquareCheckIcon className="size-3" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {character.isActive
-                                  ? t(LocaleKeys.characters_deactivate_tooltip)
-                                  : t(LocaleKeys.characters_activate_tooltip)}
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-
-                {!isLoading && filteredCharacters.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-muted-foreground text-center"
-                    >
-                      {t(LocaleKeys.characters_empty)}
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
+            <CharactersTable
+              isLoading={isLoading}
+              characters={filteredCharacters}
+              onActivateDeactivate={setConfirmTarget}
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Dialog
-        open={Boolean(confirmTarget)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setConfirmTarget(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {confirmTarget?.isActive
-                ? t(LocaleKeys.characters_confirm_deactivate_title)
-                : t(LocaleKeys.characters_confirm_activate_title)}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmTarget?.isActive
-                ? t(LocaleKeys.characters_confirm_deactivate_desc, {
-                    name: confirmTarget.name,
-                  })
-                : t(LocaleKeys.characters_confirm_activate_desc, {
-                    name: confirmTarget?.name,
-                  })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmTarget(null)}
-            >
-              {t(LocaleKeys.characters_cancel)}
-            </Button>
-            <Button
-              type="button"
-              variant={confirmTarget?.isActive ? "destructive" : "secondary"}
-              onClick={handleConfirmToggle}
-              disabled={toggleMutation.isPending}
-            >
-              {toggleMutation.isPending
-                ? t(LocaleKeys.characters_update_pending)
-                : confirmTarget?.isActive
-                  ? t(LocaleKeys.characters_deactivate)
-                  : t(LocaleKeys.characters_activate)}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CharacterToggleDialog
+        character={confirmTarget}
+        isPending={toggleMutation.isPending}
+        onConfirm={handleConfirmToggle}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }
