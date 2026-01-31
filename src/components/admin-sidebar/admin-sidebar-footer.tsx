@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import {
   SidebarFooter,
@@ -20,8 +21,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useTranslation } from "react-i18next";
-import { SupportedLanguages } from "@/lib/constants";
-import { GlobeIcon, LogOutIcon, UserIcon } from "lucide-react";
+import { LocaleKeys, SupportedLanguages } from "@/lib/constants";
+import { GlobeIcon, LogOutIcon, MonitorIcon, MoonIcon, PaletteIcon, SunIcon, UserIcon } from "lucide-react";
+import { useAppDispatch } from "@/hooks/use-app-dispatch";
+import { useAppSelector } from "@/hooks/use-app-selector";
+import { selectThemeMode, setThemeMode, type ThemeMode } from "@/lib/redux/theme.slice";
+import { useEffect } from "react";
 
 type AdminSidebarFooterProps = {
   profile: ProfileResponse | null;
@@ -33,6 +38,34 @@ export default function AdminSidebarFooter({
   onLogout,
 }: AdminSidebarFooterProps) {
   const { t, i18n } = useTranslation();
+  const dispatch = useAppDispatch();
+  const themeMode = useAppSelector(selectThemeMode);
+
+  const handleSetTheme = (mode: ThemeMode) => {
+    window.localStorage.setItem("theme", mode);
+    dispatch(setThemeMode(mode));
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const root = window.document.documentElement;
+
+    root.classList.remove("light", "dark");
+
+    if (themeMode === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light";
+      root.classList.add(systemTheme);
+      return;
+    }
+
+    root.classList.add(themeMode);
+  }, [themeMode]);
 
   return (
     <SidebarFooter>
@@ -61,6 +94,29 @@ export default function AdminSidebarFooter({
               <DropdownMenuItem>
                 <UserIcon className="size-4" /> {t("admin_profile_label")}
               </DropdownMenuItem>
+              <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <PaletteIcon className="size-4" /> {t(LocaleKeys.admin_theme_label)}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup
+                  value={themeMode}
+                  onValueChange={(value) => handleSetTheme(value as ThemeMode)}
+                >
+                  <DropdownMenuRadioItem value="system">
+                    <MonitorIcon className="size-4" /> {t(LocaleKeys.admin_theme_system)}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="light">
+                    <SunIcon className="size-4" /> {t(LocaleKeys.admin_theme_light)}
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="dark">
+                    <MoonIcon className="size-4" /> {t(LocaleKeys.admin_theme_dark)}
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <GlobeIcon className="size-4" /> {t("admin_language_label")}
