@@ -27,12 +27,12 @@ import {
   type ThemeMode,
 } from "@/lib/redux/theme.slice";
 import { useTranslation } from "react-i18next";
-import { SupportedLanguages } from "@/lib/constants";
+import { LocaleKeys, SupportedLanguages } from "@/lib/constants";
 
 export default function FixedMenu() {
   const dispatch = useAppDispatch();
   const themeMode = useAppSelector(selectThemeMode);
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const handleSetTheme = (mode: ThemeMode) => {
     window.localStorage.setItem("theme", mode);
@@ -72,7 +72,7 @@ export default function FixedMenu() {
         <DropdownMenuContent>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <PaletteIcon className="size-4" /> Theme
+              <PaletteIcon className="size-4" /> {t(LocaleKeys.admin_theme_label)}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
@@ -81,13 +81,13 @@ export default function FixedMenu() {
                   onValueChange={(value) => handleSetTheme(value as ThemeMode)}
                 >
                   <DropdownMenuRadioItem value="system">
-                    <MonitorIcon className="size-4" /> System
+                    <MonitorIcon className="size-4" /> {t(LocaleKeys.admin_theme_system)}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="light">
-                    <SunIcon className="size-4" /> Light
+                    <SunIcon className="size-4" /> {t(LocaleKeys.admin_theme_light)}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="dark">
-                    <MoonIcon className="size-4" /> Dark
+                    <MoonIcon className="size-4" /> {t(LocaleKeys.admin_theme_dark)}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
@@ -95,7 +95,7 @@ export default function FixedMenu() {
           </DropdownMenuSub>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <GlobeIcon className="size-4" /> Language
+              <GlobeIcon className="size-4" /> {t(LocaleKeys.admin_language_label)}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
