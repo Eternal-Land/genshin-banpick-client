@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { charactersApi } from "@/apis/characters";
-import type { CharacterResponse } from "@/apis/characters/types";
+import { weaponApis } from "@/apis/weapons";
+import type { WeaponResponse } from "@/apis/weapons/types";
 import type { BaseApiResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,81 +29,81 @@ import {
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
 import {
-  CharactersTable,
-  CharacterToggleDialog,
-} from "@/components/characters";
+  WeaponsTable,
+  WeaponToggleDialog,
+} from "@/components/weapons";
 
-export const Route = createFileRoute("/admin/characters/")({
+export const Route = createFileRoute("/admin/weapons/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [confirmTarget, setConfirmTarget] = useState<CharacterResponse | null>(
+  const [confirmTarget, setConfirmTarget] = useState<WeaponResponse | null>(
     null,
   );
 
   const {
-    data: charactersResponse,
+    data: weaponsResponse,
     isLoading,
     isFetching,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["characters"],
-    queryFn: charactersApi.listCharacters,
+    queryKey: ["weapons"],
+    queryFn: weaponApis.listWeapons,
   });
 
   const toggleMutation = useMutation<
     BaseApiResponse,
     AxiosError<BaseApiResponse>,
-    number
+    string
   >({
-    mutationFn: (id) => charactersApi.toggleActive(id),
+    mutationFn: (id) => weaponApis.toggleActive(id),
     onSuccess: () => {
-      toast.success(t(LocaleKeys.characters_status_updated));
+      toast.success(t(LocaleKeys.weapons_status_updated));
       refetch();
       setConfirmTarget(null);
     },
     onError: (mutationError) => {
       toast.error(
         mutationError.response?.data.message ||
-          t(LocaleKeys.characters_status_update_error),
+          t(LocaleKeys.weapons_status_update_error),
       );
     },
   });
 
-  const characters = charactersResponse?.data ?? [];
+  const weapons = weaponsResponse?.data ?? [];
 
-  const filteredCharacters = useMemo(() => {
+  const filteredWeapons = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return characters;
+    if (!normalizedQuery) return weapons;
 
-    return characters.filter((character) =>
-      [character.name, character.key]
+    return weapons.filter((weapon) =>
+      [weapon.name, weapon.key]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
-  }, [characters, query]);
+  }, [weapons, query]);
 
   const handleConfirmToggle = () => {
     if (!confirmTarget) return;
-    toggleMutation.mutate(confirmTarget.id);
+    toggleMutation.mutate(confirmTarget.id.toString());
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t(LocaleKeys.characters_title)}</CardTitle>
+          <CardTitle>{t(LocaleKeys.weapons_title)}</CardTitle>
           <CardDescription className="flex flex-wrap items-center gap-2">
             <span>
-              {t(LocaleKeys.characters_count, { count: characters.length })}
+              {t(LocaleKeys.weapons_count, { count: weapons.length })}
             </span>
             {error ? (
               <span className="text-destructive">
-                {t(LocaleKeys.characters_load_error)}
+                {t(LocaleKeys.weapons_load_error)}
               </span>
             ) : null}
           </CardDescription>
@@ -112,7 +112,7 @@ function RouteComponent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <InputGroup>
               <InputGroupInput
-                placeholder={t(LocaleKeys.characters_search_placeholder)}
+                placeholder={t(LocaleKeys.weapons_search_placeholder)}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -139,37 +139,37 @@ function RouteComponent() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {t(LocaleKeys.characters_refresh)}
+                  {t(LocaleKeys.weapons_refresh)}
                 </TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button asChild size="icon">
-                    <Link to="/admin/characters/create">
+                    <Link to="/admin/weapons/create">
                       <PlusIcon className="size-4" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {t(LocaleKeys.characters_create_new)}
+                  {t(LocaleKeys.weapons_create_new)}
                 </TooltipContent>
               </Tooltip>
             </div>
           </div>
 
           <div className="w-full max-w-full overflow-x-auto">
-            <CharactersTable
+            <WeaponsTable
               isLoading={isLoading}
-              characters={filteredCharacters}
+              weapons={filteredWeapons}
               onActivateDeactivate={setConfirmTarget}
             />
           </div>
         </CardContent>
       </Card>
 
-      <CharacterToggleDialog
-        character={confirmTarget}
+      <WeaponToggleDialog
+        weapon={confirmTarget}
         isPending={toggleMutation.isPending}
         onConfirm={handleConfirmToggle}
         onCancel={() => setConfirmTarget(null)}

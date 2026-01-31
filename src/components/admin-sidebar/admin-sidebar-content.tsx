@@ -14,6 +14,7 @@ import {
   ContactIcon,
   HouseIcon,
   SparklesIcon,
+  SwordIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -49,6 +50,11 @@ const adminRoutes: AdminSidebarRoute[] = [
     to: "/admin/characters",
     label: "admin_sidebar_characters",
     icon: <SparklesIcon className="size-4" />,
+  },
+  {
+    to: "/admin/weapons",
+    label: "admin_sidebar_weapons",
+    icon: <SwordIcon className="size-4" />,
   },
 ];
 
