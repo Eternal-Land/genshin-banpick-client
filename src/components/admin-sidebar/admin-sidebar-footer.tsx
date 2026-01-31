@@ -33,7 +33,6 @@ export default function AdminSidebarFooter({
   onLogout,
 }: AdminSidebarFooterProps) {
   const { t, i18n } = useTranslation();
-  const language = i18n.language.startsWith("vi") ? "vi" : "en";
 
   return (
     <SidebarFooter>
@@ -68,7 +67,7 @@ export default function AdminSidebarFooter({
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuRadioGroup
-                    value={language}
+                    value={i18n.language}
                     onValueChange={(value) => i18n.changeLanguage(value)}
                   >
                     {SupportedLanguages.map(({ code, label }) => (

@@ -34,8 +34,6 @@ export default function FixedMenu() {
   const themeMode = useAppSelector(selectThemeMode);
   const { i18n } = useTranslation();
 
-  const language = i18n.language.startsWith("vi") ? "vi" : "en";
-
   const handleSetTheme = (mode: ThemeMode) => {
     window.localStorage.setItem("theme", mode);
     dispatch(setThemeMode(mode));
@@ -102,7 +100,7 @@ export default function FixedMenu() {
             <DropdownMenuPortal>
               <DropdownMenuSubContent>
                 <DropdownMenuRadioGroup
-                  value={language}
+                  value={i18n.language}
                   onValueChange={(value) => i18n.changeLanguage(value)}
                 >
                   {SupportedLanguages.map(({ code, label }) => (
