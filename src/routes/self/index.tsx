@@ -39,7 +39,7 @@ export const Route = createFileRoute("/self/")({
   component: RouteComponent,
 });
 
-function RouteComponent() {
+export function RouteComponent() {
   const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);

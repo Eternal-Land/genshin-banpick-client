@@ -1,4 +1,5 @@
 import { selfApi } from "@/apis/self";
+import PlayerSideBackground from "@/components/player-side/background";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { store } from "@/lib/redux";
@@ -25,7 +26,8 @@ function RootComponent() {
   return (
     <Providers>
       <Outlet />
-      <Toaster position="top-center" />
+      <Toaster position="top-center" richColors/>
+      <PlayerSideBackground/>
     </Providers>
   );
 }

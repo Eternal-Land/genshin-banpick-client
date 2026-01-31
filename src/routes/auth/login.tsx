@@ -51,7 +51,7 @@ function RouteComponent() {
     const profile = response.data;
     dispatch(setProfile(profile!));
     if (profile?.role === AccountRole.USER) {
-      navigate({ to: "/user" });
+      navigate({ to: "/match" });
     } else {
       navigate({ to: "/admin" });
     }
@@ -74,7 +74,7 @@ function RouteComponent() {
   });
 
   return (
-    <Card>
+    <Card className="bg-transparent bg-linear-45 from-white/5 to-white/10 backdrop-blur-md">
       <CardHeader>
         <CardTitle>{t(LocaleKeys.login_welcome)}</CardTitle>
         {loginMutation.isError && (
@@ -89,7 +89,7 @@ function RouteComponent() {
           id="login-form"
           onSubmit={form.handleSubmit((values) => loginMutation.mutate(values))}
         >
-          <FieldGroup>
+          <FieldGroup className="space-y-4">
             <Controller
               name="ingameUuidOrEmail"
               control={form.control}
@@ -104,6 +104,7 @@ function RouteComponent() {
                     aria-invalid={fieldState.invalid}
                     placeholder={t(LocaleKeys.login_uid_or_email_placeholder)}
                     autoComplete="username"
+                    disabled={loginMutation.isPending}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -126,6 +127,7 @@ function RouteComponent() {
                     aria-invalid={fieldState.invalid}
                     placeholder={t(LocaleKeys.login_password_placeholder)}
                     autoComplete="current-password"
+                    disabled={loginMutation.isPending}
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
