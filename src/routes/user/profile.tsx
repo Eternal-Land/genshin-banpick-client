@@ -9,7 +9,7 @@ import { AccountRole, LocaleKeys } from "@/lib/constants";
 import HeaderNavigation from "@/components/header-navigation";
 import { Badge } from "@/components/ui/badge";
 
-export const Route = createFileRoute("/profile")({
+export const Route = createFileRoute("/user/profile")({
   component: RouteComponent,
 });
 

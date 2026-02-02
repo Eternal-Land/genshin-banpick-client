@@ -1,5 +1,4 @@
-import { authApi } from "@/apis/auth";
-import { Button } from "@/components/ui/button";
+import HeaderNavigation from "@/components/header-navigation";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { createFileRoute } from "@tanstack/react-router";
@@ -13,8 +12,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div>Hello {profile?.ingameUuid || "User"}!</div>
-      <Button onClick={() => authApi.logout()}>Logout</Button>
+      <HeaderNavigation profile={profile!} />
     </>
   );
 }

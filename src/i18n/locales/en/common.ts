@@ -76,7 +76,7 @@ const common: LocaleObject = {
     profile_update_title: "Update profile",
     profile_update_error: "Unable to update profile.",
     profile_update_success: "Profile updated.",
-    profile_view_option: "Profile",
+    profile_view_option: "Account detail",
     profile_edit_option: "Edit profile",
     profile_dialog_close: "Close",
     profile_avatar_label: "Avatar",
