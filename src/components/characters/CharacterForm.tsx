@@ -46,31 +46,37 @@ export default function CharacterForm({
   onSubmit,
 }: CharacterFormProps) {
   const { t } = useTranslation();
+  const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [isUploading, setIsUploading] = useState(false);
   const elementOptions = useElementOptions();
   const weaponTypeOptions = useWeaponTypeOptions();
 
-  const handleUploadProgress = (e: AxiosProgressEvent) => {
-    setProgress((e.progress ?? 0) * 100);
-  };
-
-  const handleOnFilesChange = async (files: FileList | null) => {
+  const handleOnFilesChange = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files.item(0)!;
+    setFileNeedUpload(file);
+    setProgress(0);
+  };
 
-    setIsUploading(true);
-    try {
-      const result = await filesApi.uploadFile(file, handleUploadProgress);
-      form.setValue("iconUrl", result.secure_url);
-    } finally {
-      setIsUploading(false);
-      setProgress(0);
+  const handleFormSubmit = async (values: CharacterFormValues) => {
+    let iconUrl = values.iconUrl;
+
+    if (fileNeedUpload) {
+      const handleUploadProgress = (e: AxiosProgressEvent) => {
+        setProgress((e.progress ?? 0) * 100);
+      };
+      const uploadResult = await filesApi.uploadFile(
+        fileNeedUpload,
+        handleUploadProgress,
+      );
+      iconUrl = uploadResult.secure_url;
     }
+
+    onSubmit({ ...values, iconUrl });
   };
 
   return (
-    <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
+    <form id={formId} onSubmit={form.handleSubmit(handleFormSubmit)}>
       <FieldGroup>
         <Controller
           name="key"
@@ -90,9 +96,7 @@ export default function CharacterForm({
                   placeholder={t(LocaleKeys.characters_key_placeholder)}
                 />
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -114,9 +118,7 @@ export default function CharacterForm({
                   placeholder={t(LocaleKeys.characters_name_placeholder)}
                 />
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -156,9 +158,7 @@ export default function CharacterForm({
                   </SelectContent>
                 </Select>
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -198,9 +198,7 @@ export default function CharacterForm({
                   </SelectContent>
                 </Select>
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -226,9 +224,7 @@ export default function CharacterForm({
                   onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -243,25 +239,18 @@ export default function CharacterForm({
               {isLoading ? (
                 <Skeleton className="h-9 w-full" />
               ) : (
-                <div className="space-y-2">
+                <>
+                  <Input {...field} id={field.name} type="hidden" />
                   <Input
                     id="character-icon-input"
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleOnFilesChange(e.target.files)}
-                    disabled={isUploading}
                   />
-                  {isUploading && <Progress value={progress} />}
-                  {field.value && (
-                    <div className="text-muted-foreground text-xs truncate">
-                      {field.value}
-                    </div>
-                  )}
-                </div>
+                  {progress ? <Progress value={progress} /> : null}
+                </>
               )}
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
