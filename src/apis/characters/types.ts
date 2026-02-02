@@ -1,13 +1,13 @@
 import z from "zod";
-import { CharacterElement, LocaleKeys, WeaponType } from "@/lib/constants";
+import { CharacterElement, LocaleKeys, WeaponType, type CharacterElementEnum, type WeaponTypeEnum } from "@/lib/constants";
 import type { ProfileResponse } from "../self/types";
 
 export interface CharacterResponse {
     id: number;
     key: string;
     name: string;
-    element: typeof CharacterElement[keyof typeof CharacterElement];
-    weaponType: typeof WeaponType[keyof typeof WeaponType];
+    element: CharacterElementEnum;
+    weaponType: WeaponTypeEnum;
     iconUrl: string;
     rarity: number;
     isActive: boolean;

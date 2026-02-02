@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { LocaleKeys } from "@/lib/constants";
+import { LocaleKeys, WeaponRarity } from "@/lib/constants";
 import { WeaponForm, type WeaponFormValues } from "@/components/weapons";
 
 export const Route = createFileRoute("/admin/weapons/$weaponId")({
@@ -42,7 +42,7 @@ function RouteComponent() {
       key: "",
       name: "",
       type: undefined,
-      rarity: 5,
+      rarity: WeaponRarity.WEAPON_SS,
       iconUrl: undefined,
     },
   });

@@ -1,12 +1,12 @@
 import z from "zod";
-import { LocaleKeys } from "@/lib/constants";
+import { LocaleKeys, type AccountRoleEnum } from "@/lib/constants";
 
 export interface ProfileResponse {
     id: string;
     email: string;
     ingameUuid: string;
     displayName: string;
-    role: number;
+    role: AccountRoleEnum;
     staffRolename: string;
     permissions: string[];
     avatar?: string;

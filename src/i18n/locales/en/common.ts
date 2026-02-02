@@ -145,7 +145,7 @@ const common: LocaleObject = {
     characters_icon_label: "Icon URL",
     characters_icon_placeholder: "https://...",
     characters_rarity_label: "Rarity",
-    characters_rarity_placeholder: "e.g. 5",
+    characters_rarity_placeholder: "Select rarity",
     characters_is_active_label: "Active",
     characters_create_pending: "Creating...",
     characters_create_submit: "Create character",
@@ -336,7 +336,7 @@ const common: LocaleObject = {
     weapons_icon_label: "Icon URL",
     weapons_icon_placeholder: "https://...",
     weapons_rarity_label: "Rarity",
-    weapons_rarity_placeholder: "e.g. 5",
+    weapons_rarity_placeholder: "Select weapon rarity",
     weapons_create_pending: "Creating...",
     weapons_create_submit: "Create weapon",
     weapons_edit_title: "Edit weapon",
@@ -346,6 +346,9 @@ const common: LocaleObject = {
     weapons_edit_success: "Weapon updated successfully.",
     weapons_edit_pending: "Saving...",
     weapons_edit_submit: "Save changes",
+    weapons_rarity_ss: "SS",
+    weapons_rarity_s: "S",
+    weapons_rarity_normal: "Normal",
 }
 
 export default common;
