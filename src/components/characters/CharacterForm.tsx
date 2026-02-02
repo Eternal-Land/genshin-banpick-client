@@ -19,15 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LocaleKeys, CharacterElement, WeaponType } from "@/lib/constants";
+import {
+  LocaleKeys,
+  type CharacterElementEnum,
+  type WeaponTypeEnum,
+} from "@/lib/constants";
 import { useElementOptions } from "@/hooks/use-element-label";
 import { useWeaponTypeOptions } from "@/hooks/use-weapon-type-label";
 
 export interface CharacterFormValues {
   key: string;
   name: string;
-  element: (typeof CharacterElement)[keyof typeof CharacterElement];
-  weaponType: (typeof WeaponType)[keyof typeof WeaponType];
+  element: CharacterElementEnum;
+  weaponType: WeaponTypeEnum;
   rarity: number;
   iconUrl?: string;
 }
@@ -207,22 +211,35 @@ export default function CharacterForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabel htmlFor="character-rarity-select">
                 {t(LocaleKeys.characters_rarity_label)}
               </FieldLabel>
               {isLoading ? (
                 <Skeleton className="h-9 w-full" />
               ) : (
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="number"
-                  min={1}
-                  max={5}
-                  aria-invalid={fieldState.invalid}
-                  placeholder={t(LocaleKeys.characters_rarity_placeholder)}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
+                <Select
+                  name={field.name}
+                  value={field.value != undefined ? String(field.value) : ""}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                >
+                  <SelectTrigger
+                    id="character-rarity-select"
+                    className="w-full"
+                    aria-invalid={fieldState.invalid}
+                  >
+                    <SelectValue
+                      placeholder={t(LocaleKeys.characters_rarity_placeholder)}
+                    />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {[4, 5].map((rarity) => (
+                      <SelectItem key={rarity} value={String(rarity)}>
+                        {rarity}★
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

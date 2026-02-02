@@ -7,3 +7,5 @@ export const CharacterElement = {
     PYRO: 6,
     CRYO: 7,
 } as const
+
+export type CharacterElementEnum = typeof CharacterElement[keyof typeof CharacterElement];

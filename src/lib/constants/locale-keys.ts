@@ -344,4 +344,7 @@ export const LocaleKeys = {
     weapons_edit_success: "weapons_edit_success",
     weapons_edit_pending: "weapons_edit_pending",
     weapons_edit_submit: "weapons_edit_submit",
+    weapons_rarity_ss: "weapons_rarity_ss",
+    weapons_rarity_s: "weapons_rarity_s",
+    weapons_rarity_normal: "weapons_rarity_normal",
 } as const;

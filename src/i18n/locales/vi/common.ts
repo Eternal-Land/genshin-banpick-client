@@ -145,7 +145,7 @@ const common: LocaleObject = {
     characters_icon_label: "URL ảnh",
     characters_icon_placeholder: "https://...",
     characters_rarity_label: "Độ hiếm",
-    characters_rarity_placeholder: "vd. 5",
+    characters_rarity_placeholder: "Chọn độ hiếm",
     characters_is_active_label: "Hoạt động",
     characters_create_pending: "Đang tạo...",
     characters_create_submit: "Tạo nhân vật",
@@ -336,7 +336,7 @@ const common: LocaleObject = {
     weapons_icon_label: "URL ảnh",
     weapons_icon_placeholder: "https://...",
     weapons_rarity_label: "Độ hiếm",
-    weapons_rarity_placeholder: "vd. 5",
+    weapons_rarity_placeholder: "Chọn độ hiếm vũ khí",
     weapons_create_pending: "Đang tạo...",
     weapons_create_submit: "Tạo vũ khí",
     weapons_edit_title: "Chỉnh sửa vũ khí",
@@ -346,6 +346,9 @@ const common: LocaleObject = {
     weapons_edit_success: "Cập nhật vũ khí thành công.",
     weapons_edit_pending: "Đang lưu...",
     weapons_edit_submit: "Lưu thay đổi",
+    weapons_rarity_ss: "SS",
+    weapons_rarity_s: "S",
+    weapons_rarity_normal: "Bình thường",
 }
 
 export default common;

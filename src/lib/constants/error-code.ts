@@ -10,3 +10,5 @@ export const ErrorCode = {
     STAFF_ROLE_NOT_FOUND: "STAFF_ROLE_NOT_FOUND",
     STAFF_EMAIL_ALREADY_EXISTS: "STAFF_EMAIL_ALREADY_EXISTS",
 } as const;
+
+export type ErrorCodeEnum = typeof ErrorCode[keyof typeof ErrorCode];

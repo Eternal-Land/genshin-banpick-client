@@ -5,3 +5,5 @@ export const WeaponType = {
     BOW: 3,
     CATALYST: 4
 } as const;
+
+export type WeaponTypeEnum = typeof WeaponType[keyof typeof WeaponType];
