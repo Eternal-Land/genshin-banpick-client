@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { store } from "@/lib/redux";
 import { setProfile } from "@/lib/redux/auth.slice";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -24,20 +23,11 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-    const themeMode = store.getState().theme.mode;
-
-  useEffect(() => {    
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-
-    root.classList.add("dark");
-  }, [themeMode])
-  
   return (
     <Providers>
       <Outlet />
-      <Toaster position="top-center" richColors/>
-      <PlayerSideBackground/>
+      <Toaster position="top-center" richColors />
+      <PlayerSideBackground />
     </Providers>
   );
 }

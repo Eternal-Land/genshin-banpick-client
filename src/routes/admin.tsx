@@ -26,7 +26,7 @@ export const Route = createFileRoute("/admin")({
 
     if (profile.role != AccountRole.ADMIN) {
       throw redirect({
-        to: "/user",
+        to: "/",
       });
     }
   },

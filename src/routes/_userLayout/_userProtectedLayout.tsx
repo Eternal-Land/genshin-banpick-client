@@ -1,7 +1,7 @@
 import { store } from "@/lib/redux";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/user")({
+export const Route = createFileRoute("/_userLayout/_userProtectedLayout")({
   component: RouteComponent,
   beforeLoad: async () => {
     const { profile } = store.getState().auth;
@@ -15,9 +15,5 @@ export const Route = createFileRoute("/user")({
 });
 
 function RouteComponent() {
-  return (
-    <>
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }

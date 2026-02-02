@@ -30,7 +30,7 @@ import { setProfile } from "@/lib/redux/auth.slice";
 import { selfApi } from "@/apis/self";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/auth/login")({
+export const Route = createFileRoute("/_userLayout/auth/login")({
   component: RouteComponent,
 });
 
@@ -51,7 +51,7 @@ function RouteComponent() {
     const profile = response.data;
     dispatch(setProfile(profile!));
     if (profile?.role === AccountRole.USER) {
-      navigate({ to: "/user/match" });
+      navigate({ to: "/match" });
     } else {
       navigate({ to: "/admin" });
     }

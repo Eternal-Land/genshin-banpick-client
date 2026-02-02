@@ -4,7 +4,7 @@ import { useAppSelector } from "@/hooks/use-app-selector";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/user/match")({
+export const Route = createFileRoute("/_userLayout/_userProtectedLayout/match")({
   component: RouteComponent,
 });
 

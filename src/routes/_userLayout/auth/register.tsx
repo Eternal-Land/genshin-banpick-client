@@ -54,7 +54,7 @@ const passwordRequirements = [
   },
 ];
 
-export const Route = createFileRoute("/auth/register")({
+export const Route = createFileRoute("/_userLayout/auth/register")({
   component: RouteComponent,
 });
 

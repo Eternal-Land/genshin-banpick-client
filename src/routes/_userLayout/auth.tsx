@@ -1,7 +1,7 @@
 import FixedMenu from "@/components/fixed-menu";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/_userLayout/auth")({
   component: RouteComponent,
 });
 
