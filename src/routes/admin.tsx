@@ -40,7 +40,7 @@ function RouteComponent() {
     <SidebarProvider>
       <Sidebar variant="inset">
         <AdminSidebarContent />
-        <AdminSidebarFooter profile={profile} onLogout={authApi.logout} />
+        <AdminSidebarFooter profile={profile!} onLogout={authApi.logout} />
       </Sidebar>
       <SidebarInset className="max-w-full overflow-x-hidden">
         <header className="flex h-14 items-center gap-2 border-b px-4">
