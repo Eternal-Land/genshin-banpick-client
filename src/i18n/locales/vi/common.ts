@@ -76,7 +76,7 @@ const common: LocaleObject = {
     profile_update_title: "Cập nhật hồ sơ",
     profile_update_error: "Không thể cập nhật hồ sơ.",
     profile_update_success: "Đã cập nhật hồ sơ.",
-    profile_view_option: "Hồ sơ",
+    profile_view_option: "Chi tiết tài khoản",
     profile_edit_option: "Chỉnh sửa hồ sơ",
     profile_dialog_close: "Đóng",
     profile_avatar_label: "Ảnh đại diện",

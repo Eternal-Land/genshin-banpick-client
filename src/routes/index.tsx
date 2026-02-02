@@ -14,7 +14,7 @@ function RouteComponent() {
 
   const handleStart = () => {
     if (profile) {
-      navigate({ to: "/match" });
+      navigate({ to: "/user/match" });
       return;
     }
 

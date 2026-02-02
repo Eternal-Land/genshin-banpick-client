@@ -112,7 +112,7 @@ export default function ProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-black text-white">
+      <DialogContent className="bg-transparent bg-linear-45 from-white/5 to-white/10 backdrop-blur-md text-white">
         <DialogHeader>
           <DialogTitle>{t(LocaleKeys.profile_update_title)}</DialogTitle>
           <DialogDescription className="text-white/70">
