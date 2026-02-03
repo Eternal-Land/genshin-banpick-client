@@ -1,6 +1,12 @@
 import z from "zod";
 import type { ProfileResponse } from "../self/types";
-import { LocaleKeys, WeaponRarity, WeaponType, type WeaponRarityEnum, type WeaponTypeEnum } from "@/lib/constants";
+import {
+	LocaleKeys,
+	WeaponRarity,
+	WeaponType,
+	type WeaponRarityEnum,
+	type WeaponTypeEnum,
+} from "@/lib/constants";
 
 export interface WeaponResponse {
 	id: number;
