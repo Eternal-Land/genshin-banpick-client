@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import {
   LocaleKeys,
+  UploadFolder,
   type CharacterElementEnum,
   type WeaponTypeEnum,
 } from "@/lib/constants";
@@ -70,6 +71,7 @@ export default function CharacterForm({
         setProgress((e.progress ?? 0) * 100);
       };
       const uploadResult = await filesApi.uploadFile(
+        UploadFolder.CHARACTERS,
         fileNeedUpload,
         handleUploadProgress,
       );

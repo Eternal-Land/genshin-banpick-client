@@ -28,7 +28,7 @@ import { CheckIcon, EyeIcon, EyeOffIcon, XIcon } from "lucide-react";
 import { filesApi } from "@/apis/files";
 import { Progress } from "@/components/ui/progress";
 import { useTranslation } from "react-i18next";
-import { LocaleKeys } from "@/lib/constants";
+import { LocaleKeys, UploadFolder } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const passwordRequirements = [
@@ -80,6 +80,7 @@ function RouteComponent() {
     mutationFn: async (input: RegisterInput) => {
       if (fileNeedUpload) {
         const uploadResult = await filesApi.uploadFile(
+          UploadFolder.AVATARS,
           fileNeedUpload,
           handleUploadProgress,
         );
@@ -222,7 +223,9 @@ function RouteComponent() {
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}
-                      placeholder={t(LocaleKeys.register_ingame_uid_placeholder)}
+                      placeholder={t(
+                        LocaleKeys.register_ingame_uid_placeholder,
+                      )}
                       autoComplete="off"
                       inputMode="numeric"
                       disabled={registerMutation.isPending}
@@ -276,7 +279,7 @@ function RouteComponent() {
                       placeholder={t(LocaleKeys.register_password_placeholder)}
                       autoComplete="new-password"
                       className="pr-9"
-                        disabled={registerMutation.isPending}
+                      disabled={registerMutation.isPending}
                     />
                     <Button
                       type="button"
@@ -284,7 +287,7 @@ function RouteComponent() {
                       size="icon"
                       onClick={() => setIsPasswordVisible((prev) => !prev)}
                       className="text-muted-foreground focus-visible:ring-ring/50 absolute inset-y-0 right-0 rounded-l-none hover:bg-transparent"
-                        disabled={registerMutation.isPending}
+                      disabled={registerMutation.isPending}
                     >
                       {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
                       <span className="sr-only">
@@ -308,7 +311,8 @@ function RouteComponent() {
                     ))}
                   </div>
                   <p className="text-foreground text-xs font-medium">
-                    {getStrengthText(strengthScore)}. {t(LocaleKeys.register_password_strength_hint)}
+                    {getStrengthText(strengthScore)}.{" "}
+                    {t(LocaleKeys.register_password_strength_hint)}
                   </p>
                   <ul className="mb-2 mt-2 space-y-1.5">
                     {passwordStrength.map((requirement, index) => (
@@ -330,7 +334,9 @@ function RouteComponent() {
                           <span className="sr-only">
                             {requirement.met
                               ? t(LocaleKeys.register_password_requirement_met)
-                              : t(LocaleKeys.register_password_requirement_unmet)}
+                              : t(
+                                  LocaleKeys.register_password_requirement_unmet,
+                                )}
                           </span>
                         </span>
                       </li>

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import {
   LocaleKeys,
+  UploadFolder,
   type WeaponRarityEnum,
   type WeaponTypeEnum,
 } from "@/lib/constants";
@@ -69,6 +70,7 @@ export default function WeaponForm({
         setProgress((e.progress ?? 0) * 100);
       };
       const uploadResult = await filesApi.uploadFile(
+        UploadFolder.WEAPONS,
         fileNeedUpload,
         handleUploadProgress,
       );

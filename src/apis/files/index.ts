@@ -3,12 +3,11 @@ import type { BaseApiResponse } from "@/lib/types";
 import type { GenerateUploadSignatureResponse } from "./types";
 import axios, { type AxiosProgressEvent } from "axios";
 
-async function uploadFile(file: File, onUploadProgress?: (progressEvent: AxiosProgressEvent) => void) {
-    const response = await http.get<BaseApiResponse<GenerateUploadSignatureResponse>>("/api/files/upload-signature");
+async function uploadFile(folder: string, file: File, onUploadProgress?: (progressEvent: AxiosProgressEvent) => void) {
+    const response = await http.get<BaseApiResponse<GenerateUploadSignatureResponse>>(`/api/files/upload-signature/?folder=${folder}`);
     const {
         apiKey,
         cloudName,
-        folder,
         signature,
         timestamp
     } = response.data.data!;

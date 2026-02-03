@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { LocaleKeys } from "@/lib/constants";
+import { LocaleKeys, UploadFolder } from "@/lib/constants";
 import { useAppDispatch } from "@/hooks/use-app-dispatch";
 import { setProfile } from "@/lib/redux/auth.slice";
 import type { BaseApiResponse } from "@/lib/types";
@@ -86,6 +86,7 @@ export default function ProfileDialog({
     mutationFn: async (input) => {
       if (fileNeedUpload) {
         const uploadResult = await filesApi.uploadFile(
+          UploadFolder.AVATARS,
           fileNeedUpload,
           handleUploadProgress,
         );

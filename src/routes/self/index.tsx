@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { UploadFolder } from "@/lib/constants";
 
 export const Route = createFileRoute("/self/")({
   component: RouteComponent,
@@ -92,6 +93,7 @@ export function RouteComponent() {
     mutationFn: async (input) => {
       if (fileNeedUpload) {
         const uploadResult = await filesApi.uploadFile(
+          UploadFolder.AVATARS,
           fileNeedUpload,
           handleUploadProgress,
         );
