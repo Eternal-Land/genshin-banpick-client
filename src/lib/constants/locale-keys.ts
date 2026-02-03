@@ -353,4 +353,5 @@ export const LocaleKeys = {
 	weapons_rarity_ss: "weapons_rarity_ss",
 	weapons_rarity_s: "weapons_rarity_s",
 	weapons_rarity_normal: "weapons_rarity_normal",
+	level: "level",
 } as const;
