@@ -360,6 +360,7 @@ const common: LocaleObject = {
 	weapons_rarity_ss: "SS",
 	weapons_rarity_s: "S",
 	weapons_rarity_normal: "Normal",
+	level: "Level",
 };
 
 export default common;

@@ -1,4 +1,7 @@
+import HeaderNavigation from "@/components/header-navigation";
+import { useAppSelector } from "@/hooks/use-app-selector";
 import { store } from "@/lib/redux";
+import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_userLayout/_userProtectedLayout")({
@@ -15,5 +18,12 @@ export const Route = createFileRoute("/_userLayout/_userProtectedLayout")({
 });
 
 function RouteComponent() {
-  return <Outlet />;
+  const profile = useAppSelector(selectAuthProfile);
+
+  return (
+    <>
+      <HeaderNavigation profile={profile!} />
+      <Outlet />
+    </>
+  );
 }

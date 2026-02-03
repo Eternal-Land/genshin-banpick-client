@@ -48,19 +48,19 @@ export default function HeaderNavigation({ profile }: HeaderNavigationProps) {
   const tabs = useMemo(() => {
     const navigationItems = [
       {
-        to: "/user/match",
+        to: "/match",
         label: t(LocaleKeys.header_nav_match),
-        isActive: location.pathname.startsWith("/user/match"),
+        isActive: location.pathname.startsWith("/match"),
       },
       {
-        to: profile.role === AccountRole.USER ? "/user/profile" : "/admin",
+        to: profile.role === AccountRole.USER ? "/profile" : "/admin",
         label:
           profile.role === AccountRole.USER
             ? t(LocaleKeys.header_nav_profile)
             : t(LocaleKeys.header_nav_admin),
         isActive:
           profile.role === AccountRole.USER
-            ? location.pathname.startsWith("/user/profile")
+            ? location.pathname.startsWith("/profile")
             : location.pathname.startsWith("/admin"),
       },
     ];
