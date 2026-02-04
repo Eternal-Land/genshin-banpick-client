@@ -1,9 +1,11 @@
-echo "Prettier write project..."
-
-bun run prettier:fix
-
 echo "Building project..."
 
 bun run build
 
 echo "Project built successfully."
+
+
+echo "Prettier write project..."
+
+bun run prettier:fix
+git add .

@@ -135,15 +135,15 @@ export const {resource}Api = {
 - Use shadcn/ui Field components for layout:
   ```tsx
   <Controller
-    name="fieldName"
-    control={form.control}
-    render={({ field, fieldState }) => (
-      <Field data-invalid={fieldState.invalid}>
-        <FieldLabel htmlFor={field.name}>Label</FieldLabel>
-        <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
-        <FieldError>{fieldState.error?.message}</FieldError>
-      </Field>
-    )}
+  	name="fieldName"
+  	control={form.control}
+  	render={({ field, fieldState }) => (
+  		<Field data-invalid={fieldState.invalid}>
+  			<FieldLabel htmlFor={field.name}>Label</FieldLabel>
+  			<Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+  			<FieldError>{fieldState.error?.message}</FieldError>
+  		</Field>
+  	)}
   />
   ```
 
@@ -181,16 +181,16 @@ useEffect(() => {
 
 ```typescript
 export const Route = createFileRoute("/admin")({
-  component: RouteComponent,
-  beforeLoad: async () => {
-    const { profile } = store.getState().auth;
-    if (!profile) {
-      throw redirect({ to: "/auth/login" });
-    }
-    if (profile.role === AccountRole.USER) {
-      throw redirect({ to: "/user" });
-    }
-  },
+	component: RouteComponent,
+	beforeLoad: async () => {
+		const { profile } = store.getState().auth;
+		if (!profile) {
+			throw redirect({ to: "/auth/login" });
+		}
+		if (profile.role === AccountRole.USER) {
+			throw redirect({ to: "/user" });
+		}
+	},
 });
 ```
 
@@ -217,6 +217,194 @@ export const Route = createFileRoute("/admin")({
 - Use `useQuery` for queries (GET)
 - Configure in `Providers` component
 
+### Table Filtering
+
+Use the `FilterTableHead` component from `@/components/filter-table-head` for filterable table columns. Follow a unified filter interface pattern for consistency.
+
+#### Filter Interface Pattern
+
+Define a filter interface in the table component with strongly-typed filter properties:
+
+```tsx
+// src/components/{resource}/{Resource}sTable.tsx
+export interface {Resource}sTableFilter {
+  search?: string;
+  statuses?: boolean[];       // Use typed arrays for filter values
+  categories?: CategoryEnum[];
+  // ... other filter fields
+}
+
+export interface {Resource}sTableProps {
+  isLoading?: boolean;
+  {resource}s?: {Resource}Response[];
+  filter?: {Resource}sTableFilter;
+  onFilterChange?: (filter: {Resource}sTableFilter) => void;
+  // ... other props
+}
+```
+
+#### FilterTableHead Component
+
+Use `FilterTableHead` in your table header, converting typed values to/from strings:
+
+```tsx
+<FilterTableHead
+	label={t(LocaleKeys.table_status)}
+	options={[
+		{ label: t(LocaleKeys.status_active), value: "true" },
+		{ label: t(LocaleKeys.status_inactive), value: "false" },
+	]}
+	multiSelect
+	value={filter?.statuses?.map(String)} // Convert to string[]
+	onValueChange={(value) =>
+		onFilterChange?.({
+			...filter,
+			statuses: value.map((v) => v === "true"), // Convert back to boolean[]
+		})
+	}
+/>
+```
+
+For enum-based filters:
+
+```tsx
+<FilterTableHead
+	label={t(LocaleKeys.table_element)}
+	options={elementOptions}
+	multiSelect
+	value={filter?.elements?.map(String)} // Convert enum to string
+	onValueChange={(value) =>
+		onFilterChange?.({
+			...filter,
+			elements: value.map(Number) as ElementEnum[], // Convert back to enum
+		})
+	}
+/>
+```
+
+#### Props
+
+| Prop            | Type                                 | Description                                                                     |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------------- |
+| `label`         | `string`                             | Column header text                                                              |
+| `options`       | `{ label: string; value: string }[]` | Filter options to display                                                       |
+| `multiSelect`   | `boolean`                            | `true` for checkboxes (multi-select), `false` for radio buttons (single-select) |
+| `value`         | `string[]`                           | Currently selected filter values                                                |
+| `onValueChange` | `(value: string[]) => void`          | Callback when filter selection changes                                          |
+
+#### Route Implementation
+
+Use TanStack Router's URL search params for filter state management. This provides shareable URLs, browser history support, and automatic validation via Zod.
+
+**1. Define the Query Schema (in `src/apis/{resource}/types.ts`):**
+
+```tsx
+import { paginationQuerySchema } from "@/lib/types";
+import z from "zod";
+
+export const {resource}QuerySchema = z.object({
+  ...paginationQuerySchema.shape,
+  search: z.string().optional(),
+  isActive: z.array(z.boolean()).optional(),
+  // Add other filter fields as needed
+});
+
+export type {Resource}Query = z.infer<typeof {resource}QuerySchema>;
+```
+
+**2. Implement the Route (in `src/routes/admin/{resource}/index.tsx`):**
+
+```tsx
+import { zodValidator } from "@tanstack/zod-adapter";
+import { {resource}QuerySchema, type {Resource}Query } from "@/apis/{resource}/types";
+import { {Resource}sTable } from "@/components/{resource}s";
+import { useDebounce } from "@/hooks/use-debounce";
+
+export const Route = createFileRoute("/admin/{resource}/")({
+  component: RouteComponent,
+  validateSearch: zodValidator({resource}QuerySchema),
+});
+
+function RouteComponent() {
+  const navigate = Route.useNavigate();
+  // Separate search state for debounce effect
+  const [search, setSearch] = useState("");
+  // Get validated filter from URL search params
+  const filter = Route.useSearch();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["{resource}s", filter],
+    queryFn: () => {resource}sApi.list(filter),
+  });
+
+  // Update URL search params (replaces current history entry)
+  const handleFilterChange = (newFilter: {Resource}Query) => {
+    navigate({
+      replace: true,
+      search: newFilter,
+    });
+  };
+
+  // Debounce search input to avoid excessive API calls
+  const triggerSearchDebounce = useDebounce((value: string) => {
+    handleFilterChange({
+      ...filter,
+      search: value,
+      page: 1, // Reset to page 1 on search
+    });
+  }, 500);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    triggerSearchDebounce(value);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    handleFilterChange({
+      ...filter,
+      page: newPage,
+    });
+  };
+
+  return (
+    <{Resource}sTable
+      isLoading={isLoading}
+      {resource}s={data?.data}
+      filter={filter}
+      onFilterChange={handleFilterChange}
+    />
+  );
+}
+```
+
+**Key Points:**
+
+- Use `validateSearch: zodValidator(schema)` in route definition for automatic URL param validation
+- Use `Route.useSearch()` to get typed filter state from URL
+- Use `navigate({ replace: true, search: newFilter })` to update filters without adding history entries
+- Use `useDebounce` hook for search input to prevent excessive API calls
+- Query key includes filter object for automatic refetch on filter changes
+
+#### Client-Side Filtering
+
+For client-side filtering (when API doesn't support filtering), apply filters using `useMemo`:
+
+```tsx
+const filteredData = useMemo(() => {
+	if (!data) return [];
+	return data.filter((item) => {
+		if (filter.statuses?.length && !filter.statuses.includes(item.isActive)) {
+			return false;
+		}
+		if (filter.elements?.length && !filter.elements.includes(item.element)) {
+			return false;
+		}
+		// Add more filter conditions...
+		return true;
+	});
+}, [data, filter]);
+```
+
 ### Styling
 
 #### Tailwind CSS
@@ -231,20 +419,20 @@ export const Route = createFileRoute("/admin")({
 - Example pattern:
   ```typescript
   const variants = cva("base-classes", {
-    variants: {
-      variant: {
-        default: "variant-classes",
-        destructive: "destructive-classes",
-      },
-      size: {
-        default: "size-classes",
-        sm: "small-classes",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+  	variants: {
+  		variant: {
+  			default: "variant-classes",
+  			destructive: "destructive-classes",
+  		},
+  		size: {
+  			default: "size-classes",
+  			sm: "small-classes",
+  		},
+  	},
+  	defaultVariants: {
+  		variant: "default",
+  		size: "default",
+  	},
   });
   ```
 
@@ -424,11 +612,12 @@ export interface {Resource}ToggleDialogProps {
 #### 5. Route Files
 
 **List Route (`index.tsx`):**
+
 ```tsx
 // src/routes/admin/{resource}/index.tsx
 function RouteComponent() {
   const [confirmTarget, setConfirmTarget] = useState<{Resource}Response | null>(null);
-  
+
   const { data, isLoading, refetch } = useQuery({...});
   const toggleMutation = useMutation({...});
 
@@ -451,6 +640,7 @@ function RouteComponent() {
 ```
 
 **Create Route (`create.tsx`):**
+
 ```tsx
 // src/routes/admin/{resource}/create.tsx
 function RouteComponent() {
@@ -486,6 +676,7 @@ function RouteComponent() {
 ```
 
 **Edit Route (`${resource}Id.tsx`):**
+
 ```tsx
 // src/routes/admin/{resource}/${resource}Id.tsx
 function RouteComponent() {
