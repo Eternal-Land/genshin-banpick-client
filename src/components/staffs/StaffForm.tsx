@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LocaleKeys } from "@/lib/constants";
+import { LocaleKeys, UploadFolder } from "@/lib/constants";
 
 export interface StaffFormValues {
   avatar?: string;
@@ -77,6 +77,7 @@ export default function StaffForm({
         setProgress((e.progress ?? 0) * 100);
       };
       const uploadResult = await filesApi.uploadFile(
+        UploadFolder.AVATARS,
         fileNeedUpload,
         handleUploadProgress,
       );

@@ -19,14 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LocaleKeys, WeaponType } from "@/lib/constants";
+import {
+  LocaleKeys,
+  UploadFolder,
+  type WeaponRarityEnum,
+  type WeaponTypeEnum,
+} from "@/lib/constants";
 import { useWeaponTypeOptions } from "@/hooks/use-weapon-type-label";
+import { useWeaponRarityOptions } from "@/hooks/use-weapon-rarity-label";
 
 export interface WeaponFormValues {
   key: string;
   name: string;
-  type: (typeof WeaponType)[keyof typeof WeaponType];
-  rarity: number;
+  type: WeaponTypeEnum;
+  rarity: WeaponRarityEnum;
   iconUrl?: string;
 }
 
@@ -47,6 +53,7 @@ export default function WeaponForm({
   const [fileNeedUpload, setFileNeedUpload] = useState<File | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const weaponTypeOptions = useWeaponTypeOptions();
+  const weaponRarityOptions = useWeaponRarityOptions();
 
   const handleOnFilesChange = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -63,6 +70,7 @@ export default function WeaponForm({
         setProgress((e.progress ?? 0) * 100);
       };
       const uploadResult = await filesApi.uploadFile(
+        UploadFolder.WEAPONS,
         fileNeedUpload,
         handleUploadProgress,
       );
@@ -164,22 +172,39 @@ export default function WeaponForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>
+              <FieldLabel htmlFor="weapon-rarity-select">
                 {t(LocaleKeys.weapons_rarity_label)}
               </FieldLabel>
               {isLoading ? (
                 <Skeleton className="h-9 w-full" />
               ) : (
-                <Input
-                  {...field}
-                  id={field.name}
-                  type="number"
-                  min={1}
-                  max={5}
-                  aria-invalid={fieldState.invalid}
-                  placeholder={t(LocaleKeys.weapons_rarity_placeholder)}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
+                <Select
+                  name={field.name}
+                  value={
+                    field.value != undefined ? String(field.value) : undefined
+                  }
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
+                >
+                  <SelectTrigger
+                    id="weapon-rarity-select"
+                    className="w-full"
+                    aria-invalid={fieldState.invalid}
+                  >
+                    <SelectValue
+                      placeholder={t(LocaleKeys.weapons_rarity_placeholder)}
+                    />
+
+                    <SelectContent>
+                      {weaponRarityOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectTrigger>
+                </Select>
               )}
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

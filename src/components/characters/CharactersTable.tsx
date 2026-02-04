@@ -10,30 +10,56 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { LocaleKeys } from "@/lib/constants";
+import {
+  LocaleKeys,
+  type CharacterElementEnum,
+  type WeaponTypeEnum,
+} from "@/lib/constants";
 import type { CharacterResponse } from "@/apis/characters/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useElementLabel } from "@/hooks/use-element-label";
-import { useWeaponTypeLabel } from "@/hooks/use-weapon-type-label";
+import { useElementLabel, useElementOptions } from "@/hooks/use-element-label";
+import {
+  useWeaponTypeLabel,
+  useWeaponTypeOptions,
+} from "@/hooks/use-weapon-type-label";
+import FilterTableHead from "../filter-table-head";
+
+export interface CharactersTableFilter {
+  search?: string;
+  elements?: CharacterElementEnum[];
+  weaponTypes?: WeaponTypeEnum[];
+  rarities?: number[];
+  statuses?: boolean[];
+}
 
 export interface CharactersTableProps {
   isLoading?: boolean;
   characters?: CharacterResponse[];
   onActivateDeactivate?: (character: CharacterResponse) => void;
+  filter?: CharactersTableFilter;
+  onFilterChange?: (filter: CharactersTableFilter) => void;
 }
 
 export default function CharactersTable({
   isLoading,
   characters,
   onActivateDeactivate,
+  filter,
+  onFilterChange,
 }: CharactersTableProps) {
   const { t } = useTranslation();
   const elementLabelMap = useElementLabel();
   const weaponTypeLabelMap = useWeaponTypeLabel();
+  const elementOptions = useElementOptions();
+  const weaponTypeOptions = useWeaponTypeOptions();
 
   const getInitials = (name: string) =>
     name
@@ -48,16 +74,72 @@ export default function CharactersTable({
       <TableHeader>
         <TableRow>
           <TableHead>{t(LocaleKeys.characters_table_icon)}</TableHead>
-          <TableHead>{t(LocaleKeys.characters_table_name)}</TableHead>
-          <TableHead>{t(LocaleKeys.characters_table_key)}</TableHead>
-          <TableHead>{t(LocaleKeys.characters_table_element)}</TableHead>
-          <TableHead>{t(LocaleKeys.characters_table_weapon)}</TableHead>
-          <TableHead className="w-20">
-            {t(LocaleKeys.characters_table_rarity)}
+          <TableHead className="w-70">
+            {t(LocaleKeys.characters_table_name)}
           </TableHead>
-          <TableHead className="w-30">
-            {t(LocaleKeys.characters_table_status)}
+          <TableHead className="w-50">
+            {t(LocaleKeys.characters_table_key)}
           </TableHead>
+          <FilterTableHead
+            label={t(LocaleKeys.characters_table_element)}
+            multiSelect
+            options={elementOptions}
+            value={filter?.elements?.map(String)}
+            onValueChange={(value) =>
+              onFilterChange?.({
+                ...filter,
+                elements: value.map(Number) as CharacterElementEnum[],
+              })
+            }
+          />
+          <FilterTableHead
+            label={t(LocaleKeys.characters_table_weapon)}
+            multiSelect
+            options={weaponTypeOptions}
+            value={filter?.weaponTypes?.map(String)}
+            onValueChange={(value) =>
+              onFilterChange?.({
+                ...filter,
+                weaponTypes: value.map(Number) as WeaponTypeEnum[],
+              })
+            }
+          />
+          <FilterTableHead
+            label={t(LocaleKeys.characters_table_rarity)}
+            multiSelect
+            options={[4, 5].map((item) => ({
+              label: `${item}★`,
+              value: String(item),
+            }))}
+            value={filter?.rarities?.map(String)}
+            onValueChange={(value) =>
+              onFilterChange?.({
+                ...filter,
+                rarities: value.map(Number),
+              })
+            }
+          />
+          <FilterTableHead
+            label={t(LocaleKeys.characters_table_status)}
+            multiSelect
+            options={[
+              {
+                label: t(LocaleKeys.characters_status_active),
+                value: "true",
+              },
+              {
+                label: t(LocaleKeys.characters_status_inactive),
+                value: "false",
+              },
+            ]}
+            value={filter?.statuses?.map(String)}
+            onValueChange={(value) =>
+              onFilterChange?.({
+                ...filter,
+                statuses: value.map((v) => v === "true"),
+              })
+            }
+          />
           <TableHead className="w-50">
             {t(LocaleKeys.characters_table_updated_at)}
           </TableHead>
@@ -104,18 +186,26 @@ export default function CharactersTable({
                 <TableCell>
                   <Avatar className="size-10">
                     <AvatarImage src={character.iconUrl} alt={character.name} />
-                    <AvatarFallback>{getInitials(character.name)}</AvatarFallback>
+                    <AvatarFallback>
+                      {getInitials(character.name)}
+                    </AvatarFallback>
                   </Avatar>
                 </TableCell>
-                <TableCell className="font-medium">{character.name}</TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="font-medium w-70 whitespace-normal wrap-break-word">
+                  {character.name}
+                </TableCell>
+                <TableCell className="w-50 text-muted-foreground whitespace-normal wrap-break-word">
                   {character.key}
                 </TableCell>
                 <TableCell>
-                  {elementLabelMap[character.element as keyof typeof elementLabelMap] ?? "-"}
+                  {elementLabelMap[
+                    character.element as keyof typeof elementLabelMap
+                  ] ?? "-"}
                 </TableCell>
                 <TableCell>
-                  {weaponTypeLabelMap[character.weaponType as keyof typeof weaponTypeLabelMap] ?? "-"}
+                  {weaponTypeLabelMap[
+                    character.weaponType as keyof typeof weaponTypeLabelMap
+                  ] ?? "-"}
                 </TableCell>
                 <TableCell>{character.rarity}★</TableCell>
                 <TableCell>

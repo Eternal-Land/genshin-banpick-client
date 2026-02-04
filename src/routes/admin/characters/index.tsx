@@ -32,6 +32,7 @@ import {
   CharactersTable,
   CharacterToggleDialog,
 } from "@/components/characters";
+import type { CharactersTableFilter } from "@/components/characters/CharactersTable";
 
 export const Route = createFileRoute("/admin/characters/")({
   component: RouteComponent,
@@ -39,7 +40,13 @@ export const Route = createFileRoute("/admin/characters/")({
 
 function RouteComponent() {
   const { t } = useTranslation();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState<CharactersTableFilter>({
+    elements: [],
+    rarities: [],
+    search: "",
+    statuses: [],
+    weaponTypes: [],
+  });
   const [confirmTarget, setConfirmTarget] = useState<CharacterResponse | null>(
     null,
   );
@@ -77,14 +84,61 @@ function RouteComponent() {
   const characters = charactersResponse?.data ?? [];
 
   const filteredCharacters = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return characters;
+    console.log("Filtering characters with query:", query);
 
-    return characters.filter((character) =>
-      [character.name, character.key]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalizedQuery)),
-    );
+    const normalizedSearch = query.search?.trim().toLowerCase();
+
+    return characters.filter((character) => {
+      console.log("Checking character:", character);
+      console.log(
+        "Character element included? ",
+        query.elements?.includes(character.element),
+      );
+
+      if (
+        query.elements &&
+        query.elements.length > 0 &&
+        !query.elements.includes(character.element)
+      ) {
+        return false;
+      }
+
+      if (
+        query.weaponTypes &&
+        query.weaponTypes.length > 0 &&
+        !query.weaponTypes.includes(character.weaponType)
+      ) {
+        return false;
+      }
+
+      if (
+        query.rarities &&
+        query.rarities.length > 0 &&
+        !query.rarities.includes(character.rarity)
+      ) {
+        return false;
+      }
+
+      if (
+        query.statuses &&
+        query.statuses.length > 0 &&
+        !query.statuses.includes(character.isActive)
+      ) {
+        return false;
+      }
+
+      if (normalizedSearch) {
+        const nameMatch = character.name
+          .toLowerCase()
+          .includes(normalizedSearch);
+        const keyMatch = character.key.toLowerCase().includes(normalizedSearch);
+        if (!nameMatch && !keyMatch) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   }, [characters, query]);
 
   const handleConfirmToggle = () => {
@@ -113,8 +167,10 @@ function RouteComponent() {
             <InputGroup>
               <InputGroupInput
                 placeholder={t(LocaleKeys.characters_search_placeholder)}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={query.search}
+                onChange={(event) =>
+                  setQuery({ ...query, search: event.target.value })
+                }
               />
               <InputGroupAddon align="inline-end">
                 <SearchIcon className="size-4" />
@@ -163,6 +219,8 @@ function RouteComponent() {
               isLoading={isLoading}
               characters={filteredCharacters}
               onActivateDeactivate={setConfirmTarget}
+              filter={query}
+              onFilterChange={setQuery}
             />
           </div>
         </CardContent>

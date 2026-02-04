@@ -26,8 +26,8 @@ function RootComponent() {
   return (
     <Providers>
       <Outlet />
-      <Toaster position="top-center" richColors/>
-      <PlayerSideBackground/>
+      <Toaster position="top-center" richColors />
+      <PlayerSideBackground />
     </Providers>
   );
 }

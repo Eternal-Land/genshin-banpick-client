@@ -14,10 +14,15 @@ import { LocaleKeys } from "@/lib/constants";
 import type { WeaponResponse } from "@/apis/weapons/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useWeaponTypeLabel } from "@/hooks/use-weapon-type-label";
+import { useWeaponRarityLabel } from "@/hooks/use-weapon-rarity-label";
 
 export interface WeaponsTableProps {
   isLoading?: boolean;
@@ -32,6 +37,7 @@ export default function WeaponsTable({
 }: WeaponsTableProps) {
   const { t } = useTranslation();
   const weaponTypeLabelMap = useWeaponTypeLabel();
+  const weaponRarityLabelMap = useWeaponRarityLabel();
 
   const getInitials = (name: string) =>
     name
@@ -106,9 +112,13 @@ export default function WeaponsTable({
                   {weapon.key}
                 </TableCell>
                 <TableCell>
-                  {weaponTypeLabelMap[weapon.type as keyof typeof weaponTypeLabelMap] ?? "-"}
+                  {weaponTypeLabelMap[
+                    weapon.type as keyof typeof weaponTypeLabelMap
+                  ] ?? "-"}
                 </TableCell>
-                <TableCell>{weapon.rarity}★</TableCell>
+                <TableCell>
+                  {weaponRarityLabelMap[weapon.rarity] ?? "-"}
+                </TableCell>
                 <TableCell>
                   {weapon.isActive ? (
                     <Badge variant="secondary">
@@ -152,8 +162,7 @@ export default function WeaponsTable({
                           size="icon-sm"
                           disabled={isLoading}
                           onClick={() =>
-                            onActivateDeactivate &&
-                            onActivateDeactivate(weapon)
+                            onActivateDeactivate && onActivateDeactivate(weapon)
                           }
                           className="cursor-pointer"
                         >
