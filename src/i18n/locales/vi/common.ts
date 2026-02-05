@@ -373,6 +373,10 @@ const common: LocaleObject = {
 	users_pagination_previous: "Trước",
 	users_pagination_next: "Sau",
 	users_pagination_page: "Trang {{current}} / {{total}}",
+	// Pagination (generic)
+	pagination_page_info: "Trang {{current}} / {{total}}",
+	pagination_previous: "Trước",
+	pagination_next: "Sau",
 };
 
 export default common;

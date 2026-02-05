@@ -14,6 +14,7 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
+	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import {
 } from "@/components/characters";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useDebounce } from "@/hooks/use-debounce";
+import TablePagination from "@/components/ui/table-pagination";
 
 export const Route = createFileRoute("/admin/characters/")({
 	component: RouteComponent,
@@ -64,6 +66,7 @@ function RouteComponent() {
 		queryFn: () => charactersApi.listCharacters(filter),
 	});
 	const characters = charactersResponse?.data || [];
+	const pagination = charactersResponse?.pagination;
 
 	const toggleMutation = useMutation<
 		BaseApiResponse,
@@ -184,6 +187,23 @@ function RouteComponent() {
 						/>
 					</div>
 				</CardContent>
+
+				{(pagination || isLoading) && (
+					<CardFooter>
+						<TablePagination
+							page={filter.page}
+							pagination={pagination}
+							isLoading={isLoading}
+							onPageChange={(page) => {
+								handleFilterChange({
+									...filter,
+									page: page,
+								});
+							}}
+							className="w-full"
+						/>
+					</CardFooter>
+				)}
 			</Card>
 
 			<CharacterToggleDialog

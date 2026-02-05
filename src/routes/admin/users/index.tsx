@@ -20,16 +20,8 @@ import {
 	InputGroupAddon,
 	InputGroupInput,
 } from "@/components/ui/input-group";
-import {
-	Pagination,
-	PaginationContent,
-	PaginationEllipsis,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from "@/components/ui/pagination";
 import { RefreshSpinner } from "@/components/ui/spinner";
+import TablePagination from "@/components/ui/table-pagination";
 import {
 	Tooltip,
 	TooltipContent,
@@ -85,50 +77,10 @@ function RouteComponent() {
 	};
 
 	const handlePageChange = (newPage: number) => {
-		if (newPage >= 1 && (!pagination || newPage <= pagination.totalPage)) {
-			handleFilterChange({
-				...filter,
-				page: newPage,
-			});
-		}
-	};
-
-	// Generate page numbers for pagination
-	const getPageNumbers = () => {
-		if (!pagination) return [];
-		const { totalPage } = pagination;
-		const pages: (number | "ellipsis")[] = [];
-
-		if (totalPage <= 7) {
-			// Show all pages if total is 7 or less
-			for (let i = 1; i <= totalPage; i++) {
-				pages.push(i);
-			}
-		} else {
-			// Always show first page
-			pages.push(1);
-
-			if (filter.page > 3) {
-				pages.push("ellipsis");
-			}
-
-			// Show pages around current page
-			const start = Math.max(2, filter.page - 1);
-			const end = Math.min(totalPage - 1, filter.page + 1);
-
-			for (let i = start; i <= end; i++) {
-				pages.push(i);
-			}
-
-			if (filter.page < totalPage - 2) {
-				pages.push("ellipsis");
-			}
-
-			// Always show last page
-			pages.push(totalPage);
-		}
-
-		return pages;
+		handleFilterChange({
+			...filter,
+			page: newPage,
+		});
 	};
 
 	return (
@@ -195,70 +147,14 @@ function RouteComponent() {
 				</CardContent>
 
 				{(pagination || isLoading) && (
-					<CardFooter className="flex items-center justify-between">
-						<span className="text-muted-foreground text-sm">
-							{pagination
-								? t(LocaleKeys.users_pagination_page, {
-										current: filter.page,
-										total: pagination.totalPage,
-									})
-								: null}
-						</span>
-						<Pagination className="mx-0 w-auto">
-							<PaginationContent>
-								<PaginationItem>
-									<PaginationPrevious
-										onClick={() => handlePageChange(filter.page - 1)}
-										aria-disabled={filter.page <= 1 || isLoading}
-										className={
-											filter.page <= 1 || isLoading
-												? "pointer-events-none opacity-50"
-												: "cursor-pointer"
-										}
-									/>
-								</PaginationItem>
-
-								{getPageNumbers().map((pageNum, index) =>
-									pageNum === "ellipsis" ? (
-										<PaginationItem key={`ellipsis-${index}`}>
-											<PaginationEllipsis />
-										</PaginationItem>
-									) : (
-										<PaginationItem key={pageNum}>
-											<PaginationLink
-												onClick={() => handlePageChange(pageNum)}
-												isActive={filter.page === pageNum}
-												className={
-													isLoading
-														? "pointer-events-none opacity-50"
-														: "cursor-pointer"
-												}
-											>
-												{pageNum}
-											</PaginationLink>
-										</PaginationItem>
-									),
-								)}
-
-								<PaginationItem>
-									<PaginationNext
-										onClick={() => handlePageChange(filter.page + 1)}
-										aria-disabled={
-											!pagination ||
-											filter.page >= pagination.totalPage ||
-											isLoading
-										}
-										className={
-											!pagination ||
-											filter.page >= pagination.totalPage ||
-											isLoading
-												? "pointer-events-none opacity-50"
-												: "cursor-pointer"
-										}
-									/>
-								</PaginationItem>
-							</PaginationContent>
-						</Pagination>
+					<CardFooter>
+						<TablePagination
+							page={filter.page}
+							pagination={pagination}
+							isLoading={isLoading}
+							onPageChange={handlePageChange}
+							className="w-full"
+						/>
 					</CardFooter>
 				)}
 			</Card>

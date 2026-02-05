@@ -16,6 +16,7 @@ import {
 	Card,
 	CardContent,
 	CardDescription,
+	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
@@ -35,6 +36,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { LocaleKeys } from "@/lib/constants";
 import { WeaponsTable, WeaponToggleDialog } from "@/components/weapons";
+import TablePagination from "@/components/ui/table-pagination";
 
 export const Route = createFileRoute("/admin/weapons/")({
 	component: RouteComponent,
@@ -81,6 +83,7 @@ function RouteComponent() {
 	});
 
 	const weapons = weaponsResponse?.data ?? [];
+	const pagination = weaponsResponse?.pagination;
 
 	const handleFilterChange = (newFilter: WeaponQuery) => {
 		navigate({
@@ -180,6 +183,23 @@ function RouteComponent() {
 						/>
 					</div>
 				</CardContent>
+
+				{(pagination || isLoading) && (
+					<CardFooter>
+						<TablePagination
+							page={filter.page}
+							pagination={pagination}
+							isLoading={isLoading}
+							onPageChange={(page) => {
+								handleFilterChange({
+									...filter,
+									page: page,
+								});
+							}}
+							className="w-full"
+						/>
+					</CardFooter>
+				)}
 			</Card>
 
 			<WeaponToggleDialog
