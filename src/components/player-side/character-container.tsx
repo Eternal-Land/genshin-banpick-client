@@ -1,6 +1,6 @@
 import { LocaleKeys } from "@/lib/constants";
 import type { CharacterElementEnum } from "@/lib/constants/character-element";
-import { CharacterElementDetail } from "@/lib/constants/character-element";
+import { CharacterElement, CharacterElementDetail } from "@/lib/constants/character-element";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -24,13 +24,13 @@ export default function CharacterContainer({
     const { t } = useTranslation();
     const element = CharacterElementDetail[elementId]
     const elementBadgeClasses: Record<string, string> = {
-        [CharacterElementDetail[1].key]: "bg-teal-950/75 border-teal-400",
-        [CharacterElementDetail[2].key]: "bg-amber-950/70 border-amber-300",
-        [CharacterElementDetail[3].key]: "bg-purple-950/75 border-purple-700",
-        [CharacterElementDetail[4].key]: "bg-lime-950/70 border-lime-500",
-        [CharacterElementDetail[5].key]: "bg-sky-950/70 border-sky-400",
-        [CharacterElementDetail[6].key]: "bg-red-950/70 border-red-500",
-        [CharacterElementDetail[7].key]: "bg-cyan-950/70 border-cyan-300",
+        [CharacterElementDetail[CharacterElement.ANEMO].key]: "bg-teal-950/75 border-teal-400",
+        [CharacterElementDetail[CharacterElement.GEO].key]: "bg-amber-950/70 border-amber-300",
+        [CharacterElementDetail[CharacterElement.ELECTRO].key]: "bg-purple-950/75 border-purple-700",
+        [CharacterElementDetail[CharacterElement.DENDRO].key]: "bg-lime-950/70 border-lime-500",
+        [CharacterElementDetail[CharacterElement.HYDRO].key]: "bg-sky-950/70 border-sky-400",
+        [CharacterElementDetail[CharacterElement.PYRO].key]: "bg-red-950/70 border-red-500",
+        [CharacterElementDetail[CharacterElement.CRYO].key]: "bg-cyan-950/70 border-cyan-300",
     }
     const elementBadgeClass = elementBadgeClasses[element.key] ?? "bg-slate-950/70 border-slate-400"
 
