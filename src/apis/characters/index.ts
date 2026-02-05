@@ -1,10 +1,41 @@
 import { http } from "@/lib/http";
 import type { BaseApiResponse } from "@/lib/types";
-import type { CharacterResponse, CreateCharacterInput } from "./types";
+import type {
+	CharacterQuery,
+	CharacterResponse,
+	CreateCharacterInput,
+} from "./types";
 
-async function listCharacters() {
+async function listCharacters(query: CharacterQuery) {
+	const searchParams = new URLSearchParams();
+	searchParams.append("page", query.page.toString());
+	searchParams.append("take", query.take.toString());
+	if (query.search) {
+		searchParams.append("search", query.search);
+	}
+	if (query.element && query.element.length > 0) {
+		query.element.forEach((item) => {
+			searchParams.append("element", item.toString());
+		});
+	}
+	if (query.weaponType && query.weaponType.length > 0) {
+		query.weaponType.forEach((item) => {
+			searchParams.append("weaponType", item.toString());
+		});
+	}
+	if (query.rarity && query.rarity.length > 0) {
+		query.rarity.forEach((item) => {
+			searchParams.append("rarity", item.toString());
+		});
+	}
+	if (query.isActive && query.isActive.length > 0) {
+		query.isActive.forEach((active) => {
+			searchParams.append("isActive", active.toString());
+		});
+	}
+
 	const response = await http.get<BaseApiResponse<CharacterResponse[]>>(
-		"/api/admin/characters",
+		`/api/admin/characters?${searchParams.toString()}`,
 	);
 	return response.data;
 }
