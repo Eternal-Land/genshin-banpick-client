@@ -47,9 +47,9 @@ export const Route = createFileRoute("/admin/users/")({
 function RouteComponent() {
 	const { t } = useTranslation();
 	const navigate = Route.useNavigate();
-	// Search state separated for debounce effect
-	const [search, setSearch] = useState("");
 	const filter = Route.useSearch();
+	// Search state separated for debounce effect
+	const [search, setSearch] = useState(filter.search || "");
 
 	const {
 		data: usersResponse,
