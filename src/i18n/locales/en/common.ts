@@ -380,6 +380,10 @@ const common: LocaleObject = {
 	users_pagination_previous: "Previous",
 	users_pagination_next: "Next",
 	users_pagination_page: "Page {{current}} of {{total}}",
+	// Pagination (generic)
+	pagination_page_info: "Page {{current}} of {{total}}",
+	pagination_previous: "Previous",
+	pagination_next: "Next",
 };
 
 export default common;

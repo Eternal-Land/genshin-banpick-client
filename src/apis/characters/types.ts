@@ -7,6 +7,7 @@ import {
 	type WeaponTypeEnum,
 } from "@/lib/constants";
 import type { ProfileResponse } from "../self/types";
+import { paginationQuerySchema } from "@/lib/types";
 
 export interface CharacterResponse {
 	id: number;
@@ -59,3 +60,14 @@ export const updateCharacterSchema = z.object({
 });
 
 export type UpdateCharacterInput = z.infer<typeof updateCharacterSchema>;
+
+export const characterQuerySchema = z.object({
+	...paginationQuerySchema.shape,
+	search: z.string().optional(),
+	element: z.array(z.enum(CharacterElement)).optional(),
+	weaponType: z.array(z.enum(WeaponType)).optional(),
+	rarity: z.array(z.int()).optional(),
+	isActive: z.array(z.boolean()).optional(),
+});
+
+export type CharacterQuery = z.infer<typeof characterQuerySchema>;

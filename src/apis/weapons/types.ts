@@ -7,6 +7,7 @@ import {
 	type WeaponRarityEnum,
 	type WeaponTypeEnum,
 } from "@/lib/constants";
+import { paginationQuerySchema } from "@/lib/types";
 
 export interface WeaponResponse {
 	id: number;
@@ -49,3 +50,13 @@ export const updateWeaponSchema = createWeaponSchema.extend({
 });
 
 export type UpdateWeaponInput = z.infer<typeof updateWeaponSchema>;
+
+export const weaponQuerySchema = z.object({
+	...paginationQuerySchema.shape,
+	search: z.string().optional(),
+	type: z.array(z.enum(WeaponType)).optional(),
+	rarity: z.array(z.enum(WeaponRarity)).optional(),
+	isActive: z.array(z.boolean()).optional(),
+});
+
+export type WeaponQuery = z.infer<typeof weaponQuerySchema>;
