@@ -377,6 +377,8 @@ const common: LocaleObject = {
 	pagination_page_info: "Trang {{current}} / {{total}}",
 	pagination_previous: "Trước",
 	pagination_next: "Sau",
+	show_inactive_false: "Đang hoạt động",
+	show_inactive_true: "Tất cả",
 };
 
 export default common;

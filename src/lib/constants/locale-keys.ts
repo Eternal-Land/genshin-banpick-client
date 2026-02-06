@@ -377,4 +377,6 @@ export const LocaleKeys = {
 	pagination_page_info: "pagination_page_info",
 	pagination_previous: "pagination_previous",
 	pagination_next: "pagination_next",
+	show_inactive_true: "show_inactive_true",
+	show_inactive_false: "show_inactive_false",
 } as const;

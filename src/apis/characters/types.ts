@@ -67,7 +67,7 @@ export const characterQuerySchema = z.object({
 	element: z.array(z.enum(CharacterElement)).optional(),
 	weaponType: z.array(z.enum(WeaponType)).optional(),
 	rarity: z.array(z.int()).optional(),
-	isActive: z.array(z.boolean()).optional(),
+	showInactive: z.boolean().optional(),
 });
 
 export type CharacterQuery = z.infer<typeof characterQuerySchema>;

@@ -384,6 +384,8 @@ const common: LocaleObject = {
 	pagination_page_info: "Page {{current}} of {{total}}",
 	pagination_previous: "Previous",
 	pagination_next: "Next",
+	show_inactive_false: "Active only",
+	show_inactive_true: "Include inactive",
 };
 
 export default common;

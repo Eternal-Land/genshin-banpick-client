@@ -24,10 +24,8 @@ async function listWeapons(query: WeaponQuery) {
 			searchParams.append("rarity", item.toString());
 		});
 	}
-	if (query.isActive && query.isActive.length > 0) {
-		query.isActive.forEach((active) => {
-			searchParams.append("isActive", active.toString());
-		});
+	if (query.showInactive != undefined) {
+		searchParams.append("showInactive", query.showInactive.toString());
 	}
 
 	const response = await http.get<BaseApiResponse<WeaponResponse[]>>(

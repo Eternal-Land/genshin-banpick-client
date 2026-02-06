@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
 	BriefcaseIcon,
+	ChartScatterIcon,
 	ContactIcon,
 	HouseIcon,
 	SparklesIcon,
@@ -48,6 +49,11 @@ const adminRoutes: AdminSidebarRoute[] = [
 		icon: <ContactIcon className="size-4" />,
 	},
 	{
+		to: "/admin/users",
+		label: "admin_sidebar_users",
+		icon: <UsersIcon className="size-4" />,
+	},
+	{
 		to: "/admin/characters",
 		label: "admin_sidebar_characters",
 		icon: <SparklesIcon className="size-4" />,
@@ -58,9 +64,9 @@ const adminRoutes: AdminSidebarRoute[] = [
 		icon: <SwordIcon className="size-4" />,
 	},
 	{
-		to: "/admin/users",
-		label: "admin_sidebar_users",
-		icon: <UsersIcon className="size-4" />,
+		to: "/admin/costs",
+		label: "admin_sidebar_costs",
+		icon: <ChartScatterIcon className="size-4" />,
 	},
 ];
 
