@@ -117,6 +117,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -129,6 +130,23 @@
 
 * {
   font-family: HYWenHei;
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    border-radius: 0;
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+
+  ::-webkit-scrollbar-track {
+    border-radius: 0;
+    background-color: rgba(0, 0, 0, 0);
+  }
 }
 
 @keyframes fadeInSoft {
@@ -136,6 +154,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
