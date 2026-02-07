@@ -1,11 +1,11 @@
 export const CharacterElement = {
-	ANEMO: 1,
-	GEO: 2,
-	ELECTRO: 3,
-	DENDRO: 4,
-	HYDRO: 5,
-	PYRO: 6,
-	CRYO: 7,
+	ANEMO: 0,
+	GEO: 1,
+	ELECTRO: 2,
+	DENDRO: 3,
+	HYDRO: 4,
+	PYRO: 5,
+	CRYO: 6,
 } as const;
 
 export type CharacterElementEnum =

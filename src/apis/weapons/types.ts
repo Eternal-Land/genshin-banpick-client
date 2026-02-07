@@ -56,7 +56,7 @@ export const weaponQuerySchema = z.object({
 	search: z.string().optional(),
 	type: z.array(z.enum(WeaponType)).optional(),
 	rarity: z.array(z.enum(WeaponRarity)).optional(),
-	isActive: z.array(z.boolean()).optional(),
+	showInactive: z.boolean().optional(),
 });
 
 export type WeaponQuery = z.infer<typeof weaponQuerySchema>;

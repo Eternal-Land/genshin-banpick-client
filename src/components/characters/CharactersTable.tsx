@@ -116,22 +116,21 @@ export default function CharactersTable({
 					/>
 					<FilterTableHead
 						label={t(LocaleKeys.characters_table_status)}
-						multiSelect
 						options={[
 							{
-								label: t(LocaleKeys.characters_status_active),
-								value: "true",
-							},
-							{
-								label: t(LocaleKeys.characters_status_inactive),
+								label: t(LocaleKeys.show_inactive_false),
 								value: "false",
 							},
+							{
+								label: t(LocaleKeys.show_inactive_true),
+								value: "true",
+							},
 						]}
-						value={filter?.isActive?.map(String)}
+						value={filter?.showInactive ? ["true"] : ["false"]}
 						onValueChange={(value) =>
 							onFilterChange?.({
 								...filter,
-								isActive: value.map((v) => v === "true"),
+								showInactive: value.map((v) => v === "true")[0],
 							})
 						}
 					/>
