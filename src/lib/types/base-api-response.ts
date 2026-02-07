@@ -6,4 +6,5 @@ export interface BaseApiResponse<T = any> {
 	error?: any;
 	data?: T;
 	pagination?: PaginationDto;
+	next?: any;
 }

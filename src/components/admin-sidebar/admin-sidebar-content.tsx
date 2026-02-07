@@ -20,6 +20,7 @@ import {
 	WrenchIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LocaleKeys } from "@/lib/constants";
 
 type AdminSidebarRoute = {
 	to: string;
@@ -30,42 +31,42 @@ type AdminSidebarRoute = {
 const adminRoutes: AdminSidebarRoute[] = [
 	{
 		to: "/admin",
-		label: "admin_sidebar_dashboard",
+		label: LocaleKeys.admin_sidebar_dashboard,
 		icon: <HouseIcon className="size-4" />,
 	},
 	{
 		to: "/admin/permissions",
-		label: "admin_sidebar_permissions",
+		label: LocaleKeys.admin_sidebar_permissions,
 		icon: <WrenchIcon className="size-4" />,
 	},
 	{
 		to: "/admin/staff-roles",
-		label: "admin_sidebar_staff_roles",
+		label: LocaleKeys.admin_sidebar_staff_roles,
 		icon: <BriefcaseIcon className="size-4" />,
 	},
 	{
 		to: "/admin/staffs",
-		label: "admin_sidebar_staffs",
+		label: LocaleKeys.admin_sidebar_staffs,
 		icon: <ContactIcon className="size-4" />,
 	},
 	{
 		to: "/admin/users",
-		label: "admin_sidebar_users",
+		label: LocaleKeys.admin_sidebar_users,
 		icon: <UsersIcon className="size-4" />,
 	},
 	{
 		to: "/admin/characters",
-		label: "admin_sidebar_characters",
+		label: LocaleKeys.admin_sidebar_characters,
 		icon: <SparklesIcon className="size-4" />,
 	},
 	{
 		to: "/admin/weapons",
-		label: "admin_sidebar_weapons",
+		label: LocaleKeys.admin_sidebar_weapons,
 		icon: <SwordIcon className="size-4" />,
 	},
 	{
 		to: "/admin/costs",
-		label: "admin_sidebar_costs",
+		label: LocaleKeys.admin_sidebar_character_costs,
 		icon: <ChartScatterIcon className="size-4" />,
 	},
 ];
