@@ -76,6 +76,40 @@ const common: LocaleObject = {
 	profile_loading: "Đang tải hồ sơ...",
 	profile_load_error: "Không thể tải hồ sơ. Vui lòng làm mới.",
 	profile_permissions_label: "Quyền",
+	profile_character_button: "Thêm nhân vật",
+	profile_hoyolab_sync_button: "Đồng bộ HoyoLab",
+	profile_hoyolab_dialog_title: "Đồng bộ HoyoLab",
+	profile_hoyolab_dialog_description:
+		"Làm theo các bước sau để lấy cookie HoyoLab của bạn.",
+	profile_hoyolab_step_1_label: "Mở HoyoLab và đăng nhập",
+	profile_hoyolab_step_1_desc:
+		"Truy cập https://www.hoyolab.com và đăng nhập tài khoản muốn đồng bộ.",
+	profile_hoyolab_step_2_label: "Mở Chiến tích",
+	profile_hoyolab_step_2_desc:
+		"Vào Chiến tích, sau đó click chuột phải, chọn Kiểm tra (hoặc F12).",
+	profile_hoyolab_step_3_label: "Chạy script ở Console",
+	profile_hoyolab_step_3_desc: "Sao chép và dán đoạn script vào tab Console.",
+	profile_hoyolab_step_3_copy: "Sao chép script, dán vào console và nhấn Enter",
+	profile_hoyolab_step_4_label: "Sao chép kết quả",
+	profile_hoyolab_step_4_desc: "Sao chép nội dung đầu ra trong ô nhập kết quả.",
+	profile_hoyolab_step_4_input_label: "Kết quả console",
+	profile_hoyolab_step_4_input_placeholder: "Dán kết quả vào đây",
+	profile_hoyolab_step_5_label: "Tìm cookie",
+	profile_hoyolab_step_5_desc:
+		"Mở Application → Cookies và tìm ltokenv2 cùng cookie_token_v2.",
+	profile_hoyolab_step_5_attention:
+		"Lưu ý: Vui lòng cẩn thận không để lộ thông tin cookie của bạn cho người khác. Nếu có nhiều hơn 1 token, hãy lấy dòng không có giá trị 'Lax'.",
+	profile_hoyolab_step_6_label: "Dán vào các trường",
+	profile_hoyolab_step_6_desc:
+		"Dán các giá trị cookie vào đúng trường trong form này.",
+	profile_hoyolab_step_6_ltoken_label: "ltoken_v2",
+	profile_hoyolab_step_6_ltoken_placeholder: "Dán giá trị ltoken_v2",
+	profile_hoyolab_step_6_cookie_token_label: "cookie_token_v2",
+	profile_hoyolab_step_6_cookie_token_placeholder:
+		"Dán giá trị cookie_token_v2",
+	profile_hoyolab_step_image_placeholder: "Ảnh minh họa",
+	profile_hoyolab_cancel_button: "Hủy",
+	profile_hoyolab_sync_submit_button: "Đồng bộ",
 	profile_update_title: "Cập nhật hồ sơ",
 	profile_update_error: "Không thể cập nhật hồ sơ.",
 	profile_update_success: "Đã cập nhật hồ sơ.",

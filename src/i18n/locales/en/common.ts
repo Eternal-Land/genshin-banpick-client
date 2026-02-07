@@ -76,6 +76,42 @@ const common: LocaleObject = {
 	profile_loading: "Loading profile...",
 	profile_load_error: "Unable to load profile. Please refresh.",
 	profile_permissions_label: "Permissions",
+	profile_character_button: "Add character",
+	profile_hoyolab_sync_button: "HoyoLab Sync",
+	profile_hoyolab_dialog_title: "Sync with HoyoLab",
+	profile_hoyolab_dialog_description:
+		"Follow these steps to retrieve your HoyoLab cookie.",
+	profile_hoyolab_step_1_label: "Open HoyoLab and log in",
+	profile_hoyolab_step_1_desc:
+		"Go to https://www.hoyolab.com and sign in with the account you want to sync.",
+	profile_hoyolab_step_2_label: "Open Battle Chronicle",
+	profile_hoyolab_step_2_desc:
+		"Navigate to Battle Chronicle, right-click then open Inspect (or F12).",
+	profile_hoyolab_step_3_label: "Run the console script",
+	profile_hoyolab_step_3_desc:
+		"Copy and paste the provided script into the Console tab.",
+	profile_hoyolab_step_3_copy:
+		"Copy script, paste into console and press Enter",
+	profile_hoyolab_step_4_label: "Copy the result",
+	profile_hoyolab_step_4_desc: "Copy the output text from the textarea result.",
+	profile_hoyolab_step_4_input_label: "Console result",
+	profile_hoyolab_step_4_input_placeholder: "Paste the result here",
+	profile_hoyolab_step_5_label: "Find cookies",
+	profile_hoyolab_step_5_desc:
+		"Open Application → Cookies and locate ltokenv2 and cookie_token_v2.",
+	profile_hoyolab_step_5_attention:
+		"Attention: Please be careful not to expose your cookie information to others. If there are multiple tokens, take the line without the 'Lax' value.",
+	profile_hoyolab_step_6_label: "Paste into fields",
+	profile_hoyolab_step_6_desc:
+		"Paste those cookie values into the matching fields in this form.",
+	profile_hoyolab_step_6_ltoken_label: "ltoken_v2",
+	profile_hoyolab_step_6_ltoken_placeholder: "Paste ltoken_v2 value",
+	profile_hoyolab_step_6_cookie_token_label: "cookie_token_v2",
+	profile_hoyolab_step_6_cookie_token_placeholder:
+		"Paste cookie_token_v2 value",
+	profile_hoyolab_step_image_placeholder: "Image guide",
+	profile_hoyolab_cancel_button: "Cancel",
+	profile_hoyolab_sync_submit_button: "Sync now",
 	profile_update_title: "Update profile",
 	profile_update_error: "Unable to update profile.",
 	profile_update_success: "Profile updated.",
