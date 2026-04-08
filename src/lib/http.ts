@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import Cookies from "universal-cookie";
 
 export const API_BASE =
 	import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5173";
@@ -8,23 +9,14 @@ export const http = axios.create({
 	withCredentials: true,
 });
 
+const cookies = new Cookies();
+
 // ---- token helpers (simple) ----
 function getToken() {
-	const cookieName = "accessToken=";
-	const decodedCookie = decodeURIComponent(document.cookie);
-	const cookies = decodedCookie.split(";");
-
-	for (const rawCookie of cookies) {
-		const cookie = rawCookie.trim();
-		if (cookie.startsWith(cookieName)) {
-			return cookie.slice(cookieName.length);
-		}
-	}
-
-	return null;
+	return cookies.get("accessToken") ?? null;
 }
 function clearToken() {
-	document.cookie = "accessToken=; Max-Age=0; path=/";
+	cookies.remove("accessToken", { path: "/" });
 }
 
 // ---- redirect helper ----
