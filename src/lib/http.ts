@@ -13,7 +13,7 @@ const cookies = new Cookies();
 
 // ---- token helpers (simple) ----
 export function setToken(token: string) {
-	cookies.set("accessToken", token);
+	cookies.set("accessToken", token, { path: "/" });
 }
 function getToken() {
 	return cookies.get("accessToken") ?? null;
