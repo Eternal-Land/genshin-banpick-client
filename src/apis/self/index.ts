@@ -1,12 +1,10 @@
 import type { BaseApiResponse } from "@/lib/types";
-import axios from "axios";
 import type { ProfileResponse, UpdateProfileInput } from "./types";
-import { API_BASE, http } from "@/lib/http";
+import { http } from "@/lib/http";
 
 async function getSelf() {
-	const response = await axios.get<BaseApiResponse<ProfileResponse>>(
-		API_BASE + "/api/self",
-	);
+	const response =
+		await http.get<BaseApiResponse<ProfileResponse>>("/api/self");
 	return response.data;
 }
 
