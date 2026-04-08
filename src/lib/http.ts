@@ -12,6 +12,9 @@ export const http = axios.create({
 const cookies = new Cookies();
 
 // ---- token helpers (simple) ----
+export function setToken(token: string) {
+	cookies.set("accessToken", token);
+}
 function getToken() {
 	return cookies.get("accessToken") ?? null;
 }

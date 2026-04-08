@@ -32,6 +32,7 @@ import { setProfile } from "@/lib/redux/auth.slice";
 import { selfApi } from "@/apis/self";
 import { useTranslation } from "react-i18next";
 import { socket } from "@/lib/socket";
+import { setToken } from "@/lib/http";
 
 export const Route = createFileRoute("/_userLayout/auth/login")({
 	component: RouteComponent,
@@ -76,6 +77,7 @@ function RouteComponent() {
 		onSuccess: (response) => {
 			const token = response.data?.accessToken;
 			if (token) {
+				setToken(token);
 				localStorage.setItem("token", token);
 				toast.success("Logged in successfully.");
 				handlePostLogin();
