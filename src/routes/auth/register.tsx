@@ -71,7 +71,7 @@ const passwordRequirements = [
 	},
 ];
 
-export const Route = createFileRoute("/_userLayout/auth/register")({
+export const Route = createFileRoute("/auth/register")({
 	component: RouteComponent,
 });
 
@@ -99,7 +99,7 @@ function RouteComponent() {
 					UploadFolder.AVATARS,
 					fileNeedUpload,
 					handleUploadProgress,
-				);
+				)
 				input.avatar = uploadResult.secure_url;
 			}
 
@@ -108,7 +108,7 @@ function RouteComponent() {
 		onSuccess: () => {
 			toast.success(
 				t(getTranslationToken("auth", authLocaleKeys.register_success)),
-			);
+			)
 			navigate({ to: "/auth/login" });
 		},
 		onError: (error) => {
@@ -121,20 +121,20 @@ function RouteComponent() {
 			} else {
 				setErrorMsg(
 					t(getTranslationToken("auth", authLocaleKeys.register_error_unknown)),
-				);
+				)
 			}
 		},
 	});
 
 	const handleUploadProgress = (e: AxiosProgressEvent) => {
 		setProgress((e.progress ?? 0) * 100);
-	};
+	}
 
 	const handleOnFilesChange = (files: FileList | null) => {
 		if (!files || files.length === 0) return;
 		const file = files.item(0)!;
 		setFileNeedUpload(file);
-	};
+	}
 
 	const passwordValue = form.watch("password");
 	const passwordStrength = passwordRequirements.map((requirement) => ({
@@ -150,7 +150,7 @@ function RouteComponent() {
 		if (score <= 3) return "bg-amber-500";
 		if (score === 4) return "bg-yellow-400";
 		return "bg-green-500";
-	};
+	}
 
 	const getStrengthText = (score: number) => {
 		if (score === 0) {
@@ -159,7 +159,7 @@ function RouteComponent() {
 					"auth",
 					authLocaleKeys.register_password_strength_empty,
 				),
-			);
+			)
 		}
 		if (score <= 2) {
 			return t(
@@ -167,7 +167,7 @@ function RouteComponent() {
 					"auth",
 					authLocaleKeys.register_password_strength_weak,
 				),
-			);
+			)
 		}
 		if (score <= 3) {
 			return t(
@@ -175,7 +175,7 @@ function RouteComponent() {
 					"auth",
 					authLocaleKeys.register_password_strength_medium,
 				),
-			);
+			)
 		}
 		if (score === 4) {
 			return t(
@@ -183,15 +183,15 @@ function RouteComponent() {
 					"auth",
 					authLocaleKeys.register_password_strength_strong,
 				),
-			);
+			)
 		}
 		return t(
 			getTranslationToken(
 				"auth",
 				authLocaleKeys.register_password_strength_very_strong,
 			),
-		);
-	};
+		)
+	}
 
 	return (
 		<Card className="bg-transparent bg-linear-45 from-white/5 to-white/10 backdrop-blur-md">
@@ -514,5 +514,5 @@ function RouteComponent() {
 				</p>
 			</CardFooter>
 		</Card>
-	);
+	)
 }

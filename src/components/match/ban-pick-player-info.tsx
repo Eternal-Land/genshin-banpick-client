@@ -95,7 +95,7 @@ export default function BanPickPlayerInfo({
 						{t(matchLocaleKeys.ban_pick_refinement)}:
 					</h1>
 					<span className={cn("text-lg font-bold", textColorClass)}>
-						{toCostNumber(cost?.refinementCost)}
+						{toCostNumber(cost?.refinementCost)} s
 					</span>
 				</div>
 				<div className="flex justify-between items-center gap-4 w-full">

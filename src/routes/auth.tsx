@@ -9,14 +9,21 @@ import {
 import { SupportedLanguages } from "@/lib/constants";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { GlobeIcon } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-export const Route = createFileRoute("/_userLayout/auth")({
+export const Route = createFileRoute("/auth")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
 	const { i18n } = useTranslation();
+	useEffect(() => {
+		const root = window.document.documentElement;
+		root.classList.remove("light", "dark");
+
+		root.classList.add("dark");
+	}, []);
 
 	return (
 		<>
@@ -51,5 +58,5 @@ function RouteComponent() {
 				</DropdownMenu>
 			</div>
 		</>
-	);
+	)
 }

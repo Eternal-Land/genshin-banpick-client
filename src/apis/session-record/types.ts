@@ -36,6 +36,9 @@ export interface MatchSessionReportItemResponse {
 	winnerSide: PlayerSideEnum | null;
 	blueFinalTime: number | null;
 	redFinalTime: number | null;
+	blueResultTotal: number | null;
+	redResultTotal: number | null;
+	resultDifference: number | null;
 	record: SessionRecordResponse | null;
 	cost: SessionCostResponse | null;
 }

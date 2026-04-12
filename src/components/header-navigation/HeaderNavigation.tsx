@@ -61,28 +61,34 @@ export default function HeaderNavigation({ profile }: HeaderNavigationProps) {
 				),
 				isActive: location.pathname.startsWith("/match"),
 			},
-			{
-				to: profile?.role === AccountRole.USER ? "/profile" : "/admin",
-				label:
-					profile?.role === AccountRole.USER
-						? t(
-								getTranslationToken(
-									"header",
-									headerLocaleKeys.header_nav_profile,
-								),
-							)
-						: t(
-								getTranslationToken(
-									"header",
-									headerLocaleKeys.header_nav_admin,
-								),
-							),
-				isActive:
-					profile?.role === AccountRole.USER
-						? location.pathname.startsWith("/profile")
-						: location.pathname.startsWith("/admin"),
-			},
 		];
+
+		if (profile?.role === AccountRole.USER) {
+			navigationItems.push(
+				{
+					to: "/cost",
+					label: t(
+						getTranslationToken("header", headerLocaleKeys.header_nav_cost),
+					),
+					isActive: location.pathname.startsWith("/cost"),
+				},
+				{
+					to: "/profile",
+					label: t(
+						getTranslationToken("header", headerLocaleKeys.header_nav_profile),
+					),
+					isActive: location.pathname.startsWith("/profile"),
+				},
+			);
+		} else {
+			navigationItems.push({
+				to: "/admin",
+				label: t(
+					getTranslationToken("header", headerLocaleKeys.header_nav_admin),
+				),
+				isActive: location.pathname.startsWith("/admin"),
+			});
+		}
 
 		return navigationItems;
 	}, [location.pathname, profile?.role, t]);

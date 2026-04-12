@@ -12,3 +12,4 @@ export * from "./notification-type";
 export * from "./match-type";
 export * from "./match-status";
 export * from "./player-side";
+export * from "./icon-assets";

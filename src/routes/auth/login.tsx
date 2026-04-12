@@ -33,7 +33,7 @@ import { selfApi } from "@/apis/self";
 import { useTranslation } from "react-i18next";
 import { socket } from "@/lib/socket";
 
-export const Route = createFileRoute("/_userLayout/auth/login")({
+export const Route = createFileRoute("/auth/login")({
 	component: RouteComponent,
 });
 
@@ -61,11 +61,11 @@ function RouteComponent() {
 					page: 1,
 					take: 10,
 				},
-			});
+			})
 		} else {
 			navigate({ to: "/admin" });
 		}
-	};
+	}
 
 	const loginMutation = useMutation<
 		BaseApiResponse<{ accessToken: string }>,
@@ -196,5 +196,5 @@ function RouteComponent() {
 				</Button>
 			</CardFooter>
 		</Card>
-	);
+	)
 }

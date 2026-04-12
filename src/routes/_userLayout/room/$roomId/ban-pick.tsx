@@ -29,6 +29,7 @@ import { useAppSelector } from "@/hooks/use-app-selector";
 import { useSocketEvent } from "@/hooks/use-socket-event";
 import { useBanPickFilters } from "@/hooks/use-ban-pick-filters";
 import { useBanPickQueries } from "@/hooks/use-ban-pick-queries";
+import { useDebounce } from "@/hooks/use-debounce";
 import { matchLocaleKeys } from "@/i18n/keys";
 import {
 	createFileRoute,
@@ -40,6 +41,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { socket } from "@/lib/socket";
 
 dayjs.extend(customParseFormat);
 
@@ -60,6 +62,11 @@ interface AccountDraftState {
 interface BanPickTimerInputsBySide {
 	blue: BanPickTimerInputValues;
 	red: BanPickTimerInputValues;
+}
+
+interface MatchTimerInputsSyncPayload {
+	timerInputs: BanPickTimerInputsBySide;
+	updatedBy?: string;
 }
 
 const EMPTY_TIMER_SIDE_VALUES: BanPickTimerInputValues = {
@@ -270,6 +277,109 @@ const parseTimerInputsToRecord = (
 	};
 };
 
+const parseClockToSecondsForAutosave = (value: string) => {
+	const normalized = value.trim();
+	if (!normalized) {
+		return {
+			value: 0,
+			error: null,
+		};
+	}
+
+	const parsed = dayjs(normalized, "mm:ss", true);
+	if (!parsed.isValid()) {
+		return {
+			value: 0,
+			error: "invalid",
+		};
+	}
+
+	return {
+		value: parsed.minute() * 60 + parsed.second(),
+		error: null,
+	};
+};
+
+const parseResetForAutosave = (value: string) => {
+	const normalized = value.trim();
+	if (!normalized) {
+		return {
+			value: 0,
+			error: null,
+		};
+	}
+
+	if (!/^\d+$/.test(normalized)) {
+		return {
+			value: 0,
+			error: "invalid",
+		};
+	}
+
+	return {
+		value: Number(normalized),
+		error: null,
+	};
+};
+
+const parseTimerInputsToRecordForAutosave = (
+	timerInputs: BanPickTimerInputsBySide,
+	isRealtimeMatch: boolean,
+) => {
+	const blueChamber1 = parseClockToSecondsForAutosave(timerInputs.blue.chamber1);
+	const redChamber1 = parseClockToSecondsForAutosave(timerInputs.red.chamber1);
+
+	if (blueChamber1.error || redChamber1.error) {
+		return null;
+	}
+
+	if (isRealtimeMatch) {
+		return {
+			blueChamber1: blueChamber1.value,
+			blueChamber2: 0,
+			blueChamber3: 0,
+			blueResetTimes: 0,
+			blueFinalTime: blueChamber1.value,
+			redChamber1: redChamber1.value,
+			redChamber2: 0,
+			redChamber3: 0,
+			redResetTimes: 0,
+			redFinalTime: redChamber1.value,
+		} satisfies SaveSessionRecordInput;
+	}
+
+	const blueChamber2 = parseClockToSecondsForAutosave(timerInputs.blue.chamber2);
+	const blueChamber3 = parseClockToSecondsForAutosave(timerInputs.blue.chamber3);
+	const redChamber2 = parseClockToSecondsForAutosave(timerInputs.red.chamber2);
+	const redChamber3 = parseClockToSecondsForAutosave(timerInputs.red.chamber3);
+	const blueReset = parseResetForAutosave(timerInputs.blue.reset);
+	const redReset = parseResetForAutosave(timerInputs.red.reset);
+
+	if (
+		blueChamber2.error ||
+		blueChamber3.error ||
+		redChamber2.error ||
+		redChamber3.error ||
+		blueReset.error ||
+		redReset.error
+	) {
+		return null;
+	}
+
+	return {
+		blueChamber1: blueChamber1.value,
+		blueChamber2: blueChamber2.value,
+		blueChamber3: blueChamber3.value,
+		blueResetTimes: blueReset.value,
+		blueFinalTime: blueChamber1.value + blueChamber2.value + blueChamber3.value,
+		redChamber1: redChamber1.value,
+		redChamber2: redChamber2.value,
+		redChamber3: redChamber3.value,
+		redResetTimes: redReset.value,
+		redFinalTime: redChamber1.value + redChamber2.value + redChamber3.value,
+	} satisfies SaveSessionRecordInput;
+};
+
 function RouteComponent() {
 	const { t } = useTranslation("match");
 	const { roomId } = Route.useParams();
@@ -314,6 +424,7 @@ function RouteComponent() {
 	const [timerInputs, setTimerInputs] = useState<BanPickTimerInputsBySide>(
 		EMPTY_TIMER_INPUTS_BY_SIDE,
 	);
+	const isApplyingRemoteTimerSyncRef = useRef(false);
 	const [
 		blueSelectedWeaponRefinementByCharacterIdLocal,
 		setBlueSelectedWeaponRefinementByCharacterIdLocal,
@@ -354,6 +465,36 @@ function RouteComponent() {
 			});
 		},
 		[],
+	);
+
+	const emitTimerInputsSyncDebounced = useDebounce(
+		(nextTimerInputs: BanPickTimerInputsBySide) => {
+			socket.emit(SocketEvent.UPDATE_MATCH_TIMER_INPUTS, {
+				matchId: roomId,
+				timerInputs: nextTimerInputs,
+				updatedBy: profile?.id,
+			});
+
+			const record = parseTimerInputsToRecordForAutosave(
+				nextTimerInputs,
+				isRealtimeMatch,
+			);
+			if (!record) {
+				return;
+			}
+
+			const matchSessionId = Number(pageMatchState?.currentSession);
+			if (!Number.isInteger(matchSessionId) || matchSessionId <= 0) {
+				return;
+			}
+
+			socket.emit(SocketEvent.SAVE_MATCH_TIMER_INPUTS, {
+				matchId: roomId,
+				matchSessionId,
+				record,
+			});
+		},
+		350,
 	);
 
 	const navigateByMatchStatus = useCallback(
@@ -423,6 +564,31 @@ function RouteComponent() {
 			}
 		})();
 	});
+
+	useSocketEvent(
+		SocketEvent.UPDATE_MATCH_TIMER_INPUTS,
+		(payload?: MatchTimerInputsSyncPayload) => {
+			if (!payload?.timerInputs) {
+				return;
+			}
+
+			if (payload.updatedBy && payload.updatedBy === profile?.id) {
+				return;
+			}
+
+			isApplyingRemoteTimerSyncRef.current = true;
+			setTimerInputs(payload.timerInputs);
+		},
+	);
+
+	useEffect(() => {
+		if (isApplyingRemoteTimerSyncRef.current) {
+			isApplyingRemoteTimerSyncRef.current = false;
+			return;
+		}
+
+		emitTimerInputsSyncDebounced(timerInputs);
+	}, [emitTimerInputsSyncDebounced, timerInputs]);
 
 	useEffect(() => {
 		setMatch(initialMatch);
@@ -731,6 +897,58 @@ function RouteComponent() {
 		[sessionCost],
 	);
 
+	const leadComparison = useMemo(() => {
+		const parsedRecord = parseTimerInputsToRecordForAutosave(
+			timerInputs,
+			isRealtimeMatch,
+		);
+
+		const toChamberScore = (chamberSeconds: number) => {
+			const normalizedSeconds = Number.isFinite(chamberSeconds)
+				? Math.max(0, chamberSeconds)
+				: 0;
+			const chamberTimeInMinutes = normalizedSeconds / 60;
+			return Math.max(0, Math.floor(600 - chamberTimeInMinutes * 60));
+		};
+
+		const blueChamberScoreTotal =
+			toChamberScore(parsedRecord?.blueChamber1 ?? 0) +
+			toChamberScore(parsedRecord?.blueChamber2 ?? 0) +
+			toChamberScore(parsedRecord?.blueChamber3 ?? 0);
+
+		const redChamberScoreTotal =
+			toChamberScore(parsedRecord?.redChamber1 ?? 0) +
+			toChamberScore(parsedRecord?.redChamber2 ?? 0) +
+			toChamberScore(parsedRecord?.redChamber3 ?? 0);
+
+		const blueTimeBonusCost = Math.max(
+			0,
+			Math.floor(Number(sessionCost?.blueTimeBonusCost ?? 0)),
+		);
+		const redTimeBonusCost = Math.max(
+			0,
+			Math.floor(Number(sessionCost?.redTimeBonusCost ?? 0)),
+		);
+
+		const blueTotalComparableSeconds =
+			blueTimeBonusCost + blueChamberScoreTotal;
+		const redTotalComparableSeconds =
+			redTimeBonusCost + redChamberScoreTotal;
+
+		let leadingSide: "blue" | "red" | null = null;
+		if (blueTotalComparableSeconds > redTotalComparableSeconds) {
+			leadingSide = "blue";
+		} else if (redTotalComparableSeconds > blueTotalComparableSeconds) {
+			leadingSide = "red";
+		}
+
+		return {
+			blueTotalComparableSeconds,
+			redTotalComparableSeconds,
+			leadingSide,
+		};
+	}, [isRealtimeMatch, sessionCost?.blueTimeBonusCost, sessionCost?.redTimeBonusCost, timerInputs]);
+
 	const getAvailableCharactersForAction = useCallback(() => {
 		if (!currentAction) {
 			return [] as AccountCharacterResponse[];
@@ -836,6 +1054,7 @@ function RouteComponent() {
 		}
 
 		try {
+			const isUnequip = weaponId <= 0;
 			await matchApi.pickWeapon(
 				match.id,
 				character.id,
@@ -855,9 +1074,13 @@ function RouteComponent() {
 					characterId: Number(character.id),
 					activatedConstellation: character.constellation,
 					characterLevel: character.level,
-					weaponId,
-					weaponRefinement,
-					weaponRarity: pickedWeapon?.rarity,
+					...(isUnequip
+						? {}
+						: {
+								weaponId,
+								weaponRefinement,
+								weaponRarity: pickedWeapon?.rarity,
+						  }),
 					side: PlayerSide.BLUE,
 				},
 			);
@@ -866,7 +1089,7 @@ function RouteComponent() {
 				setSessionCost(response.data);
 				setBlueSelectedWeaponRefinementByCharacterIdLocal((prev) => ({
 					...prev,
-					[character.id]: weaponRefinement,
+					[character.id]: isUnequip ? undefined : weaponRefinement,
 				}));
 			}
 		} catch {
@@ -893,6 +1116,7 @@ function RouteComponent() {
 		}
 
 		try {
+			const isUnequip = weaponId <= 0;
 			await matchApi.pickWeapon(
 				match.id,
 				character.id,
@@ -912,9 +1136,13 @@ function RouteComponent() {
 					characterId: Number(character.id),
 					activatedConstellation: character.constellation,
 					characterLevel: character.level,
-					weaponId,
-					weaponRefinement,
-					weaponRarity: pickedWeapon?.rarity,
+					...(isUnequip
+						? {}
+						: {
+								weaponId,
+								weaponRefinement,
+								weaponRarity: pickedWeapon?.rarity,
+						  }),
 					side: PlayerSide.RED,
 				},
 			);
@@ -923,7 +1151,7 @@ function RouteComponent() {
 				setSessionCost(response.data);
 				setRedSelectedWeaponRefinementByCharacterIdLocal((prev) => ({
 					...prev,
-					[character.id]: weaponRefinement,
+					[character.id]: isUnequip ? undefined : weaponRefinement,
 				}));
 			}
 		} catch {
@@ -1061,10 +1289,6 @@ function RouteComponent() {
 
 	useEffect(() => {
 		if (!pageMatchState) {
-			return;
-		}
-
-		if (isDraftCompleted) {
 			return;
 		}
 
@@ -1416,6 +1640,9 @@ function RouteComponent() {
 								? profile?.id !== match?.host?.id
 								: !isCurrentUserTurn || !pendingCharacter)
 						}
+						blueTotalComparableSeconds={leadComparison.blueTotalComparableSeconds}
+						redTotalComparableSeconds={leadComparison.redTotalComparableSeconds}
+						leadingSide={leadComparison.leadingSide}
 						onSubmit={handleSubmit}
 					/>
 

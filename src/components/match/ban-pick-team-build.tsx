@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconAssets } from "@/lib/constants/icon-assets";
 import type { BanPickCharacter } from "@/components/match/ban-pick.types";
@@ -153,6 +153,30 @@ export default function BanPickTeamBuild({
 		setWeaponPicker(null);
 	};
 
+	const onUnequipWeapon = async (character: BanPickCharacter) => {
+		setIsSubmittingWeapon(true);
+		try {
+			if (onPickWeapon) {
+				await onPickWeapon(character, 0, 0);
+			}
+		} catch {
+			return;
+		} finally {
+			setIsSubmittingWeapon(false);
+		}
+
+		setSelectedWeaponByCharacterIdState((prev) => ({
+			...prev,
+			[character.id]: undefined,
+		}));
+		setSelectedWeaponRefinementByCharacterIdState((prev) => ({
+			...prev,
+			[character.id]: undefined,
+		}));
+		setWeaponRefinementPicker(null);
+		setWeaponPicker(null);
+	};
+
 	const weaponPickerOptions = useMemo(() => {
 		if (!weaponPicker) {
 			return [] as UserWeaponResponse[];
@@ -160,6 +184,26 @@ export default function BanPickTeamBuild({
 
 		return weapons.filter((weapon) => weapon.type === weaponPicker.weaponType);
 	}, [weaponPicker, weapons]);
+
+	const weaponPickerCharacter = useMemo(() => {
+		if (!weaponPicker) {
+			return null;
+		}
+
+		return picks.find((member) => member.id === weaponPicker.characterId) ?? null;
+	}, [weaponPicker, picks]);
+
+	const renderConstellationBadge = (member: BanPickCharacter | null) => {
+		if (!member) {
+			return null;
+		}
+
+		return (
+			<span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+				C{member.constellation}
+			</span>
+		);
+	};
 
 	const renderWeaponSlot = (member: BanPickCharacter | null) => {
 		if (!member) {
@@ -194,7 +238,21 @@ export default function BanPickTeamBuild({
 				) : (
 					<Plus className="h-6 w-6 text-white/80" />
 				)}
-					{selectedWeapon && selectedWeaponRefinement ? (
+				{selectedWeapon && canPickWeapon ? (
+					<button
+						type="button"
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							void onUnequipWeapon(member);
+						}}
+						disabled={!canPickWeapon || isSubmittingWeapon}
+						className="absolute left-1 bottom-1 rounded bg-red-600/70 p-1 text-white hover:bg-black/90 disabled:opacity-60"
+					>
+						<X className="h-3 w-3" />
+					</button>
+				) : null}
+				{selectedWeapon && selectedWeaponRefinement ? (
 						<span className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white">
 							R{selectedWeaponRefinement}
 						</span>
@@ -247,7 +305,7 @@ export default function BanPickTeamBuild({
 								>
 									<div
 										className={cn(
-											"w-full h-28 flex items-center justify-center border border-2 overflow-hidden rounded-md",
+											"relative w-full h-28 flex items-center justify-center border border-2 overflow-hidden rounded-md",
 											member && canReorder && "cursor-move",
 											slotClassName,
 										)}
@@ -269,11 +327,14 @@ export default function BanPickTeamBuild({
 										onDrop={() => onDropToSlot(globalIndex)}
 									>
 										{member ? (
-											<img
-												src={member.imageUrl}
-												alt={member.name}
-												className="w-full h-full object-cover"
-											/>
+											<>
+												<img
+													src={member.imageUrl}
+													alt={member.name}
+													className="w-full h-full object-cover"
+												/>
+												{renderConstellationBadge(member)}
+											</>
 										) : (
 											<img
 												src={IconAssets.EMPTY_CHARACTER_ICON}
@@ -311,7 +372,7 @@ export default function BanPickTeamBuild({
 								>
 									<div
 										className={cn(
-											"w-full h-28 flex items-center justify-center border border-2 overflow-hidden rounded-md",
+											"relative w-full h-28 flex items-center justify-center border border-2 overflow-hidden rounded-md",
 											member && canReorder && "cursor-move",
 											slotClassName,
 										)}
@@ -333,11 +394,14 @@ export default function BanPickTeamBuild({
 										onDrop={() => onDropToSlot(globalIndex)}
 									>
 										{member ? (
-											<img
-												src={member.imageUrl}
-												alt={member.name}
-												className="w-full h-full object-cover"
-											/>
+											<>
+												<img
+													src={member.imageUrl}
+													alt={member.name}
+													className="w-full h-full object-cover"
+												/>
+												{renderConstellationBadge(member)}
+											</>
 										) : (
 											<img
 												src={IconAssets.EMPTY_CHARACTER_ICON}
@@ -367,10 +431,6 @@ export default function BanPickTeamBuild({
 
 					<div className="grid grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto">
 						{weaponPickerOptions.map((weapon) => {
-							const pickerCharacter = picks.find(
-								(member) => member.id === weaponPicker?.characterId,
-							);
-
 							const isSelected =
 								weaponPicker &&
 								selectedWeaponByCharacterIdState[weaponPicker.characterId] ===
@@ -381,17 +441,17 @@ export default function BanPickTeamBuild({
 									key={weapon.id}
 									type="button"
 									onClick={() => {
-										if (!pickerCharacter) {
+										if (!weaponPickerCharacter) {
 											return;
 										}
 
 										setWeaponRefinementPicker({
-											character: pickerCharacter,
+											character: weaponPickerCharacter,
 											weapon,
 											refinement: 1,
 										});
 									}}
-									disabled={!canPickWeapon || !pickerCharacter}
+									disabled={!canPickWeapon || !weaponPickerCharacter}
 									className={cn(
 										"flex flex-col items-center gap-2 rounded border border-white/20 p-2 bg-white/5 hover:bg-white/10",
 										isSelected && "border-emerald-400 bg-emerald-500/10",
