@@ -10,7 +10,6 @@ import {
 	mapCharacterNamesToAccountCharacters,
 	mapDraftSideToPlayerSide,
 	mapSelectedWeaponsByCharacterId,
-	TURN_DURATION_SECONDS,
 	validateSessionCompletionData,
 } from "@/components/match/ban-pick.utils";
 import { matchApi } from "@/apis/match";
@@ -409,9 +408,6 @@ function RouteComponent() {
 		rightRarityFilter,
 		setRightRarityFilter,
 	} = useBanPickFilters();
-	const [turnRemainingSeconds, setTurnRemainingSeconds] = useState(
-		TURN_DURATION_SECONDS,
-	);
 	const [pendingCharacter, setPendingCharacter] =
 		useState<AccountCharacterResponse | null>(null);
 	const [isSubmittingTurnAction, setIsSubmittingTurnAction] = useState(false);
@@ -433,7 +429,6 @@ function RouteComponent() {
 		redSelectedWeaponRefinementByCharacterIdLocal,
 		setRedSelectedWeaponRefinementByCharacterIdLocal,
 	] = useState<Record<string, number | undefined>>({});
-	const autoResolvedStepRef = useRef<number | null>(null);
 	const lastCalculatedTurnRef = useRef<string | null>(null);
 	const initializedSessionIdRef = useRef<number | null>(
 		Number.isInteger(Number(matchState?.currentSession))
@@ -668,14 +663,6 @@ function RouteComponent() {
 		draftStep < DRAFT_SEQUENCE.length ? DRAFT_SEQUENCE[draftStep] : undefined;
 
 	const isDraftCompleted = draftStep >= DRAFT_SEQUENCE.length;
-
-	const formattedTurnCountdown = useMemo(() => {
-		const totalSeconds = isDraftCompleted ? 0 : turnRemainingSeconds;
-		const minutes = Math.floor(totalSeconds / 60);
-		const seconds = totalSeconds % 60;
-
-		return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-	}, [isDraftCompleted, turnRemainingSeconds]);
 
 	const isCurrentUserTurn = useMemo(() => {
 		if (isDraftCompleted || !profile?.id || !currentAction) {
@@ -935,54 +922,11 @@ function RouteComponent() {
 		const redTotalComparableSeconds =
 			redTimeBonusCost + redChamberScoreTotal;
 
-		let leadingSide: "blue" | "red" | null = null;
-		if (blueTotalComparableSeconds > redTotalComparableSeconds) {
-			leadingSide = "blue";
-		} else if (redTotalComparableSeconds > blueTotalComparableSeconds) {
-			leadingSide = "red";
-		}
-
 		return {
 			blueTotalComparableSeconds,
 			redTotalComparableSeconds,
-			leadingSide,
 		};
 	}, [isRealtimeMatch, sessionCost?.blueTimeBonusCost, sessionCost?.redTimeBonusCost, timerInputs]);
-
-	const getAvailableCharactersForAction = useCallback(() => {
-		if (!currentAction) {
-			return [] as AccountCharacterResponse[];
-		}
-
-		const openedListCharacters =
-			currentAction.side === "blue"
-				? leftFilteredCharacters
-				: rightFilteredCharacters;
-
-		const availableOpenedListCharacters = openedListCharacters.filter(
-			(character) =>
-				!selectedCharacterIds.has(getBanPickCharacterId(character)),
-		);
-
-		if (availableOpenedListCharacters.length > 0) {
-			return availableOpenedListCharacters;
-		}
-
-		const fallbackCharacters =
-			currentAction.side === "blue" ? blueCharacters : redCharacters;
-
-		return fallbackCharacters.filter(
-			(character) =>
-				!selectedCharacterIds.has(getBanPickCharacterId(character)),
-		);
-	}, [
-		blueCharacters,
-		currentAction,
-		leftFilteredCharacters,
-		redCharacters,
-		rightFilteredCharacters,
-		selectedCharacterIds,
-	]);
 
 	const onSelectCharacter = (character: AccountCharacterResponse) => {
 		if (
@@ -1391,115 +1335,6 @@ function RouteComponent() {
 		weapons,
 	]);
 
-	useEffect(() => {
-		if (isDraftCompleted) {
-			return;
-		}
-
-		setTurnRemainingSeconds(TURN_DURATION_SECONDS);
-	}, [draftStep, isDraftCompleted]);
-
-	useEffect(() => {
-		if (isDraftCompleted || turnRemainingSeconds <= 0 || !isCurrentUserTurn) {
-			return;
-		}
-
-		const timeout = setTimeout(() => {
-			setTurnRemainingSeconds((prev) => Math.max(0, prev - 1));
-		}, 1000);
-
-		return () => clearTimeout(timeout);
-	}, [isCurrentUserTurn, isDraftCompleted, turnRemainingSeconds]);
-
-	useEffect(() => {
-		if (
-			isDraftCompleted ||
-			turnRemainingSeconds > 0 ||
-			!currentAction ||
-			!isCurrentUserTurn
-		) {
-			return;
-		}
-
-		if (autoResolvedStepRef.current === draftStep) {
-			return;
-		}
-
-		autoResolvedStepRef.current = draftStep;
-
-		const availableCharacters = getAvailableCharactersForAction();
-
-		if (availableCharacters.length === 0) {
-			toast.error(t(matchLocaleKeys.ban_pick_no_character_auto_pick));
-			setTurnRemainingSeconds(TURN_DURATION_SECONDS);
-			setPendingCharacter(null);
-			autoResolvedStepRef.current = null;
-			return;
-		}
-
-		const randomCharacter =
-			availableCharacters[
-				Math.floor(Math.random() * availableCharacters.length)
-			];
-		const randomCharacterId = getBanPickCharacterId(randomCharacter);
-		const nextAction = DRAFT_SEQUENCE[draftStep + 1];
-		const ensuredNextTurn = nextAction
-			? mapDraftSideToPlayerSide(nextAction.side)
-			: undefined;
-		const previousMatchState = pageMatchState;
-
-		if (isSubmittingTurnAction || !match?.id) {
-			return;
-		}
-
-		setPageMatchState((prev) => {
-			if (!prev) {
-				return prev;
-			}
-
-			return applyDraftActionToMatchState(
-				prev,
-				currentAction,
-				randomCharacterId,
-				ensuredNextTurn,
-			);
-		});
-		setIsSubmittingTurnAction(true);
-
-		void (async () => {
-			try {
-				if (currentAction.type === "ban") {
-					await matchApi.banChar(match.id, randomCharacterId);
-				} else {
-					await matchApi.pickChar(match.id, randomCharacterId);
-				}
-
-				setPendingCharacter(null);
-				toast.info(
-					t(matchLocaleKeys.ban_pick_auto_selected, {
-						characterName: randomCharacter.characters.name,
-					}),
-				);
-			} catch {
-				setPageMatchState(previousMatchState);
-				toast.error(t(matchLocaleKeys.ban_pick_failed_auto_submit));
-				setTurnRemainingSeconds(TURN_DURATION_SECONDS);
-				autoResolvedStepRef.current = null;
-			} finally {
-				setIsSubmittingTurnAction(false);
-			}
-		})();
-	}, [
-		currentAction,
-		draftStep,
-		getAvailableCharactersForAction,
-		isDraftCompleted,
-		isCurrentUserTurn,
-		isSubmittingTurnAction,
-		match?.id,
-		turnRemainingSeconds,
-	]);
-
 	const handleSubmit = async () => {
 		if (isDraftCompleted) {
 			if (profile?.id !== match?.host?.id) return;
@@ -1628,7 +1463,6 @@ function RouteComponent() {
 					/>
 
 					<BanPickActionPanel
-						formattedTurnCountdown={formattedTurnCountdown}
 						isDraftCompleted={isDraftCompleted}
 						draftStep={draftStep}
 						draftSequenceLength={DRAFT_SEQUENCE.length}
@@ -1642,7 +1476,6 @@ function RouteComponent() {
 						}
 						blueTotalComparableSeconds={leadComparison.blueTotalComparableSeconds}
 						redTotalComparableSeconds={leadComparison.redTotalComparableSeconds}
-						leadingSide={leadComparison.leadingSide}
 						onSubmit={handleSubmit}
 					/>
 

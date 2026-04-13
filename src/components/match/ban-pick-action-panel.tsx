@@ -5,7 +5,6 @@ import { ArrowLeftRight, StepBack, StepForward } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface BanPickActionPanelProps {
-	formattedTurnCountdown: string;
 	isDraftCompleted: boolean;
 	draftStep: number;
 	draftSequenceLength: number;
@@ -14,12 +13,10 @@ interface BanPickActionPanelProps {
 	isButtonDisabled: boolean;
 	blueTotalComparableSeconds: number;
 	redTotalComparableSeconds: number;
-	leadingSide: "blue" | "red" | null;
 	onSubmit: () => Promise<void> | void;
 }
 
 export default function BanPickActionPanel({
-	formattedTurnCountdown,
 	isDraftCompleted,
 	draftStep,
 	draftSequenceLength,
@@ -54,7 +51,6 @@ export default function BanPickActionPanel({
 	return (
 		<div className="col-span-1 flex flex-col items-center justify-between p-4">
 			<div className="w-full mt-4 rounded-md border border-white/30 bg-white/5 p-3 text-center">
-				<h1 className="text-2xl">{formattedTurnCountdown}</h1>
 				<p className="mt-3 text-xs text-white/80">
 					{isDraftCompleted
 						? t(matchLocaleKeys.ban_pick_draft_completed)
