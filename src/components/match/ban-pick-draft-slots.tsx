@@ -33,18 +33,18 @@ function getSlotHighlightClasses(
     const isCurrentSlot =
         !isDraftCompleted &&
         currentAction?.side === side &&
-        currentAction.type === type &&
+        currentAction?.type === type &&
         slotIndex === filledCount &&
         filledCount < maxSlot
 
     if (isCurrentSlot) {
         if (type === 'ban') {
-            return 'border-white bg-white/20 animate-pulse border-4'
+            return 'border-yellow-400 bg-white/20 animate-pulse border-4'
         }
 
         return side === 'blue'
-            ? 'border-sky-400 bg-sky-400/20 animate-pulse border-4'
-            : 'border-red-600 bg-red-600/20 animate-pulse border-4'
+            ? 'border-yellow-400 bg-sky-400/20 animate-pulse border-4'
+            : 'border-yellow-400 bg-red-600/20 animate-pulse border-4'
     }
 
     if (isFilled) {
@@ -79,7 +79,7 @@ function getSlotCharacter(
         !isDraftCompleted &&
         !!pendingCharacter &&
         currentAction?.side === side &&
-        currentAction.type === type &&
+        currentAction?.type === type &&
         slotIndex === filledCount &&
         filledCount < maxSlot
 
@@ -121,7 +121,6 @@ export default function BanPickDraftSlots({
                             className={cn(
                                 'bg-gray-800/50 w-full h-full flex flex-col items-center justify-center border border-2 overflow-hidden',
                                 side === 'blue' && `col-start-${index + 2}`,
-                                side === 'red' && 'grayscale',
                                 getSlotHighlightClasses(
                                     side,
                                     'ban',
@@ -139,7 +138,7 @@ export default function BanPickDraftSlots({
                                     alt={slotCharacter.name}
                                     className={cn(
                                         'w-full h-full object-cover',
-                                        side === 'blue' && 'grayscale',
+                                        'grayscale',
                                     )}
                                 />
                             ) : (

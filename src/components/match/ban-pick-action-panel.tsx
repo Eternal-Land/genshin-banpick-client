@@ -51,7 +51,7 @@ export default function BanPickActionPanel({
 	return (
 		<div className="col-span-1 flex flex-col items-center justify-between p-4">
 			<div className="w-full mt-4 rounded-md border border-white/30 bg-white/5 p-3 text-center">
-				<p className="mt-3 text-xs text-white/80">
+				<p className="text-sm text-white/80">
 					{isDraftCompleted
 						? t(matchLocaleKeys.ban_pick_draft_completed)
 						: t(matchLocaleKeys.ban_pick_step_label, {

@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { AxiosError } from "axios";
 import { RefreshCcwIcon, SearchIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { usersApi } from "@/apis/users";
 import { getTranslationToken } from "@/i18n/namespaces";
 import { usersLocaleKeys } from "@/i18n/keys";
+import type { BaseApiResponse } from "@/lib/types";
 import { UsersTable } from "@/components/users";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +30,12 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { userQuerySchema, type UserQuery } from "@/apis/users/types";
+import { toast } from "sonner";
+import {
+	userQuerySchema,
+	type UserQuery,
+	type UserResponse,
+} from "@/apis/users/types";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -58,6 +65,53 @@ function RouteComponent() {
 	const users = usersResponse?.data ?? [];
 	const pagination = usersResponse?.pagination;
 
+	const toggleStatusMutation = useMutation<
+		BaseApiResponse,
+		AxiosError<BaseApiResponse>,
+		UserResponse
+	>({
+		mutationFn: (user) =>
+			user.isActive
+				? usersApi.deactivateUser(user.id)
+				: usersApi.reactivateUser(user.id),
+		onSuccess: (_response, user) => {
+			toast.success(
+				user.isActive
+					? t(
+							getTranslationToken(
+								"users",
+								usersLocaleKeys.users_deactivate_success,
+							),
+						)
+					: t(
+							getTranslationToken(
+								"users",
+								usersLocaleKeys.users_activate_success,
+							),
+						),
+			);
+			refetch();
+		},
+		onError: (mutationError, user) => {
+			toast.error(
+				mutationError.response?.data.message ||
+					(user.isActive
+						? t(
+								getTranslationToken(
+									"users",
+									usersLocaleKeys.users_deactivate_error,
+								),
+							)
+						: t(
+								getTranslationToken(
+									"users",
+									usersLocaleKeys.users_activate_error,
+								),
+							)),
+			);
+		},
+	});
+
 	const handleFilterChange = (newFilter: UserQuery) => {
 		navigate({
 			replace: true,
@@ -82,6 +136,10 @@ function RouteComponent() {
 			...filter,
 			page: newPage,
 		});
+	};
+
+	const handleToggleUserStatus = (user: UserResponse) => {
+		toggleStatusMutation.mutate(user);
 	};
 
 	return (
@@ -158,9 +216,11 @@ function RouteComponent() {
 					<div className="w-full max-w-full overflow-x-auto">
 						<UsersTable
 							isLoading={isLoading}
+							isToggleStatusPending={toggleStatusMutation.isPending}
 							users={users}
 							filter={filter}
 							onFilterChange={handleFilterChange}
+							onToggleUserStatus={handleToggleUserStatus}
 						/>
 					</div>
 				</CardContent>

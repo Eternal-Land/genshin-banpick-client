@@ -1,11 +1,13 @@
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
+import { UserCheckIcon, UserXIcon } from "lucide-react";
 import type { UserQuery, UserResponse } from "@/apis/users/types";
 import { getTranslationToken } from "@/i18n/namespaces";
 import { usersLocaleKeys } from "@/i18n/keys";
 import FilterTableHead from "@/components/filter-table-head";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Table,
@@ -16,13 +18,20 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Empty } from "@/components/ui/empty";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DateFormat } from "@/lib/constants";
 
 export interface UsersTableProps {
 	isLoading?: boolean;
+	isToggleStatusPending?: boolean;
 	users?: UserResponse[];
 	filter: UserQuery;
 	onFilterChange?: (filter: UserQuery) => void;
+	onToggleUserStatus?: (user: UserResponse) => void;
 }
 
 function getInitials(name: string) {
@@ -36,9 +45,11 @@ function getInitials(name: string) {
 
 export default function UsersTable({
 	isLoading,
+	isToggleStatusPending,
 	users,
 	filter,
 	onFilterChange,
+	onToggleUserStatus,
 }: UsersTableProps) {
 	const { t } = useTranslation();
 
@@ -105,6 +116,14 @@ export default function UsersTable({
 							),
 						)}
 					</TableHead>
+					<TableHead>
+						{t(
+							getTranslationToken(
+								"users",
+								usersLocaleKeys.users_table_actions,
+							),
+						)}
+					</TableHead>
 				</TableRow>
 			</TableHeader>
 			<TableBody>
@@ -131,6 +150,9 @@ export default function UsersTable({
 								</TableCell>
 								<TableCell>
 									<Skeleton className="h-4 w-28" />
+								</TableCell>
+								<TableCell>
+									<Skeleton className="size-8 rounded-md" />
 								</TableCell>
 							</TableRow>
 						))
@@ -176,11 +198,46 @@ export default function UsersTable({
 								<TableCell className="whitespace-nowrap">
 									{dayjs(user.createdAt).format(DateFormat.DEFAULT)}
 								</TableCell>
+								<TableCell>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												type="button"
+												variant={user.isActive ? "destructive" : "secondary"}
+												size="icon-sm"
+												disabled={isToggleStatusPending}
+												onClick={() => onToggleUserStatus?.(user)}
+												className="cursor-pointer"
+											>
+												{user.isActive ? (
+													<UserXIcon className="size-3" />
+												) : (
+													<UserCheckIcon className="size-3" />
+												)}
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent className="text-black">
+											{user.isActive
+												? t(
+														getTranslationToken(
+															"users",
+															usersLocaleKeys.users_deactivate_tooltip,
+														),
+													)
+												: t(
+														getTranslationToken(
+															"users",
+															usersLocaleKeys.users_activate_tooltip,
+														),
+													)}
+										</TooltipContent>
+									</Tooltip>
+								</TableCell>
 							</TableRow>
 						))}
 				{!isLoading && (!users || users.length === 0) && (
 					<TableRow>
-						<TableCell colSpan={6}>
+						<TableCell colSpan={7}>
 							<Empty>
 								{t(getTranslationToken("users", usersLocaleKeys.users_empty))}
 							</Empty>

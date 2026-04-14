@@ -36,7 +36,21 @@ async function searchUsers(query: SearchUsersQuery) {
 	return response.data;
 }
 
+async function deactivateUser(id: string) {
+	const response = await http.delete<BaseApiResponse>(`/api/admin/users/${id}`);
+	return response.data;
+}
+
+async function reactivateUser(id: string) {
+	const response = await http.put<BaseApiResponse>(
+		`/api/admin/users/${id}/reactivate`,
+	);
+	return response.data;
+}
+
 export const usersApi = {
 	listUsers,
 	searchUsers,
+	deactivateUser,
+	reactivateUser,
 } as const;
