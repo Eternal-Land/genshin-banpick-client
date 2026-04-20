@@ -49,24 +49,10 @@ const passwordRequirements = [
 		),
 	},
 	{
-		regex: /[A-Z]/,
-		textKey: getTranslationToken(
-			"auth",
-			authLocaleKeys.register_password_requirement_uppercase,
-		),
-	},
-	{
 		regex: /[0-9]/,
 		textKey: getTranslationToken(
 			"auth",
 			authLocaleKeys.register_password_requirement_number,
-		),
-	},
-	{
-		regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/,
-		textKey: getTranslationToken(
-			"auth",
-			authLocaleKeys.register_password_requirement_special,
 		),
 	},
 ];
@@ -147,8 +133,7 @@ function RouteComponent() {
 		if (score === 0) return "bg-border";
 		if (score <= 1) return "bg-destructive";
 		if (score <= 2) return "bg-orange-500";
-		if (score <= 3) return "bg-amber-500";
-		if (score === 4) return "bg-yellow-400";
+		if (score <= 3) return "bg-green-500";
 		return "bg-green-500";
 	}
 
@@ -161,7 +146,7 @@ function RouteComponent() {
 				),
 			)
 		}
-		if (score <= 2) {
+		if (score === 1) {
 			return t(
 				getTranslationToken(
 					"auth",
@@ -169,7 +154,7 @@ function RouteComponent() {
 				),
 			)
 		}
-		if (score <= 3) {
+		if (score === 2) {
 			return t(
 				getTranslationToken(
 					"auth",
@@ -177,7 +162,7 @@ function RouteComponent() {
 				),
 			)
 		}
-		if (score === 4) {
+		if (score === 3) {
 			return t(
 				getTranslationToken(
 					"auth",
@@ -376,7 +361,7 @@ function RouteComponent() {
 										disabled={registerMutation.isPending}
 									/>
 									<div className="mb-2 mt-3 flex h-1 w-full gap-1">
-										{Array.from({ length: 5 }).map((_, index) => (
+										{Array.from({ length: passwordRequirements.length }).map((_, index) => (
 											<span
 												key={index}
 												className={cn(

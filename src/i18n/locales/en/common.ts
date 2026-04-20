@@ -4,7 +4,7 @@ const commonEn: CommonLocaleObject = {
 	validation_required: "This field is required.",
 	validation_email: "Please enter a valid email.",
 	validation_password_strength:
-		"Password must be 6-30 characters and include upper, lower, number, and symbol.",
+		"Password must be 6-30 characters and include lowercase letters and numbers.",
 	validation_password_mismatch: "Passwords do not match.",
 	validation_url: "Please enter a valid URL.",
 	validation_permission_required: "Please select at least one permission.",

@@ -4,7 +4,7 @@ const commonVi: CommonLocaleObject = {
 	validation_required: "Trường này là bắt buộc.",
 	validation_email: "Vui lòng nhập email hợp lệ.",
 	validation_password_strength:
-		"Mật khẩu phải dài 6-30 ký tự và gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
+		"Mật khẩu phải dài 6-30 ký tự và gồm chữ thường và số.",
 	validation_password_mismatch: "Mật khẩu không khớp.",
 	validation_url: "Vui lòng nhập URL hợp lệ.",
 	validation_permission_required: "Vui lòng chọn ít nhất một quyền.",

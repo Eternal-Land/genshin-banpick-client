@@ -24,7 +24,7 @@ export const createStaffSchema = z.object({
 	password: z
 		.string()
 		.regex(
-			/^(?=.{6,30}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
+			/^(?=.{6,30}$)(?=.*[a-z])(?=.*\d).+$/,
 			getTranslationToken(
 				"common",
 				commonLocaleKeys.validation_password_strength,
