@@ -15,8 +15,6 @@ export interface CharacterContainerProps {
 	constellation: number;
 	element: CharacterElementEnum;
 	imageUrl: string;
-	showLevel?: boolean;
-	showConstellation?: boolean;
 }
 
 export default function CharacterContainer({
@@ -26,8 +24,6 @@ export default function CharacterContainer({
 	constellation,
 	element: elementId,
 	imageUrl,
-	showLevel = true,
-	showConstellation = true,
 }: CharacterContainerProps) {
 	const { t } = useTranslation();
 	const element = CharacterElementDetail[elementId];
@@ -55,12 +51,8 @@ export default function CharacterContainer({
 			? "bg-linear-180 from-[#9A6D43] to-[#DE9552]"
 			: "bg-linear-180 from-[#4D4280] to-[#935DB1]";
 
-	const containerClassName = showLevel
-		? "flex flex-col justify-center bg-white aspect-4/5 rounded-sm shadow-md-2 overflow-hidden"
-		: "bg-white aspect-square rounded-sm shadow-md-2 overflow-hidden";
-
 	return (
-		<div className={containerClassName}>
+		<div className="flex flex-col justify-center bg-white aspect-[4/5] rounded-sm shadow-md-2 overflow-hidden">
 			<div
 				className={`aspect-square ${rarityBackground} rounded-br-lg overflow-hidden flex items-center justify-center relative`}
 			>
@@ -72,34 +64,30 @@ export default function CharacterContainer({
 				>
 					<img src={element.iconUrl} alt={element.name} className="size-4" />
 				</div>
-				{showConstellation ? (
-					<div
-						className={cn(
-							"absolute right-1 top-1 min-w-6 rounded-full bg-black/70 px-2 pt-0.5 text-center text-xs text-white shadow z-1",
-							constellation === 6 ? "text-yellow-700 bg-orange-200" : "",
-						)}
-					>
-						C{constellation}
-					</div>
-				) : null}
+				<div
+					className={cn(
+						"absolute right-1 top-1 min-w-6 rounded-full bg-black/70 px-2 pt-0.5 text-center text-xs text-white shadow z-1",
+						constellation === 6 ? "text-yellow-700 bg-orange-200" : "",
+					)}
+				>
+					C{constellation}
+				</div>
 				<img
 					src={imageUrl}
 					alt={name}
 					className="hover:scale-115 transition-transform duration-300"
 				/>
 			</div>
-			{showLevel ? (
-				<div className="text-center">
-					<span
-						className={cn(
-							"text-black text-sm",
-							level > 90 ? "text-yellow-700" : "",
-						)}
-					>
-						{t(getTranslationToken("common", commonLocaleKeys.level))} {level}
-					</span>
-				</div>
-			) : null}
+			<div className="text-center">
+				<span
+					className={cn(
+						"text-black text-sm",
+						level > 90 ? "text-yellow-700" : "",
+					)}
+				>
+					{t(getTranslationToken("common", commonLocaleKeys.level))} {level}
+				</span>
+			</div>
 		</div>
 	);
 }
