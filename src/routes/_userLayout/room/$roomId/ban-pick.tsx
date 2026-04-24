@@ -19,6 +19,7 @@ import type { SessionCostResponse } from "@/apis/session-cost/types";
 import { sessionRecordApi } from "@/apis/session-record";
 import type { SaveSessionRecordInput } from "@/apis/session-record/types";
 import type { AccountCharacterResponse } from "@/apis/account-characters/types";
+import type { UserCharacterResponse } from "@/apis/user-characters/types";
 import type { BanPickCharacter } from "@/components/match/ban-pick.types";
 import type { BanPickTimerInputValues } from "@/components/match/ban-pick-timer-inputs";
 import { MatchType, PlayerSide, MatchStatus } from "@/lib/constants";
@@ -194,6 +195,21 @@ const mapDraftBanCharacters = (
 	});
 };
 
+const mapGlobalCharacterToDraftCharacter = (
+	character: UserCharacterResponse,
+): AccountCharacterResponse => ({
+	id: `global-${character.id}`,
+	accountId: "",
+	characterId: character.id,
+	activatedConstellation: 0,
+	characterLevel: 0,
+	characterCost: 0,
+	notes: undefined,
+	createdAt: character.createdAt,
+	updatedAt: character.updatedAt,
+	characters: character,
+});
+
 const parseTimerInputsToRecord = (
 	timerInputs: BanPickTimerInputsBySide,
 	isRealtimeMatch: boolean,
@@ -325,7 +341,9 @@ const parseTimerInputsToRecordForAutosave = (
 	timerInputs: BanPickTimerInputsBySide,
 	isRealtimeMatch: boolean,
 ) => {
-	const blueChamber1 = parseClockToSecondsForAutosave(timerInputs.blue.chamber1);
+	const blueChamber1 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber1,
+	);
 	const redChamber1 = parseClockToSecondsForAutosave(timerInputs.red.chamber1);
 
 	if (blueChamber1.error || redChamber1.error) {
@@ -347,8 +365,12 @@ const parseTimerInputsToRecordForAutosave = (
 		} satisfies SaveSessionRecordInput;
 	}
 
-	const blueChamber2 = parseClockToSecondsForAutosave(timerInputs.blue.chamber2);
-	const blueChamber3 = parseClockToSecondsForAutosave(timerInputs.blue.chamber3);
+	const blueChamber2 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber2,
+	);
+	const blueChamber3 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber3,
+	);
 	const redChamber2 = parseClockToSecondsForAutosave(timerInputs.red.chamber2);
 	const redChamber3 = parseClockToSecondsForAutosave(timerInputs.red.chamber3);
 	const blueReset = parseResetForAutosave(timerInputs.blue.reset);
@@ -539,8 +561,9 @@ function RouteComponent() {
 		void (async () => {
 			try {
 				if (match?.id) {
-					const currentSessionCost =
-						await sessionCostApi.getCurrentSessionCost(match.id);
+					const currentSessionCost = await sessionCostApi.getCurrentSessionCost(
+						match.id,
+					);
 					setSessionCost(currentSessionCost.data ?? null);
 
 					const latestMatchState = await matchApi.getMatchState(match.id);
@@ -605,14 +628,36 @@ function RouteComponent() {
 		navigateByMatchStatus(match.status);
 	}, [match, navigateByMatchStatus, profile?.id, router]);
 
-	const { blueCharacters, redCharacters, weapons } = useBanPickQueries({
-		bluePlayerId: bluePlayer?.id,
-		redPlayerId: redPlayer?.id,
-	});
-	const allMatchCharacters = useMemo(
-		() => [...blueCharacters, ...redCharacters],
-		[blueCharacters, redCharacters],
+	const { blueCharacters, redCharacters, globalCharacters, weapons } =
+		useBanPickQueries({
+			bluePlayerId: bluePlayer?.id,
+			redPlayerId: redPlayer?.id,
+		});
+	const globalDraftCharacters = useMemo(
+		() => globalCharacters.map(mapGlobalCharacterToDraftCharacter),
+		[globalCharacters],
 	);
+	const allKnownBanCharacters = useMemo(() => {
+		const mappedCharacters = new Map<string, AccountCharacterResponse>();
+
+		[...globalDraftCharacters, ...blueCharacters, ...redCharacters].forEach(
+			(character) => {
+				mappedCharacters.set(getBanPickCharacterId(character), character);
+			},
+		);
+
+		return [...mappedCharacters.values()];
+	}, [globalDraftCharacters, blueCharacters, redCharacters]);
+
+	const isBlueViewer = profile?.id === bluePlayer?.id;
+	const isRedViewer = profile?.id === redPlayer?.id;
+
+	const bluePanelCharacters = isBlueViewer
+		? blueCharacters
+		: globalDraftCharacters;
+	const redPanelCharacters = isRedViewer
+		? redCharacters
+		: globalDraftCharacters;
 
 	const draftState = useMemo<AccountDraftState>(() => {
 		if (!pageMatchState) {
@@ -622,8 +667,8 @@ function RouteComponent() {
 		return {
 			blue: {
 				bans: mapDraftBanCharacters(
-					blueCharacters,
-					allMatchCharacters,
+					allKnownBanCharacters,
+					allKnownBanCharacters,
 					pageMatchState.blueBanChars,
 				),
 				picks: mapCharacterNamesToAccountCharacters(
@@ -633,8 +678,8 @@ function RouteComponent() {
 			},
 			red: {
 				bans: mapDraftBanCharacters(
-					redCharacters,
-					allMatchCharacters,
+					allKnownBanCharacters,
+					allKnownBanCharacters,
 					pageMatchState.redBanChars,
 				),
 				picks: mapCharacterNamesToAccountCharacters(
@@ -643,21 +688,9 @@ function RouteComponent() {
 				),
 			},
 		};
-	}, [allMatchCharacters, blueCharacters, pageMatchState, redCharacters]);
+	}, [allKnownBanCharacters, blueCharacters, pageMatchState, redCharacters]);
 
-	const draftStep = useMemo(() => {
-		if (!pageMatchState) {
-			return 0;
-		}
-
-		return Math.min(
-			pageMatchState.blueBanChars.length +
-				pageMatchState.blueSelectedChars.length +
-				pageMatchState.redBanChars.length +
-				pageMatchState.redSelectedChars.length,
-			DRAFT_SEQUENCE.length,
-		);
-	}, [pageMatchState]);
+	const draftStep = pageMatchState?.draftStep ?? 0;
 
 	const currentAction =
 		draftStep < DRAFT_SEQUENCE.length ? DRAFT_SEQUENCE[draftStep] : undefined;
@@ -717,23 +750,23 @@ function RouteComponent() {
 	const leftFilteredCharacters = useMemo(
 		() =>
 			filterCharacters(
-				blueCharacters,
+				bluePanelCharacters,
 				leftSearch,
 				leftElementFilter,
 				leftRarityFilter,
 			),
-		[blueCharacters, leftSearch, leftElementFilter, leftRarityFilter],
+		[bluePanelCharacters, leftSearch, leftElementFilter, leftRarityFilter],
 	);
 
 	const rightFilteredCharacters = useMemo(
 		() =>
 			filterCharacters(
-				redCharacters,
+				redPanelCharacters,
 				rightSearch,
 				rightElementFilter,
 				rightRarityFilter,
 			),
-		[redCharacters, rightSearch, rightElementFilter, rightRarityFilter],
+		[redPanelCharacters, rightSearch, rightElementFilter, rightRarityFilter],
 	);
 
 	const leftFilteredBanPickCharacters = useMemo(
@@ -788,47 +821,41 @@ function RouteComponent() {
 		[draftState.red.picks, pageMatchState],
 	);
 
-	const blueSelectedWeaponRefinementByCharacterIdFromState = useMemo(
-		() => {
-			if (!pageMatchState) {
-				return {} as Record<string, number | undefined>;
+	const blueSelectedWeaponRefinementByCharacterIdFromState = useMemo(() => {
+		if (!pageMatchState) {
+			return {} as Record<string, number | undefined>;
+		}
+
+		const refinements = pageMatchState.blueSelectedWeaponRefinements ?? [];
+		const mapped: Record<string, number | undefined> = {};
+
+		draftState.blue.picks.forEach((character, index) => {
+			const refinement = refinements[index];
+			if (typeof refinement === "number" && refinement > 0) {
+				mapped[getBanPickCharacterId(character)] = refinement;
 			}
+		});
 
-			const refinements = pageMatchState.blueSelectedWeaponRefinements ?? [];
-			const mapped: Record<string, number | undefined> = {};
+		return mapped;
+	}, [draftState.blue.picks, pageMatchState]);
 
-			draftState.blue.picks.forEach((character, index) => {
-				const refinement = refinements[index];
-				if (typeof refinement === "number" && refinement > 0) {
-					mapped[getBanPickCharacterId(character)] = refinement;
-				}
-			});
+	const redSelectedWeaponRefinementByCharacterIdFromState = useMemo(() => {
+		if (!pageMatchState) {
+			return {} as Record<string, number | undefined>;
+		}
 
-			return mapped;
-		},
-		[draftState.blue.picks, pageMatchState],
-	);
+		const refinements = pageMatchState.redSelectedWeaponRefinements ?? [];
+		const mapped: Record<string, number | undefined> = {};
 
-	const redSelectedWeaponRefinementByCharacterIdFromState = useMemo(
-		() => {
-			if (!pageMatchState) {
-				return {} as Record<string, number | undefined>;
+		draftState.red.picks.forEach((character, index) => {
+			const refinement = refinements[index];
+			if (typeof refinement === "number" && refinement > 0) {
+				mapped[getBanPickCharacterId(character)] = refinement;
 			}
+		});
 
-			const refinements = pageMatchState.redSelectedWeaponRefinements ?? [];
-			const mapped: Record<string, number | undefined> = {};
-
-			draftState.red.picks.forEach((character, index) => {
-				const refinement = refinements[index];
-				if (typeof refinement === "number" && refinement > 0) {
-					mapped[getBanPickCharacterId(character)] = refinement;
-				}
-			});
-
-			return mapped;
-		},
-		[draftState.red.picks, pageMatchState],
-	);
+		return mapped;
+	}, [draftState.red.picks, pageMatchState]);
 
 	const blueSelectedWeaponRefinementByCharacterId = useMemo(
 		() => ({
@@ -919,14 +946,18 @@ function RouteComponent() {
 
 		const blueTotalComparableSeconds =
 			blueTimeBonusCost + blueChamberScoreTotal;
-		const redTotalComparableSeconds =
-			redTimeBonusCost + redChamberScoreTotal;
+		const redTotalComparableSeconds = redTimeBonusCost + redChamberScoreTotal;
 
 		return {
 			blueTotalComparableSeconds,
 			redTotalComparableSeconds,
 		};
-	}, [isRealtimeMatch, sessionCost?.blueTimeBonusCost, sessionCost?.redTimeBonusCost, timerInputs]);
+	}, [
+		isRealtimeMatch,
+		sessionCost?.blueTimeBonusCost,
+		sessionCost?.redTimeBonusCost,
+		timerInputs,
+	]);
 
 	const onSelectCharacter = (character: AccountCharacterResponse) => {
 		if (
@@ -1024,7 +1055,7 @@ function RouteComponent() {
 								weaponId,
 								weaponRefinement,
 								weaponRarity: pickedWeapon?.rarity,
-						  }),
+							}),
 					side: PlayerSide.BLUE,
 				},
 			);
@@ -1086,7 +1117,7 @@ function RouteComponent() {
 								weaponId,
 								weaponRefinement,
 								weaponRarity: pickedWeapon?.rarity,
-						  }),
+							}),
 					side: PlayerSide.RED,
 				},
 			);
@@ -1458,7 +1489,9 @@ function RouteComponent() {
 						canReorderTeam={canReorderBlueTeam}
 						canPickWeapon={profile?.id === bluePlayer?.id}
 						selectedWeaponByCharacterId={blueSelectedWeaponByCharacterId}
-						selectedWeaponRefinementByCharacterId={blueSelectedWeaponRefinementByCharacterId}
+						selectedWeaponRefinementByCharacterId={
+							blueSelectedWeaponRefinementByCharacterId
+						}
 						onPickWeapon={onPickBlueWeapon}
 					/>
 
@@ -1474,8 +1507,13 @@ function RouteComponent() {
 								? profile?.id !== match?.host?.id
 								: !isCurrentUserTurn || !pendingCharacter)
 						}
-						blueTotalComparableSeconds={leadComparison.blueTotalComparableSeconds}
+						blueTotalComparableSeconds={
+							leadComparison.blueTotalComparableSeconds
+						}
 						redTotalComparableSeconds={leadComparison.redTotalComparableSeconds}
+						turnStartedAt={pageMatchState?.turnStartedAt ?? null}
+						blueTimeBank={pageMatchState?.blueTimeBank ?? 0}
+						redTimeBank={pageMatchState?.redTimeBank ?? 0}
 						onSubmit={handleSubmit}
 					/>
 
@@ -1506,7 +1544,9 @@ function RouteComponent() {
 						canReorderTeam={canReorderRedTeam}
 						canPickWeapon={profile?.id === redPlayer?.id}
 						selectedWeaponByCharacterId={redSelectedWeaponByCharacterId}
-						selectedWeaponRefinementByCharacterId={redSelectedWeaponRefinementByCharacterId}
+						selectedWeaponRefinementByCharacterId={
+							redSelectedWeaponRefinementByCharacterId
+						}
 						onPickWeapon={onPickRedWeapon}
 					/>
 				</div>

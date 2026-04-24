@@ -96,6 +96,8 @@ export const matchLocaleKeys = {
 	ban_pick_timer_chamber_2: "ban_pick_timer_chamber_2",
 	ban_pick_timer_chamber_3: "ban_pick_timer_chamber_3",
 	ban_pick_timer_reset: "ban_pick_timer_reset",
+	ban_pick_timer_turn_time: "ban_pick_timer_turn_time",
+	ban_pick_timer_bank_time: "ban_pick_timer_bank_time",
 	ban_pick_first_half: "ban_pick_first_half",
 	ban_pick_second_half: "ban_pick_second_half",
 	ban_pick_empty_team_slot_alt: "ban_pick_empty_team_slot_alt",

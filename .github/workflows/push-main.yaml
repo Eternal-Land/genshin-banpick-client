@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_ID: genshin-banpick-client
+  REPO_ID: xabyss-banpick-client
   REPO_OWNER: Eternal-Land
 jobs:
   create-pull-request:

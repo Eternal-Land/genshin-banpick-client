@@ -97,6 +97,8 @@ const matchVi: MatchLocaleObject = {
 	ban_pick_timer_chamber_2: "Phòng 2",
 	ban_pick_timer_chamber_3: "Phòng 3",
 	ban_pick_timer_reset: "Reset",
+	ban_pick_timer_turn_time: "Thời gian lượt",
+	ban_pick_timer_bank_time: "Quỹ thời gian",
 	ban_pick_first_half: "Nửa đầu",
 	ban_pick_second_half: "Nửa sau",
 	ban_pick_empty_team_slot_alt: "Ô đội hình trống",

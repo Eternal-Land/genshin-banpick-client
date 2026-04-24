@@ -9,7 +9,8 @@ import type {
 	DraftAction,
 } from "@/components/match/ban-pick.types";
 
-export const TURN_DURATION_SECONDS = 30;
+export const TURN_DURATION_SECONDS = 20;
+export const TIME_BANK_SECONDS = 120;
 
 export const DRAFT_SEQUENCE: DraftAction[] = [
 	{ side: "blue", type: "ban" },
@@ -81,6 +82,8 @@ export function applyDraftActionToMatchState(
 		redBanChars: [...prevState.redBanChars],
 		blueSelectedChars: [...prevState.blueSelectedChars],
 		redSelectedChars: [...prevState.redSelectedChars],
+		draftStep: prevState.draftStep + 1,
+		turnStartedAt: new Date().toISOString(),
 	};
 
 	if (action.type === "ban") {
@@ -157,24 +160,10 @@ export function validateSessionCompletionData(
 	isRealtimeMatch: boolean,
 ) {
 	const validationErrors: string[] = [];
-	const expectedDraftCounts = getExpectedDraftCounts();
 
-	if (matchState.blueBanChars.length !== expectedDraftCounts.blueBanCount) {
-		validationErrors.push("Blue ban phase is not completed.");
-	}
-
-	if (matchState.redBanChars.length !== expectedDraftCounts.redBanCount) {
-		validationErrors.push("Red ban phase is not completed.");
-	}
-
-	if (
-		matchState.blueSelectedChars.length !== expectedDraftCounts.bluePickCount
-	) {
-		validationErrors.push("Blue pick phase is not completed.");
-	}
-
-	if (matchState.redSelectedChars.length !== expectedDraftCounts.redPickCount) {
-		validationErrors.push("Red pick phase is not completed.");
+	// Draft must be fully completed (all 22 steps, including skipped turns)
+	if (matchState.draftStep < DRAFT_SEQUENCE.length) {
+		validationErrors.push("Ban/pick draft is not yet completed.");
 	}
 
 	if (isRealtimeMatch) {

@@ -98,6 +98,8 @@ const matchEn: MatchLocaleObject = {
 	ban_pick_timer_chamber_2: "Chamber 2",
 	ban_pick_timer_chamber_3: "Chamber 3",
 	ban_pick_timer_reset: "Reset",
+	ban_pick_timer_turn_time: "Turn Time",
+	ban_pick_timer_bank_time: "Bank Time",
 	ban_pick_first_half: "First Half",
 	ban_pick_second_half: "Second Half",
 	ban_pick_empty_team_slot_alt: "Empty team slot",

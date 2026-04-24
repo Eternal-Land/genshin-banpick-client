@@ -159,13 +159,16 @@ export default function BanPickSideSection({
 						canReorder={canReorderTeam}
 						canPickWeapon={canPickWeapon}
 						selectedWeaponByCharacterId={selectedWeaponByCharacterId}
-						selectedWeaponRefinementByCharacterId={selectedWeaponRefinementByCharacterId}
+						selectedWeaponRefinementByCharacterId={
+							selectedWeaponRefinementByCharacterId
+						}
 						onPickWeapon={onPickWeapon}
 					/>
 				) : (
 					<BanPickCharacterSelector
 						side={side}
 						canInteract={canInteract}
+						showCharacterDetails={canPickWeapon}
 						search={search}
 						onSearchChange={onSearchChange}
 						renderElementFilter={

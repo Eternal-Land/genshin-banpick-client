@@ -12,6 +12,7 @@ import type {
 export interface BanPickCharacterSelectorProps {
 	side: DraftSide;
 	canInteract: boolean;
+	showCharacterDetails: boolean;
 	search: string;
 	onSearchChange: (value: string) => void;
 	renderElementFilter: React.ReactNode;
@@ -27,6 +28,7 @@ export interface BanPickCharacterSelectorProps {
 export default function BanPickCharacterSelector({
 	side,
 	canInteract,
+	showCharacterDetails,
 	search,
 	onSearchChange,
 	renderElementFilter,
@@ -94,10 +96,14 @@ export default function BanPickCharacterSelector({
 								level={character.level}
 								name={character.name}
 								rarity={character.rarity}
+								showLevel={showCharacterDetails}
+								showConstellation={showCharacterDetails}
 							/>
-							<span>
-								{t(matchLocaleKeys.ban_pick_cost_label)}: {character.cost}
-							</span>
+							{showCharacterDetails ? (
+								<span>
+									{t(matchLocaleKeys.ban_pick_cost_label)}: {character.cost}
+								</span>
+							) : null}
 						</button>
 					);
 				})}
