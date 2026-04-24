@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { matchLocaleKeys } from "@/i18n/keys";
 import { ArrowLeftRight, StepBack, StepForward } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import BanPickDraftTimer from "@/components/match/ban-pick-draft-timer";
 
 interface BanPickActionPanelProps {
 	isDraftCompleted: boolean;
@@ -14,9 +13,6 @@ interface BanPickActionPanelProps {
 	isButtonDisabled: boolean;
 	blueTotalComparableSeconds: number;
 	redTotalComparableSeconds: number;
-	turnStartedAt: string | null;
-	blueTimeBank: number;
-	redTimeBank: number;
 	onSubmit: () => Promise<void> | void;
 }
 
@@ -29,9 +25,6 @@ export default function BanPickActionPanel({
 	isButtonDisabled,
 	blueTotalComparableSeconds,
 	redTotalComparableSeconds,
-	turnStartedAt,
-	blueTimeBank,
-	redTimeBank,
 	onSubmit,
 }: BanPickActionPanelProps) {
 	const { t } = useTranslation("match");
@@ -70,18 +63,8 @@ export default function BanPickActionPanel({
 				</p>
 			</div>
 
-			<BanPickDraftTimer
-				turnStartedAt={turnStartedAt}
-				blueTimeBank={blueTimeBank}
-				redTimeBank={redTimeBank}
-				currentAction={currentAction}
-				isDraftCompleted={isDraftCompleted}
-			/>
-
 			<div className="w-full rounded-md p-3 text-center text-white/90">
-				<p className="text-[11px] text-white/70">
-					{t(matchLocaleKeys.ban_pick_lead_title)}
-				</p>
+				<p className="text-[11px] text-white/70">{t(matchLocaleKeys.ban_pick_lead_title)}</p>
 				<div className="mt-2 flex justify-center">
 					{isBlueLower ? (
 						<div className="flex gap-2 items-center text-sky-400">

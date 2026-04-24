@@ -33,10 +33,6 @@ export interface MatchStateResponse {
 	redSelectedChars: string[];
 	redSelectedWeapons: string[];
 	redSelectedWeaponRefinements: number[];
-	blueTimeBank: number;
-	redTimeBank: number;
-	turnStartedAt: string | null;
-	draftStep: number;
 }
 
 export const listMatchesQuerySchema = z.object({

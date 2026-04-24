@@ -1,4 +1,4 @@
-name: Xabyss Banpick CI
+name: Genshin Banpick CI
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_ID: xabyss-banpick-client
+  REPO_ID: genshin-banpick-client
 jobs:
   build-and-push-docker:
     runs-on: ubuntu-latest
@@ -30,11 +30,11 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_ID }}:latest , ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_ID }}:${{ steps.commit.outputs.short }}
 
   deploy-vps:
-    runs-on: xabyss-banpick-sv
+    runs-on: genshin-banpick-sv
     needs: build-and-push-docker
     steps:
       - name: Deploy to VPS
         run: |
-          cd ~/xabyss-banpick &&
+          cd ~/genshin-banpick &&
           docker compose pull web &&
           docker compose up -d web
