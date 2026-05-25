@@ -53,6 +53,15 @@ export default function BanPickTimerInputs({
 		});
 	};
 
+	const formatResetInput = (rawValue: string) => {
+		const digits = rawValue.replace(/\D/g, "");
+		if (!digits) {
+			return "";
+		}
+
+		return String(Number(digits));
+	};
+
 	const formatClockInput = (rawValue: string) => {
 		const digits = rawValue.replace(/\D/g, "").slice(0, 4);
 		const minutes = digits.slice(0, 2);
@@ -194,8 +203,11 @@ export default function BanPickTimerInputs({
 				<FieldLabel>{t(matchLocaleKeys.ban_pick_timer_reset)}</FieldLabel>
 				<Input
 					value={resolvedValues.reset}
-					onChange={(event) => updateField("reset", event.target.value)}
+					onChange={(event) =>
+						updateField("reset", formatResetInput(event.target.value))
+					}
 					placeholder="00"
+					inputMode="numeric"
 				/>
 			</Field>
 		</>
