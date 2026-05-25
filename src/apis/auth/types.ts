@@ -46,6 +46,43 @@ export const registerSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+export const forgotPasswordSchema = z
+	.object({
+		ingameUuid: z
+			.string()
+			.min(
+				1,
+				getTranslationToken("common", commonLocaleKeys.validation_required),
+			),
+		email: z.email({
+			message: getTranslationToken("common", commonLocaleKeys.validation_email),
+		}),
+		password: z
+			.string()
+			.regex(
+				/^(?=.{6,30}$)(?=.*[a-z])(?=.*\d).+$/,
+				getTranslationToken(
+					"common",
+					commonLocaleKeys.validation_password_strength,
+				),
+			),
+		confirmPassword: z
+			.string()
+			.min(
+				1,
+				getTranslationToken("common", commonLocaleKeys.validation_required),
+			),
+	})
+	.refine((values) => values.password === values.confirmPassword, {
+		path: ["confirmPassword"],
+		message: getTranslationToken(
+			"common",
+			commonLocaleKeys.validation_password_mismatch,
+		),
+	});
+
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
 export const basicLoginSchema = z.object({
 	ingameUuidOrEmail: z
 		.string()

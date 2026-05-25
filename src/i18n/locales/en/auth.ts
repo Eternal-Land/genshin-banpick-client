@@ -3,6 +3,7 @@ import type { AuthLocaleObject } from "@/i18n/types";
 const authEn: AuthLocaleObject = {
 	login_welcome: "Welcome back!",
 	login_error_generic: "An error occurred during login.",
+	login_forgot_password: "Forgot password?",
 	login_uid_or_email_label: "UID or Email",
 	login_uid_or_email_placeholder: "Enter UID or email",
 	login_password_label: "Password",
@@ -46,6 +47,24 @@ const authEn: AuthLocaleObject = {
 		"By registering, you accept the team’s conduct and privacy terms.",
 	register_success: "Account created successfully. You can now log in.",
 	register_error_unknown: "An unknown error occurred.",
+	forgot_password_title: "Recover your password",
+	forgot_password_description:
+		"Confirm your registered email and in-game UID to set a new password.",
+	forgot_password_ingame_uid_label: "In-game UID",
+	forgot_password_ingame_uid_placeholder: "Enter your in-game UID",
+	forgot_password_email_label: "Email",
+	forgot_password_email_placeholder: "Enter your account email",
+	forgot_password_password_label: "New password",
+	forgot_password_password_placeholder: "Create a new password",
+	forgot_password_confirm_password_label: "Confirm new password",
+	forgot_password_confirm_password_placeholder: "Re-enter your new password",
+	forgot_password_submit: "Reset password",
+	forgot_password_submitting: "Resetting password...",
+	forgot_password_success:
+		"Password updated successfully. You can now sign in.",
+	forgot_password_back_to_login: "Back to sign in",
+	forgot_password_create_account: "Create one",
+	forgot_password_need_account: "Need an account?",
 };
 
 export default authEn;

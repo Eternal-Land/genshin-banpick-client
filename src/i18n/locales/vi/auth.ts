@@ -3,6 +3,7 @@ import type { AuthLocaleObject } from "@/i18n/types";
 const authVi: AuthLocaleObject = {
 	login_welcome: "Chào mừng trở lại!",
 	login_error_generic: "Đã xảy ra lỗi khi đăng nhập.",
+	login_forgot_password: "Quên mật khẩu?",
 	login_uid_or_email_label: "UID hoặc Email",
 	login_uid_or_email_placeholder: "Nhập UID hoặc email",
 	login_password_label: "Mật khẩu",
@@ -46,6 +47,24 @@ const authVi: AuthLocaleObject = {
 		"Bằng việc đăng ký, bạn chấp nhận các điều khoản ứng xử và quyền riêng tư của đội.",
 	register_success: "Tạo tài khoản thành công. Bạn có thể đăng nhập ngay.",
 	register_error_unknown: "Đã xảy ra lỗi không xác định.",
+	forgot_password_title: "Khôi phục mật khẩu",
+	forgot_password_description:
+		"Xác nhận email đã đăng ký và UID trong game để đặt mật khẩu mới.",
+	forgot_password_ingame_uid_label: "UID trong game",
+	forgot_password_ingame_uid_placeholder: "Nhập UID trong game của bạn",
+	forgot_password_email_label: "Email",
+	forgot_password_email_placeholder: "Nhập email tài khoản",
+	forgot_password_password_label: "Mật khẩu mới",
+	forgot_password_password_placeholder: "Tạo mật khẩu mới",
+	forgot_password_confirm_password_label: "Xác nhận mật khẩu mới",
+	forgot_password_confirm_password_placeholder: "Nhập lại mật khẩu mới",
+	forgot_password_submit: "Đặt lại mật khẩu",
+	forgot_password_submitting: "Đang đặt lại mật khẩu...",
+	forgot_password_success:
+		"Cập nhật mật khẩu thành công. Bạn có thể đăng nhập lại.",
+	forgot_password_back_to_login: "Quay lại đăng nhập",
+	forgot_password_create_account: "Tạo tài khoản",
+	forgot_password_need_account: "Chưa có tài khoản?",
 };
 
 export default authVi;

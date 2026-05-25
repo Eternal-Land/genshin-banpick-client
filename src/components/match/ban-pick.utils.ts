@@ -10,6 +10,7 @@ import type {
 } from "@/components/match/ban-pick.types";
 
 export const TURN_DURATION_SECONDS = 30;
+export const RESET_TIME_PENALTY_SECONDS = 10;
 
 export const DRAFT_SEQUENCE: DraftAction[] = [
 	{ side: "blue", type: "ban" },
@@ -223,19 +224,29 @@ export function validateSessionCompletionData(
 		}
 	} else {
 		const expectedBlueFinalTime =
-			record.blueChamber1 + record.blueChamber2 + record.blueChamber3;
+			record.blueChamber1 +
+			record.blueChamber2 +
+			record.blueChamber3 +
+			record.blueResetTimes * RESET_TIME_PENALTY_SECONDS;
 		if (record.blueFinalTime <= 0) {
 			validationErrors.push("Blue final time must be greater than 0.");
 		} else if (record.blueFinalTime !== expectedBlueFinalTime) {
-			validationErrors.push("Blue final time must equal sum of chamber times.");
+			validationErrors.push(
+				"Blue final time must equal sum of chamber times plus reset penalties.",
+			);
 		}
 
 		const expectedRedFinalTime =
-			record.redChamber1 + record.redChamber2 + record.redChamber3;
+			record.redChamber1 +
+			record.redChamber2 +
+			record.redChamber3 +
+			record.redResetTimes * RESET_TIME_PENALTY_SECONDS;
 		if (record.redFinalTime <= 0) {
 			validationErrors.push("Red final time must be greater than 0.");
 		} else if (record.redFinalTime !== expectedRedFinalTime) {
-			validationErrors.push("Red final time must equal sum of chamber times.");
+			validationErrors.push(
+				"Red final time must equal sum of chamber times plus reset penalties.",
+			);
 		}
 	}
 

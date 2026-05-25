@@ -170,20 +170,23 @@ function RouteComponent() {
 							)}
 						/>
 					</FieldGroup>
+					<div className="mt-3 flex justify-end text-sm">
+						<Link
+							to="/auth/forgot-password"
+							className="text-primary font-medium hover:underline"
+						>
+							{t(
+								getTranslationToken(
+									"auth",
+									authLocaleKeys.login_forgot_password,
+								),
+							)}
+						</Link>
+					</div>
 				</form>
-				<div className="flex items-center justify-between text-sm">
-					<span className="text-muted-foreground">
-						{t(getTranslationToken("auth", authLocaleKeys.login_need_account))}
-					</span>
-					<Link
-						to="/auth/register"
-						className="text-primary font-medium hover:underline"
-					>
-						{t(getTranslationToken("auth", authLocaleKeys.login_create_one))}
-					</Link>
-				</div>
+
 			</CardContent>
-			<CardFooter className="flex flex-col gap-3">
+			<CardFooter className="flex flex-col gap-6">
 				<Button
 					type="submit"
 					className="w-full"
@@ -194,7 +197,19 @@ function RouteComponent() {
 						? t(getTranslationToken("auth", authLocaleKeys.login_signing_in))
 						: t(getTranslationToken("auth", authLocaleKeys.login_sign_in))}
 				</Button>
+				<div className="flex items-center justify-between text-sm w-full">
+					<span className="text-muted-foreground">
+						{t(getTranslationToken("auth", authLocaleKeys.login_need_account))}
+					</span>
+					<Link
+						to="/auth/register"
+						className="text-primary font-medium hover:underline"
+					>
+						{t(getTranslationToken("auth", authLocaleKeys.login_create_one))}
+					</Link>
+				</div>
 			</CardFooter>
+
 		</Card>
 	)
 }
