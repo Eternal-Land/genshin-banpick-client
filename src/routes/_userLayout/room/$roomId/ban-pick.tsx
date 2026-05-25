@@ -10,6 +10,7 @@ import {
 	mapCharacterNamesToAccountCharacters,
 	mapDraftSideToPlayerSide,
 	mapSelectedWeaponsByCharacterId,
+	RESET_TIME_PENALTY_SECONDS,
 	validateSessionCompletionData,
 } from "@/components/match/ban-pick.utils";
 import { matchApi } from "@/apis/match";
@@ -265,12 +266,19 @@ const parseTimerInputsToRecord = (
 			blueChamber3: blueChamber3.value,
 			blueResetTimes: blueReset.value,
 			blueFinalTime:
-				blueChamber1.value + blueChamber2.value + blueChamber3.value,
+				blueChamber1.value +
+				blueChamber2.value +
+				blueChamber3.value +
+				blueReset.value * RESET_TIME_PENALTY_SECONDS,
 			redChamber1: redChamber1.value,
 			redChamber2: redChamber2.value,
 			redChamber3: redChamber3.value,
 			redResetTimes: redReset.value,
-			redFinalTime: redChamber1.value + redChamber2.value + redChamber3.value,
+			redFinalTime:
+				redChamber1.value +
+				redChamber2.value +
+				redChamber3.value +
+				redReset.value * RESET_TIME_PENALTY_SECONDS,
 		},
 		errors,
 	};
@@ -370,12 +378,20 @@ const parseTimerInputsToRecordForAutosave = (
 		blueChamber2: blueChamber2.value,
 		blueChamber3: blueChamber3.value,
 		blueResetTimes: blueReset.value,
-		blueFinalTime: blueChamber1.value + blueChamber2.value + blueChamber3.value,
+		blueFinalTime:
+			blueChamber1.value +
+			blueChamber2.value +
+			blueChamber3.value +
+			blueReset.value * RESET_TIME_PENALTY_SECONDS,
 		redChamber1: redChamber1.value,
 		redChamber2: redChamber2.value,
 		redChamber3: redChamber3.value,
 		redResetTimes: redReset.value,
-		redFinalTime: redChamber1.value + redChamber2.value + redChamber3.value,
+		redFinalTime:
+			redChamber1.value +
+			redChamber2.value +
+			redChamber3.value +
+			redReset.value * RESET_TIME_PENALTY_SECONDS,
 	} satisfies SaveSessionRecordInput;
 };
 

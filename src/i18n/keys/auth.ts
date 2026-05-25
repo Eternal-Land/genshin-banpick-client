@@ -1,6 +1,7 @@
 export const authLocaleKeys = {
 	login_welcome: "login_welcome",
 	login_error_generic: "login_error_generic",
+	login_forgot_password: "login_forgot_password",
 	login_uid_or_email_label: "login_uid_or_email_label",
 	login_uid_or_email_placeholder: "login_uid_or_email_placeholder",
 	login_password_label: "login_password_label",
@@ -48,4 +49,23 @@ export const authLocaleKeys = {
 	register_terms_notice: "register_terms_notice",
 	register_success: "register_success",
 	register_error_unknown: "register_error_unknown",
+	forgot_password_title: "forgot_password_title",
+	forgot_password_description: "forgot_password_description",
+	forgot_password_ingame_uid_label: "forgot_password_ingame_uid_label",
+	forgot_password_ingame_uid_placeholder:
+		"forgot_password_ingame_uid_placeholder",
+	forgot_password_email_label: "forgot_password_email_label",
+	forgot_password_email_placeholder: "forgot_password_email_placeholder",
+	forgot_password_password_label: "forgot_password_password_label",
+	forgot_password_password_placeholder: "forgot_password_password_placeholder",
+	forgot_password_confirm_password_label:
+		"forgot_password_confirm_password_label",
+	forgot_password_confirm_password_placeholder:
+		"forgot_password_confirm_password_placeholder",
+	forgot_password_submit: "forgot_password_submit",
+	forgot_password_submitting: "forgot_password_submitting",
+	forgot_password_success: "forgot_password_success",
+	forgot_password_back_to_login: "forgot_password_back_to_login",
+	forgot_password_create_account: "forgot_password_create_account",
+	forgot_password_need_account: "forgot_password_need_account",
 } as const;
