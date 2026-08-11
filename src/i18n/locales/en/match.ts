@@ -5,6 +5,7 @@ const matchEn: MatchLocaleObject = {
 	match_type_placeholder: "Select match type",
 	match_type_turn_based: "Turn based",
 	match_type_real_time: "Real time",
+	match_type_three_vs_three: "3 vs 3",
 	match_status_waiting: "Waiting",
 	match_status_live: "Live",
 	match_status_completed: "Completed",

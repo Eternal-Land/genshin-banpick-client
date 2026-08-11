@@ -5,6 +5,7 @@ const matchVi: MatchLocaleObject = {
 	match_type_placeholder: "Chọn loại trận",
 	match_type_turn_based: "Theo lượt",
 	match_type_real_time: "Thời gian thực",
+	match_type_three_vs_three: "3 vs 3",
 	match_status_waiting: "Chờ bắt đầu",
 	match_status_live: "Đang diễn ra",
 	match_status_completed: "Đã kết thúc",
