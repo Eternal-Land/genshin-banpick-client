@@ -290,6 +290,10 @@ function RouteComponent() {
 			value: String(MatchType.REALTIME),
 			label: tMatch(matchLocaleKeys.match_type_real_time),
 		},
+		{
+			value: String(MatchType.THREE_VS_THREE),
+			label: tMatch(matchLocaleKeys.match_type_three_vs_three),
+		}
 	];
 
 	const sessionOptions = [

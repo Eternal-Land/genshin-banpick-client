@@ -6,7 +6,7 @@ import { useAppSelector } from "@/hooks/use-app-selector";
 import { useSocketEvent } from "@/hooks/use-socket-event";
 import { matchLocaleKeys } from "@/i18n/keys";
 import { getTranslationToken } from "@/i18n/namespaces";
-import { MatchStatus, SocketEvent } from "@/lib/constants";
+import { MatchStatus, MatchType, SocketEvent, type MatchTypeEnum } from "@/lib/constants";
 import { IconAssets } from "@/lib/constants/icon-assets";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { useMutation } from "@tanstack/react-query";
@@ -91,22 +91,42 @@ function RouteComponent() {
 		},
 	);
 
+	const findMatchPath = (matchType: MatchTypeEnum): string | null => {
+		switch (matchType) {
+			case MatchType.REALTIME:
+				return "/room/$roomId/ban-pick";
+			case MatchType.THREE_VS_THREE:
+				return "/room/$roomId/3vs3";
+			default:
+				toast.error(tMatch(matchLocaleKeys.match_waiting_start_error));
+				return null;
+		}
+	};
+
 	useSocketEvent(SocketEvent.MATCH_STARTED, () => {
-		navigate({
-			to: "/room/$roomId/ban-pick",
-			params: {
-				roomId: roomId,
-			},
-		});
+		const matchPath = findMatchPath(match?.type as MatchTypeEnum);
+		if (matchPath) {
+			navigate({
+				to: matchPath,
+				params: {
+					roomId: roomId,
+				},
+			});
+		}
 	});
 
 	useSocketEvent(SocketEvent.UPDATE_MATCH_SESSION, () => {
 		void (async () => {
+			const matchPath = findMatchPath(match?.type as MatchTypeEnum);
+			if (!matchPath) {
+				return;
+			}
+			
 			try {
 				const response = await matchApi.getMatch(roomId);
 				if (response.data?.status === MatchStatus.LIVE) {
 					navigate({
-						to: "/room/$roomId/ban-pick",
+						to: matchPath,
 						params: {
 							roomId,
 						},
@@ -135,6 +155,19 @@ function RouteComponent() {
 			return;
 		}
 
+		const matchPath = findMatchPath(match.type as MatchTypeEnum);
+		if (!matchPath) {
+			navigate({
+				to: "/match",
+				search: {
+					page: 1,
+					take: 10,
+					accountId: profile?.id,
+				},
+			});
+			return;
+		}
+
 		switch (match.status) {
 			case MatchStatus.WAITING:
 				return;
@@ -148,7 +181,7 @@ function RouteComponent() {
 				return;
 			case MatchStatus.LIVE:
 				navigate({
-					to: "/room/$roomId/ban-pick",
+					to: matchPath,
 					params: {
 						roomId,
 					},
