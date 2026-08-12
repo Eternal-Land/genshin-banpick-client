@@ -7,7 +7,7 @@ import { useMatchStatusLabel } from "@/hooks/use-match-status-label";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { matchLocaleKeys } from "@/i18n/keys";
 import { getTranslationToken } from "@/i18n/namespaces";
-import { MatchStatus } from "@/lib/constants";
+import { MatchStatus, MatchType } from "@/lib/constants";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -67,7 +67,7 @@ function RouteComponent() {
 
 		toast.error(
 			listMatchesQuery.error.message ||
-				t(getTranslationToken("match", matchLocaleKeys.match_list_load_error)),
+			t(getTranslationToken("match", matchLocaleKeys.match_list_load_error)),
 		);
 	}, [listMatchesQuery.error, t]);
 
@@ -138,12 +138,39 @@ function RouteComponent() {
 								},
 							});
 						} else if (match.status == MatchStatus.LIVE) {
-							navigate({
-								to: "/room/$roomId/ban-pick",
-								params: {
-									roomId: match.id,
-								},
-							});
+							switch (match.type) {
+								case MatchType.REALTIME:
+									navigate({
+										to: "/room/$roomId/ban-pick",
+										params: {
+											roomId: match.id,
+										},
+									});
+									break;
+								case MatchType.TURN_BASED:
+									navigate({
+										to: "/room/$roomId/ban-pick",
+										params: {
+											roomId: match.id,
+										},
+									});
+									break;
+								case MatchType.THREE_VS_THREE:
+									navigate({
+										to: "/room/$roomId/3vs3",
+										params: {
+											roomId: match.id,
+										},
+									});
+									break;
+								default:
+									toast.error(
+										tMatch(matchLocaleKeys.match_list_load_error),
+									);
+									break;
+							}
+
+
 						} else if (match.status == MatchStatus.COMPLETED) {
 							navigate({
 								to: "/room/$roomId/result",
