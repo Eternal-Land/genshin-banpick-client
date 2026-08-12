@@ -1,4 +1,5 @@
 import { userCharactersApi } from "@/apis/user-characters";
+import type { MatchStateResponse } from "@/apis/match/types";
 import type { UserCharacterResponse } from "@/apis/user-characters/types";
 import CharacterSelector from "@/components/3vs3/character-selector";
 import PickSlots from "@/components/3vs3/pick-slots";
@@ -11,9 +12,12 @@ import type { BanPickCharacter } from "@/components/match/ban-pick.types";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { useBanPickFilters } from "@/hooks/use-ban-pick-filters";
+import { useSocketEvent } from "@/hooks/use-socket-event";
 import { MatchStatus, type CharacterElementEnum } from "@/lib/constants";
 import { CharacterElementDetail } from "@/lib/constants";
+import { SocketEvent } from "@/lib/constants";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
+import { socket } from "@/lib/socket";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useLoaderData, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,14 +31,56 @@ interface DraggingState {
   index: number;
 }
 
+interface ThreeVsThreePickSocketPayload {
+  side?: DraftSide;
+  character?: BanPickCharacter;
+  updatedBy?: string;
+}
+
 const PICKS_PER_SIDE = 24;
 const TEAM_PLAYER_COUNT = 3;
 const PICKS_PER_PLAYER = PICKS_PER_SIDE / TEAM_PLAYER_COUNT;
 const TOTAL_PICKS = PICKS_PER_SIDE * 2;
 
-const PICK_SEQUENCE: DraftSide[] = Array.from({ length: TOTAL_PICKS }, (_, index) =>
-  index % 2 === 0 ? "blue" : "red",
-);
+const createPickSequence = (picksPerSide: number): DraftSide[] => {
+  const sequence: DraftSide[] = [];
+  let blueRemaining = picksPerSide;
+  let redRemaining = picksPerSide;
+
+  if (blueRemaining > 0) {
+    sequence.push("blue");
+    blueRemaining -= 1;
+  }
+
+  // Reserve one red pick so the last slot is always red.
+  if (redRemaining > 0) {
+    redRemaining -= 1;
+  }
+
+  while (blueRemaining > 0 || redRemaining > 0) {
+    const redBatch = Math.min(2, redRemaining);
+    for (let index = 0; index < redBatch; index += 1) {
+      sequence.push("red");
+      redRemaining -= 1;
+    }
+
+    const blueBatch = Math.min(2, blueRemaining);
+    for (let index = 0; index < blueBatch; index += 1) {
+      sequence.push("blue");
+      blueRemaining -= 1;
+    }
+
+    if (redBatch === 0 && blueBatch === 0) {
+      break;
+    }
+  }
+
+  sequence.push("red");
+
+  return sequence;
+};
+
+const PICK_SEQUENCE: DraftSide[] = createPickSequence(PICKS_PER_SIDE);
 
 const createEmptyAssignmentSlots = () =>
   Array.from({ length: PICKS_PER_SIDE }, () => null as BanPickCharacter | null);
@@ -55,6 +101,15 @@ const mapCharacterToBanPickCharacter = (
 
 const toFixedPickSlots = (picks: BanPickCharacter[]) =>
   Array.from({ length: PICKS_PER_SIDE }).map((_, index) => picks[index] ?? null);
+
+const mapPickedCharactersFromState = (
+  pickedCharacterIds: string[],
+  charactersById: Map<string, BanPickCharacter>,
+) =>
+  pickedCharacterIds.flatMap((pickedCharacterId) => {
+    const character = charactersById.get(String(pickedCharacterId));
+    return character ? [character] : [];
+  });
 
 const getElementKey = (element: CharacterElementEnum) =>
   CharacterElementDetail[element]?.key;
@@ -94,7 +149,7 @@ function RouteComponent() {
   const { roomId } = Route.useParams();
   const router = useRouter();
   const profile = useAppSelector(selectAuthProfile);
-  const { match } = useLoaderData({
+  const { match, matchState } = useLoaderData({
     from: "/_userLayout/room/$roomId",
   });
 
@@ -115,6 +170,9 @@ function RouteComponent() {
 
   const [bluePicks, setBluePicks] = useState<BanPickCharacter[]>([]);
   const [redPicks, setRedPicks] = useState<BanPickCharacter[]>([]);
+  const [pageMatchState, setPageMatchState] = useState<MatchStateResponse | undefined>(
+    matchState,
+  );
   const [pendingPick, setPendingPick] = useState<PendingPickState | null>(null);
   const [blueAssignments, setBlueAssignments] = useState<
     Array<BanPickCharacter | null>
@@ -136,6 +194,36 @@ function RouteComponent() {
     () => (data?.data ?? []).map(mapCharacterToBanPickCharacter),
     [data?.data],
   );
+
+  const charactersById = useMemo(
+    () =>
+      new Map(
+        allCharacters.map((character) => [String(character.id), character] as const),
+      ),
+    [allCharacters],
+  );
+
+  useEffect(() => {
+    setPageMatchState(matchState);
+  }, [matchState]);
+
+  useSocketEvent(SocketEvent.UPDATE_MATCH_STATE, (data: MatchStateResponse) => {
+    setPageMatchState(data);
+  });
+
+  useEffect(() => {
+    if (!pageMatchState) {
+      return;
+    }
+
+    setBluePicks(
+      mapPickedCharactersFromState(pageMatchState.blueSelectedChars, charactersById),
+    );
+    setRedPicks(
+      mapPickedCharactersFromState(pageMatchState.redSelectedChars, charactersById),
+    );
+    setPendingPick(null);
+  }, [charactersById, pageMatchState]);
 
   const selectedCharacterIds = useMemo(() => {
     const selected = new Set<string>();
@@ -179,6 +267,45 @@ function RouteComponent() {
 
   const canBlueReorderAssignments = profile?.id === match?.bluePlayer?.id;
   const canRedReorderAssignments = profile?.id === match?.redPlayer?.id;
+
+  const applyPickAction = (side: DraftSide, character: BanPickCharacter) => {
+    if (isDraftCompleted || side !== currentPickSide) {
+      return;
+    }
+
+    if (selectedCharacterIds.has(character.id)) {
+      return;
+    }
+
+    if (side === "blue") {
+      if (bluePicks.length >= PICKS_PER_SIDE) {
+        return;
+      }
+      setBluePicks((prev) => [...prev, character]);
+    } else {
+      if (redPicks.length >= PICKS_PER_SIDE) {
+        return;
+      }
+      setRedPicks((prev) => [...prev, character]);
+    }
+
+    setPendingPick(null);
+  };
+
+  useSocketEvent(
+    SocketEvent.UPDATE_BAN_PICK_SLOT,
+    (payload?: ThreeVsThreePickSocketPayload) => {
+      if (!payload?.character || !payload?.side) {
+        return;
+      }
+
+      if (payload.updatedBy && payload.updatedBy === profile?.id) {
+        return;
+      }
+
+      applyPickAction(payload.side, payload.character);
+    },
+  );
 
   useEffect(() => {
     if (!match) {
@@ -265,19 +392,18 @@ function RouteComponent() {
       return;
     }
 
-    if (pendingPick.side === "blue") {
-      if (bluePicks.length >= PICKS_PER_SIDE) {
-        return;
-      }
-      setBluePicks((prev) => [...prev, pendingPick.character]);
-    } else {
-      if (redPicks.length >= PICKS_PER_SIDE) {
-        return;
-      }
-      setRedPicks((prev) => [...prev, pendingPick.character]);
+    applyPickAction(pendingPick.side, pendingPick.character);
+
+    if (!match?.id) {
+      return;
     }
 
-    setPendingPick(null);
+    socket.emit(SocketEvent.UPDATE_BAN_PICK_SLOT, {
+      matchId: match.id,
+      side: pendingPick.side,
+      character: pendingPick.character,
+      updatedBy: profile?.id,
+    });
   };
 
   const onDropAssignment = (side: DraftSide, targetIndex: number) => {
@@ -328,14 +454,7 @@ function RouteComponent() {
             picksCount={bluePicks.length}
             picksPerSide={PICKS_PER_SIDE}
           />
-          <PickSlots
-            side="blue"
-            picks={bluePicks}
-            picksPerSide={PICKS_PER_SIDE}
-            currentPickSide={currentPickSide}
-            pendingPick={pendingPick}
-            isDraftCompleted={isDraftCompleted}
-          />
+
           {isDraftCompleted ? (
             <SideAssignmentBoard
               side="blue"
@@ -350,20 +469,31 @@ function RouteComponent() {
               onDragEnd={() => setDragging(null)}
             />
           ) : (
-            <CharacterSelector
-              side="blue"
-              characters={blueFilteredCharacters}
-              search={leftSearch}
-              onSearchChange={setLeftSearch}
-              selectedElement={leftElementFilter}
-              onSelectElement={setLeftElementFilter}
-              selectedRarity={leftRarityFilter}
-              onSelectRarity={setLeftRarityFilter}
-              selectedCharacterIds={selectedCharacterIds}
-              pendingPick={pendingPick}
-              canInteract={canBlueInteract}
-              onSelectCharacter={onSelectCharacter}
-            />
+            <>
+              <PickSlots
+                side="blue"
+                picks={bluePicks}
+                picksPerSide={PICKS_PER_SIDE}
+                currentPickSide={currentPickSide}
+                pendingPick={pendingPick}
+                isDraftCompleted={isDraftCompleted}
+              />
+
+              <CharacterSelector
+                side="blue"
+                characters={blueFilteredCharacters}
+                search={leftSearch}
+                onSearchChange={setLeftSearch}
+                selectedElement={leftElementFilter}
+                onSelectElement={setLeftElementFilter}
+                selectedRarity={leftRarityFilter}
+                onSelectRarity={setLeftRarityFilter}
+                selectedCharacterIds={selectedCharacterIds}
+                pendingPick={pendingPick}
+                canInteract={canBlueInteract}
+                onSelectCharacter={onSelectCharacter}
+              />
+            </>
           )}
         </div>
 
@@ -372,8 +502,7 @@ function RouteComponent() {
             <p className="text-sm text-white/80">
               {isDraftCompleted
                 ? "Draft completed. Leaders can now split team members."
-                : `Pick ${draftStep + 1}/${TOTAL_PICKS} - ${
-                  currentPickSide === "blue" ? "Blue" : "Red"
+                : `Pick ${draftStep + 1}/${TOTAL_PICKS} - ${currentPickSide === "blue" ? "Blue" : "Red"
                 } side turn`}
             </p>
           </div>
@@ -394,14 +523,7 @@ function RouteComponent() {
             picksCount={redPicks.length}
             picksPerSide={PICKS_PER_SIDE}
           />
-          <PickSlots
-            side="red"
-            picks={redPicks}
-            picksPerSide={PICKS_PER_SIDE}
-            currentPickSide={currentPickSide}
-            pendingPick={pendingPick}
-            isDraftCompleted={isDraftCompleted}
-          />
+
           {isDraftCompleted ? (
             <SideAssignmentBoard
               side="red"
@@ -416,20 +538,32 @@ function RouteComponent() {
               onDragEnd={() => setDragging(null)}
             />
           ) : (
-            <CharacterSelector
-              side="red"
-              characters={redFilteredCharacters}
-              search={rightSearch}
-              onSearchChange={setRightSearch}
-              selectedElement={rightElementFilter}
-              onSelectElement={setRightElementFilter}
-              selectedRarity={rightRarityFilter}
-              onSelectRarity={setRightRarityFilter}
-              selectedCharacterIds={selectedCharacterIds}
-              pendingPick={pendingPick}
-              canInteract={canRedInteract}
-              onSelectCharacter={onSelectCharacter}
-            />
+            <>
+              <PickSlots
+                side="red"
+                picks={redPicks}
+                picksPerSide={PICKS_PER_SIDE}
+                currentPickSide={currentPickSide}
+                pendingPick={pendingPick}
+                isDraftCompleted={isDraftCompleted}
+              />
+              
+              <CharacterSelector
+                side="red"
+                characters={redFilteredCharacters}
+                search={rightSearch}
+                onSearchChange={setRightSearch}
+                selectedElement={rightElementFilter}
+                onSelectElement={setRightElementFilter}
+                selectedRarity={rightRarityFilter}
+                onSelectRarity={setRightRarityFilter}
+                selectedCharacterIds={selectedCharacterIds}
+                pendingPick={pendingPick}
+                canInteract={canRedInteract}
+                onSelectCharacter={onSelectCharacter}
+              />
+            </>
+
           )}
         </div>
       </div>
