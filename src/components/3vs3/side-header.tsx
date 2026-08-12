@@ -18,7 +18,7 @@ export default function SideHeader({
   const isBlue = side === "blue";
 
   return (
-    <div className="rounded-xl border border-white/20 bg-white/5 p-4">
+    <div className={cn("flex justify-between rounded-xl border border-white/20 bg-white/5 p-4", isBlue ? "flex-row" : "flex-row-reverse")}>
       <div
         className={cn(
           "flex items-center gap-3",
