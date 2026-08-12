@@ -1,37 +1,26 @@
 import { userCharactersApi } from "@/apis/user-characters";
 import type { UserCharacterResponse } from "@/apis/user-characters/types";
-import type { MatchResponse } from "@/apis/match/types";
-import BanPickElementFilter, {
-  ELEMENT_FILTER_ALL,
-} from "@/components/match/ban-pick-element-filter";
-import BanPickRarityFilter, {
-  RARITY_FILTER_ALL,
-} from "@/components/match/ban-pick-rarity-filter";
+import CharacterSelector from "@/components/3vs3/character-selector";
+import PickSlots from "@/components/3vs3/pick-slots";
+import SideAssignmentBoard from "@/components/3vs3/side-assignment-board";
+import SideHeader from "@/components/3vs3/side-header";
+import type { DraftSide, PendingPickState } from "@/components/3vs3/types";
+import { ELEMENT_FILTER_ALL } from "@/components/match/ban-pick-element-filter";
+import { RARITY_FILTER_ALL } from "@/components/match/ban-pick-rarity-filter";
 import type { BanPickCharacter } from "@/components/match/ban-pick.types";
-import CharacterContainer from "@/components/player-side/character-container";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { useBanPickFilters } from "@/hooks/use-ban-pick-filters";
 import { MatchStatus, type CharacterElementEnum } from "@/lib/constants";
 import { CharacterElementDetail } from "@/lib/constants";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useLoaderData, useRouter } from "@tanstack/react-router";
-import { GripVertical } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export const Route = createFileRoute("/_userLayout/room/$roomId/3vs3")({
   component: RouteComponent,
 });
-
-type DraftSide = "blue" | "red";
-
-interface PendingPickState {
-  side: DraftSide;
-  character: BanPickCharacter;
-}
 
 interface DraggingState {
   side: DraftSide;
@@ -100,290 +89,6 @@ const filterCharactersForDraft = (
     return true;
   });
 };
-
-interface SideHeaderProps {
-  side: DraftSide;
-  player?: MatchResponse["bluePlayer"];
-  picksCount: number;
-}
-
-function SideHeader({ side, player, picksCount }: SideHeaderProps) {
-  const isBlue = side === "blue";
-
-  return (
-    <div className="rounded-xl border border-white/20 bg-white/5 p-4">
-      <div
-        className={cn(
-          "flex items-center gap-3",
-          !isBlue && "flex-row-reverse text-right",
-        )}
-      >
-        <img
-          src={player?.avatar}
-          alt={player?.displayName ?? "Player"}
-          className="h-12 w-12 rounded-full border border-white/30 object-cover"
-        />
-        <div className={cn("flex flex-col", !isBlue && "items-end")}>
-          <span className={cn("text-lg font-semibold", isBlue ? "text-sky-400" : "text-red-500")}>
-            {player?.displayName ?? "-"}
-          </span>
-          <span className="text-xs text-white/70">UID: {player?.ingameUuid ?? "-"}</span>
-        </div>
-      </div>
-      <div className="mt-3 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white/80">
-        Picked: {picksCount}/{PICKS_PER_SIDE}
-      </div>
-    </div>
-  );
-}
-
-interface PickSlotsProps {
-  side: DraftSide;
-  picks: BanPickCharacter[];
-  currentPickSide?: DraftSide;
-  pendingPick: PendingPickState | null;
-  isDraftCompleted: boolean;
-}
-
-function PickSlots({
-  side,
-  picks,
-  currentPickSide,
-  pendingPick,
-  isDraftCompleted,
-}: PickSlotsProps) {
-  return (
-    <div className="rounded-xl border border-white/20 bg-white/5 p-4">
-      <div className="mb-2 text-xs uppercase tracking-wider text-white/70">
-        Team Pool
-      </div>
-      <div className="grid grid-cols-6 gap-2">
-        {Array.from({ length: PICKS_PER_SIDE }).map((_, index) => {
-          const committed = picks[index];
-          const preview =
-            !isDraftCompleted &&
-            !committed &&
-            pendingPick?.side === side &&
-            currentPickSide === side &&
-            index === picks.length
-              ? pendingPick.character
-              : null;
-
-          const character = committed ?? preview;
-          const isActiveSlot =
-            !isDraftCompleted &&
-            currentPickSide === side &&
-            index === picks.length;
-
-          return (
-            <div
-              key={`${side}-pick-slot-${index}`}
-              className={cn(
-                "relative h-16 overflow-hidden rounded-md border",
-                side === "blue"
-                  ? "border-sky-400/40 bg-sky-500/10"
-                  : "border-red-500/40 bg-red-500/10",
-                isActiveSlot && "animate-pulse border-yellow-400",
-              )}
-            >
-              {character ? (
-                <img
-                  src={character.imageUrl}
-                  alt={character.name}
-                  className={cn(
-                    "h-full w-full object-cover",
-                    preview && "opacity-70",
-                  )}
-                />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-interface CharacterSelectorProps {
-  side: DraftSide;
-  characters: BanPickCharacter[];
-  search: string;
-  onSearchChange: (value: string) => void;
-  selectedElement: string;
-  onSelectElement: (value: string) => void;
-  selectedRarity: string;
-  onSelectRarity: (value: string) => void;
-  selectedCharacterIds: Set<string>;
-  pendingPick: PendingPickState | null;
-  canInteract: boolean;
-  onSelectCharacter: (side: DraftSide, character: BanPickCharacter) => void;
-}
-
-function CharacterSelector({
-  side,
-  characters,
-  search,
-  onSearchChange,
-  selectedElement,
-  onSelectElement,
-  selectedRarity,
-  onSelectRarity,
-  selectedCharacterIds,
-  pendingPick,
-  canInteract,
-  onSelectCharacter,
-}: CharacterSelectorProps) {
-  return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-white/20 bg-white/5 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <Input
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search character"
-          className="w-1/3"
-        />
-        <BanPickElementFilter
-          selectedElement={selectedElement}
-          onSelect={onSelectElement}
-        />
-        <BanPickRarityFilter
-          selectedRarity={selectedRarity}
-          onSelect={onSelectRarity}
-        />
-      </div>
-      <div className="grid grid-cols-7 auto-rows-min gap-3 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        {characters.map((character) => {
-          const isSelected = selectedCharacterIds.has(character.id);
-          const isPending =
-            pendingPick?.side === side && pendingPick.character.id === character.id;
-          const isDisabled = isSelected || !canInteract;
-
-          return (
-            <button
-              key={`${side}-${character.id}`}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => onSelectCharacter(side, character)}
-              className={cn(
-                "text-left",
-                isDisabled
-                  ? "cursor-not-allowed opacity-50 grayscale"
-                  : "cursor-pointer",
-                isPending &&
-                  (side === "blue"
-                    ? "rounded-sm ring-2 ring-sky-400"
-                    : "rounded-sm ring-2 ring-red-500"),
-              )}
-            >
-              <CharacterContainer
-                constellation={character.constellation}
-                element={character.element}
-                imageUrl={character.imageUrl}
-                level={character.level}
-                name={character.name}
-                rarity={character.rarity}
-              />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-interface SideAssignmentBoardProps {
-  side: DraftSide;
-  slots: Array<BanPickCharacter | null>;
-  canReorder: boolean;
-  onDragStart: (side: DraftSide, index: number) => void;
-  onDrop: (side: DraftSide, index: number) => void;
-  onDragEnd: () => void;
-}
-
-function SideAssignmentBoard({
-  side,
-  slots,
-  canReorder,
-  onDragStart,
-  onDrop,
-  onDragEnd,
-}: SideAssignmentBoardProps) {
-  const isBlue = side === "blue";
-
-  return (
-    <div className="rounded-xl border border-white/20 bg-white/5 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className={cn("text-sm font-semibold uppercase tracking-wider", isBlue ? "text-sky-400" : "text-red-500")}>
-          Leader Assignment
-        </h3>
-        <span className="text-xs text-white/60">3 players x 8 characters</span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: TEAM_PLAYER_COUNT }).map((_, playerIndex) => {
-          const start = playerIndex * PICKS_PER_PLAYER;
-          const end = start + PICKS_PER_PLAYER;
-          const playerSlots = slots.slice(start, end);
-
-          return (
-            <div
-              key={`${side}-player-${playerIndex}`}
-              className="rounded-lg border border-white/15 bg-black/30 p-3"
-            >
-              <div className="mb-2 text-xs font-medium text-white/70">
-                Player {playerIndex + 1}
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                {playerSlots.map((character, slotIndex) => {
-                  const globalIndex = start + slotIndex;
-
-                  return (
-                    <div
-                      key={`${side}-assignment-${globalIndex}`}
-                      className={cn(
-                        "group relative h-20 overflow-hidden rounded-md border border-white/20 bg-white/5",
-                        character && canReorder && "cursor-move",
-                      )}
-                      draggable={Boolean(character) && canReorder}
-                      onDragStart={() => {
-                        if (!canReorder || !character) {
-                          return;
-                        }
-                        onDragStart(side, globalIndex);
-                      }}
-                      onDragEnd={onDragEnd}
-                      onDragOver={(event) => {
-                        if (!canReorder) {
-                          return;
-                        }
-                        event.preventDefault();
-                      }}
-                      onDrop={() => onDrop(side, globalIndex)}
-                    >
-                      {character ? (
-                        <>
-                          <img
-                            src={character.imageUrl}
-                            alt={character.name}
-                            className="h-full w-full object-cover"
-                          />
-                          <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-white truncate">
-                            {character.name}
-                          </div>
-                          <GripVertical className="absolute right-1 top-1 h-4 w-4 text-white/90 opacity-80" />
-                        </>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function RouteComponent() {
   const { roomId } = Route.useParams();
@@ -617,10 +322,16 @@ function RouteComponent() {
         <div className="pointer-events-none fixed inset-0 left-[1500px] top-0 z-[-2] aspect-square h-screen rounded-full bg-radial from-red-400/50 from-0% to-white/0 to-70%" />
 
         <div className="col-span-3 flex h-full flex-col gap-4 overflow-hidden">
-          <SideHeader side="blue" player={match?.bluePlayer} picksCount={bluePicks.length} />
+          <SideHeader
+            side="blue"
+            player={match?.bluePlayer}
+            picksCount={bluePicks.length}
+            picksPerSide={PICKS_PER_SIDE}
+          />
           <PickSlots
             side="blue"
             picks={bluePicks}
+            picksPerSide={PICKS_PER_SIDE}
             currentPickSide={currentPickSide}
             pendingPick={pendingPick}
             isDraftCompleted={isDraftCompleted}
@@ -629,6 +340,8 @@ function RouteComponent() {
             <SideAssignmentBoard
               side="blue"
               slots={blueAssignments}
+              teamPlayerCount={TEAM_PLAYER_COUNT}
+              picksPerPlayer={PICKS_PER_PLAYER}
               canReorder={canBlueReorderAssignments}
               onDragStart={(dragSide, index) =>
                 setDragging({ side: dragSide, index })
@@ -665,10 +378,6 @@ function RouteComponent() {
             </p>
           </div>
 
-          <div className="w-full rounded-md border border-white/15 bg-black/30 p-3 text-center text-xs text-white/70">
-            No ban phase in 3vs3. Characters are shared globally and cannot be duplicated.
-          </div>
-
           <Button
             disabled={isDraftCompleted || !pendingPick || pendingPick.side !== currentPickSide}
             onClick={onConfirmPick}
@@ -679,10 +388,16 @@ function RouteComponent() {
         </div>
 
         <div className="col-span-3 flex h-full flex-col gap-4 overflow-hidden">
-          <SideHeader side="red" player={match?.redPlayer} picksCount={redPicks.length} />
+          <SideHeader
+            side="red"
+            player={match?.redPlayer}
+            picksCount={redPicks.length}
+            picksPerSide={PICKS_PER_SIDE}
+          />
           <PickSlots
             side="red"
             picks={redPicks}
+            picksPerSide={PICKS_PER_SIDE}
             currentPickSide={currentPickSide}
             pendingPick={pendingPick}
             isDraftCompleted={isDraftCompleted}
@@ -691,6 +406,8 @@ function RouteComponent() {
             <SideAssignmentBoard
               side="red"
               slots={redAssignments}
+              teamPlayerCount={TEAM_PLAYER_COUNT}
+              picksPerPlayer={PICKS_PER_PLAYER}
               canReorder={canRedReorderAssignments}
               onDragStart={(dragSide, index) =>
                 setDragging({ side: dragSide, index })
