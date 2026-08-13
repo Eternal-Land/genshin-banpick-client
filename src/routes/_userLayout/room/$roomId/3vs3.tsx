@@ -1,5 +1,6 @@
 import { userCharactersApi } from "@/apis/user-characters";
 import type { MatchStateResponse } from "@/apis/match/types";
+import { sessionCostApi } from "@/apis/session-cost";
 import type { UserCharacterResponse } from "@/apis/user-characters/types";
 import CharacterSelector from "@/components/3vs3/character-selector";
 import PickSlots from "@/components/3vs3/pick-slots";
@@ -35,6 +36,11 @@ interface ThreeVsThreePickSocketPayload {
   side?: DraftSide;
   character?: BanPickCharacter;
   updatedBy?: string;
+}
+
+interface PlayerOption {
+  value: string;
+  label: string;
 }
 
 const PICKS_PER_SIDE = 24;
@@ -190,6 +196,12 @@ function RouteComponent() {
     queryFn: userCharactersApi.listCharacters,
   });
 
+  const { data: sessionCostResponse } = useQuery({
+    queryKey: ["session-cost", "3vs3", match?.id, pageMatchState?.currentSession],
+    queryFn: () => sessionCostApi.getCurrentSessionCost(match!.id),
+    enabled: Boolean(match?.id && pageMatchState?.currentSession),
+  });
+
   const allCharacters = useMemo(
     () => (data?.data ?? []).map(mapCharacterToBanPickCharacter),
     [data?.data],
@@ -201,6 +213,40 @@ function RouteComponent() {
         allCharacters.map((character) => [String(character.id), character] as const),
       ),
     [allCharacters],
+  );
+
+  const playerOptions = useMemo<PlayerOption[]>(() => {
+    const players = [match?.bluePlayer, match?.redPlayer, match?.host].filter(
+      (player): player is NonNullable<typeof player> => Boolean(player),
+    );
+
+    const optionMap = new Map<string, PlayerOption>();
+    players.forEach((player) => {
+      if (!optionMap.has(player.id)) {
+        optionMap.set(player.id, {
+          value: player.id,
+          label: player.displayName,
+        });
+      }
+    });
+
+    return [...optionMap.values()];
+  }, [match?.bluePlayer, match?.host, match?.redPlayer]);
+
+  const blueDefaultCost = useMemo(
+    () =>
+      sessionCostResponse?.data?.blueTotalCost !== undefined
+        ? String(Math.floor(Number(sessionCostResponse.data.blueTotalCost)))
+        : "",
+    [sessionCostResponse?.data?.blueTotalCost],
+  );
+
+  const redDefaultCost = useMemo(
+    () =>
+      sessionCostResponse?.data?.redTotalCost !== undefined
+        ? String(Math.floor(Number(sessionCostResponse.data.redTotalCost)))
+        : "",
+    [sessionCostResponse?.data?.redTotalCost],
   );
 
   useEffect(() => {
@@ -461,6 +507,8 @@ function RouteComponent() {
               slots={blueAssignments}
               teamPlayerCount={TEAM_PLAYER_COUNT}
               picksPerPlayer={PICKS_PER_PLAYER}
+              playerOptions={playerOptions}
+              defaultCost={blueDefaultCost}
               canReorder={canBlueReorderAssignments}
               onDragStart={(dragSide, index) =>
                 setDragging({ side: dragSide, index })
@@ -530,6 +578,8 @@ function RouteComponent() {
               slots={redAssignments}
               teamPlayerCount={TEAM_PLAYER_COUNT}
               picksPerPlayer={PICKS_PER_PLAYER}
+              playerOptions={playerOptions}
+              defaultCost={redDefaultCost}
               canReorder={canRedReorderAssignments}
               onDragStart={(dragSide, index) =>
                 setDragging({ side: dragSide, index })
