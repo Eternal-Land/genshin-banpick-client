@@ -1,4 +1,6 @@
 import { userCharactersApi } from "@/apis/user-characters";
+import { sessionStateApi } from "@/apis/session-state";
+import { matchApi } from "@/apis/match";
 import type { MatchStateResponse } from "@/apis/match/types";
 import { sessionCostApi } from "@/apis/session-cost";
 import type { UserCharacterResponse } from "@/apis/user-characters/types";
@@ -35,6 +37,13 @@ interface DraggingState {
 interface ThreeVsThreePickSocketPayload {
   side?: DraftSide;
   character?: BanPickCharacter;
+  updatedBy?: string;
+}
+
+interface SwapBanPickSlotPositionSocketPayload {
+  side?: DraftSide;
+  sourceTeamOrder?: number;
+  targetTeamOrder?: number;
   updatedBy?: string;
 }
 
@@ -107,6 +116,38 @@ const mapCharacterToBanPickCharacter = (
 
 const toFixedPickSlots = (picks: BanPickCharacter[]) =>
   Array.from({ length: PICKS_PER_SIDE }).map((_, index) => picks[index] ?? null);
+
+const mapAssignmentSlotsFromSessionState = (
+  slots: Array<{
+    matchSide: string;
+    teamOrder: number;
+    characterId: number | null;
+  }>,
+  side: DraftSide,
+  charactersById: Map<string, BanPickCharacter>,
+) => {
+  const normalizedSide = side === "blue" ? "BLUE" : "RED";
+  const next = createEmptyAssignmentSlots();
+
+  slots
+    .filter((slot) => slot.matchSide === normalizedSide)
+    .sort((left, right) => left.teamOrder - right.teamOrder)
+    .forEach((slot) => {
+      const teamOrderIndex = slot.teamOrder - 1;
+      if (
+        teamOrderIndex < 0 ||
+        teamOrderIndex >= next.length ||
+        !slot.characterId
+      ) {
+        return;
+      }
+
+      next[teamOrderIndex] =
+        charactersById.get(String(slot.characterId)) ?? null;
+    });
+
+  return next;
+};
 
 const mapPickedCharactersFromState = (
   pickedCharacterIds: string[],
@@ -199,6 +240,12 @@ function RouteComponent() {
   const { data: sessionCostResponse } = useQuery({
     queryKey: ["session-cost", "3vs3", match?.id, pageMatchState?.currentSession],
     queryFn: () => sessionCostApi.getCurrentSessionCost(match!.id),
+    enabled: Boolean(match?.id && pageMatchState?.currentSession),
+  });
+
+  const { data: sessionStateResponse } = useQuery({
+    queryKey: ["session-state", "3vs3", match?.id, pageMatchState?.currentSession],
+    queryFn: () => sessionStateApi.getCurrentSessionState(match!.id),
     enabled: Boolean(match?.id && pageMatchState?.currentSession),
   });
 
@@ -353,6 +400,44 @@ function RouteComponent() {
     },
   );
 
+  useSocketEvent(
+    SocketEvent.SWAP_BAN_PICK_SLOT_POSITION,
+    (payload?: SwapBanPickSlotPositionSocketPayload) => {
+      if (
+        !payload?.side ||
+        !payload?.sourceTeamOrder ||
+        !payload?.targetTeamOrder ||
+        payload.sourceTeamOrder === payload.targetTeamOrder
+      ) {
+        return;
+      }
+
+      if (payload.updatedBy && payload.updatedBy === profile?.id) {
+        return;
+      }
+
+      const sourceIndex = payload.sourceTeamOrder - 1;
+      const targetIndex = payload.targetTeamOrder - 1;
+      if (sourceIndex < 0 || targetIndex < 0) {
+        return;
+      }
+
+      const setSlots = payload.side === "blue" ? setBlueAssignments : setRedAssignments;
+      setSlots((prev) => {
+        if (sourceIndex >= prev.length || targetIndex >= prev.length) {
+          return prev;
+        }
+
+        const next = [...prev];
+        [next[targetIndex], next[sourceIndex]] = [
+          next[sourceIndex],
+          next[targetIndex],
+        ];
+        return next;
+      });
+    },
+  );
+
   useEffect(() => {
     if (!match) {
       void router.navigate({
@@ -402,16 +487,44 @@ function RouteComponent() {
       return;
     }
 
+    const sessionStateSlots = sessionStateResponse?.data?.banPickSlots ?? [];
+
     if (!blueAssignmentInitializedRef.current) {
       blueAssignmentInitializedRef.current = true;
-      setBlueAssignments(toFixedPickSlots(bluePicks));
+      if (sessionStateSlots.length > 0) {
+        setBlueAssignments(
+          mapAssignmentSlotsFromSessionState(
+            sessionStateSlots,
+            "blue",
+            charactersById,
+          ),
+        );
+      } else {
+        setBlueAssignments(toFixedPickSlots(bluePicks));
+      }
     }
 
     if (!redAssignmentInitializedRef.current) {
       redAssignmentInitializedRef.current = true;
-      setRedAssignments(toFixedPickSlots(redPicks));
+      if (sessionStateSlots.length > 0) {
+        setRedAssignments(
+          mapAssignmentSlotsFromSessionState(
+            sessionStateSlots,
+            "red",
+            charactersById,
+          ),
+        );
+      } else {
+        setRedAssignments(toFixedPickSlots(redPicks));
+      }
     }
-  }, [bluePicks, isDraftCompleted, redPicks]);
+  }, [
+    bluePicks,
+    charactersById,
+    isDraftCompleted,
+    redPicks,
+    sessionStateResponse?.data?.banPickSlots,
+  ]);
 
   const onSelectCharacter = (side: DraftSide, character: BanPickCharacter) => {
     if (isDraftCompleted || side !== currentPickSide) {
@@ -458,6 +571,14 @@ function RouteComponent() {
       return;
     }
 
+    if (!match?.id) {
+      setDragging(null);
+      return;
+    }
+
+    const sourceTeamOrder = dragging.index + 1;
+    const targetTeamOrder = targetIndex + 1;
+
     const setSlots = side === "blue" ? setBlueAssignments : setRedAssignments;
     setSlots((prev) => {
       const next = [...prev];
@@ -468,7 +589,51 @@ function RouteComponent() {
       return next;
     });
 
+    socket.emit(SocketEvent.SWAP_BAN_PICK_SLOT_POSITION, {
+      matchId: match.id,
+      side,
+      sourceTeamOrder,
+      targetTeamOrder,
+      updatedBy: profile?.id,
+    });
+
     setDragging(null);
+  };
+
+  const onUpdateSlotBuild = ({
+    side,
+    slotIndex,
+    characterId,
+    constellation,
+    refinement,
+  }: {
+    side: DraftSide;
+    slotIndex: number;
+    characterId: string;
+    constellation: number;
+    refinement: number;
+  }) => {
+    if (!match?.id) {
+      return;
+    }
+
+    const sideSlots = side === "blue" ? blueAssignments : redAssignments;
+    const selectedCharacter = sideSlots[slotIndex];
+    if (!selectedCharacter || selectedCharacter.id !== characterId) {
+      return;
+    }
+
+    const numericCharacterId = Number(characterId);
+    if (!Number.isInteger(numericCharacterId) || numericCharacterId <= 0) {
+      return;
+    }
+
+    void matchApi.updateSlotBuild(match.id, {
+      teamOrder: slotIndex + 1,
+      characterId: numericCharacterId,
+      characterConstellation: constellation,
+      weaponRefinement: refinement,
+    });
   };
 
   if (isLoading) {
@@ -515,6 +680,7 @@ function RouteComponent() {
               }
               onDrop={onDropAssignment}
               onDragEnd={() => setDragging(null)}
+              onUpdateSlotBuild={onUpdateSlotBuild}
             />
           ) : (
             <>
@@ -586,6 +752,7 @@ function RouteComponent() {
               }
               onDrop={onDropAssignment}
               onDragEnd={() => setDragging(null)}
+              onUpdateSlotBuild={onUpdateSlotBuild}
             />
           ) : (
             <>
