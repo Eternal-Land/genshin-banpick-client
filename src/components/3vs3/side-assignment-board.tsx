@@ -8,7 +8,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
-import { createRef, type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+    createRef,
+    type ReactNode,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import Draggable, { type DraggableEvent } from "react-draggable";
 import type { DraftSide } from "./types";
 
@@ -41,7 +48,16 @@ interface SideAssignmentBoardProps {
     onDragStart: (side: DraftSide, index: number) => void;
     onDrop: (side: DraftSide, index: number) => void;
     onDragEnd: () => void;
+    onUpdateSlotBuild: (params: {
+        side: DraftSide;
+        slotIndex: number;
+        characterId: string;
+        constellation: number;
+        refinement: number;
+    }) => void;
 }
+
+const SLOT_BUILD_UPDATE_DEBOUNCE_MS = 500;
 
 const COMPLETE_TIME_REGEX = /^\d{2}:[0-5]\d$/;
 
@@ -67,6 +83,12 @@ const isValidCompleteTime = (value: string) =>
     value.length === 0 || COMPLETE_TIME_REGEX.test(value);
 
 const normalizeBuildNumberInput = (value: string) => value.replace(/\D/g, "").slice(0, 2);
+
+const DEFAULT_CHAMBER_SLOT_RANGES = [
+    { startTeamOrder: 1, endTeamOrder: 8 },
+    { startTeamOrder: 9, endTeamOrder: 16 },
+    { startTeamOrder: 17, endTeamOrder: 24 },
+];
 
 const getPointerPosition = (event: DraggableEvent) => {
     if ("touches" in event && event.touches.length > 0) {
@@ -104,12 +126,14 @@ export default function SideAssignmentBoard({
     onDragStart,
     onDrop,
     onDragEnd,
+    onUpdateSlotBuild,
 }: SideAssignmentBoardProps) {
     const isBlue = side === "blue";
     const [chamberTagInputs, setChamberTagInputs] = useState<ChamberTagInput[]>([]);
     const [slotBuildInputs, setSlotBuildInputs] = useState<SlotBuildInput[]>([]);
     const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
     const [dragResetToken, setDragResetToken] = useState(0);
+    const slotBuildTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
     const defaultPlayer = useMemo(
         () => playerOptions[0]?.label ?? "",
@@ -119,10 +143,23 @@ export default function SideAssignmentBoard({
         () => Array.from({ length: slots.length }).map(() => createRef<HTMLDivElement>()),
         [slots.length],
     );
+    const chamberSlotRanges = useMemo(() => {
+        if (teamPlayerCount === 3 && picksPerPlayer === 8) {
+            return DEFAULT_CHAMBER_SLOT_RANGES;
+        }
+
+        return Array.from({ length: teamPlayerCount }).map((_, index) => {
+            const startTeamOrder = index * picksPerPlayer + 1;
+            return {
+                startTeamOrder,
+                endTeamOrder: startTeamOrder + picksPerPlayer - 1,
+            };
+        });
+    }, [picksPerPlayer, teamPlayerCount]);
 
     useEffect(() => {
         setChamberTagInputs((prev) =>
-            Array.from({ length: teamPlayerCount }).map((_, index) => {
+            Array.from({ length: chamberSlotRanges.length }).map((_, index) => {
                 const previous = prev[index];
 
                 if (previous) {
@@ -141,7 +178,7 @@ export default function SideAssignmentBoard({
                 };
             }),
         );
-    }, [defaultCost, defaultPlayer, teamPlayerCount]);
+    }, [chamberSlotRanges.length, defaultCost, defaultPlayer]);
 
     useEffect(() => {
         setSlotBuildInputs((prev) =>
@@ -159,6 +196,15 @@ export default function SideAssignmentBoard({
             }),
         );
     }, [slots.length]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(slotBuildTimersRef.current).forEach((timerId) => {
+                clearTimeout(timerId);
+            });
+            slotBuildTimersRef.current = {};
+        };
+    }, []);
 
     const updateChamberTag = (
         chamberIndex: number,
@@ -184,6 +230,8 @@ export default function SideAssignmentBoard({
         slotIndex: number,
         updater: (prev: SlotBuildInput) => SlotBuildInput,
     ) => {
+        let nextBuild: SlotBuildInput | null = null;
+
         setSlotBuildInputs((prev) => {
             const next = [...prev];
             const current =
@@ -193,9 +241,34 @@ export default function SideAssignmentBoard({
                     constellation: "",
                     refinement: "",
                 } as SlotBuildInput);
-            next[slotIndex] = updater(current);
+            const updated = updater(current);
+            nextBuild = updated;
+            next[slotIndex] = updated;
             return next;
         });
+
+        const character = slots[slotIndex];
+        if (!character || !nextBuild) {
+            return;
+        }
+
+        const existingTimer = slotBuildTimersRef.current[slotIndex];
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        slotBuildTimersRef.current[slotIndex] = setTimeout(() => {
+            const constellation = Number.parseInt(nextBuild?.constellation ?? "", 10);
+            const refinement = Number.parseInt(nextBuild?.refinement ?? "", 10);
+
+            onUpdateSlotBuild({
+                side,
+                slotIndex,
+                characterId: character.id,
+                constellation: Number.isNaN(constellation) ? 0 : constellation,
+                refinement: Number.isNaN(refinement) ? 0 : refinement,
+            });
+        }, SLOT_BUILD_UPDATE_DEBOUNCE_MS);
     };
 
     const resolveDropIndex = (event: DraggableEvent, fallbackIndex: number) => {
@@ -231,9 +304,9 @@ export default function SideAssignmentBoard({
             </div>
 
             <div className="grid grid-rows-3 gap-3">
-                {Array.from({ length: teamPlayerCount }).map((_, playerIndex) => {
-                    const start = playerIndex * picksPerPlayer;
-                    const end = start + picksPerPlayer;
+                {chamberSlotRanges.map((range, playerIndex) => {
+                    const start = range.startTeamOrder - 1;
+                    const end = range.endTeamOrder;
                     const playerSlots = slots.slice(start, end);
 
                     const chamberTagRows: Array<{
@@ -346,7 +419,7 @@ export default function SideAssignmentBoard({
                             className="flex flex-col rounded-lg border border-white/15 bg-black/30 p-3"
                         >
                             <div className="mb-2 text-xs font-medium text-white/70">
-                                Chamber {playerIndex + 1}
+                                Chamber {playerIndex + 1}: {range.startTeamOrder}-{range.endTeamOrder}
                             </div>
                             <div className="flex justify-between gap-3">
                                 <div className="grid min-w-80 grid-cols-[100px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">

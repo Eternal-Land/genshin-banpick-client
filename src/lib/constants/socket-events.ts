@@ -9,6 +9,7 @@ export const SocketEvent = {
 	UPDATE_MATCH_TIMER_INPUTS: "update_match_timer_inputs",
 	SAVE_MATCH_TIMER_INPUTS: "save_match_timer_inputs",
 	UPDATE_BAN_PICK_SLOT: "update_ban_pick_slot",
+	SWAP_BAN_PICK_SLOT_POSITION: "swap_ban_pick_slot_position",
 	MATCH_STARTED: "match_started",
 	MATCH_UPDATED: "match_updated",
 } as const;
