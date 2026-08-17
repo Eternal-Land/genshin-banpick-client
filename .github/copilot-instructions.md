@@ -2,406 +2,200 @@
 
 ## Project Overview
 
-This is **Genshin Banpick Client**, a React + TypeScript + Vite application for Genshin Impact ban/pick gameplay management. The application supports user authentication, character/weapon management, and admin functionalities.
+This is a React + TypeScript + Vite application for Genshin ban/pick gameplay.
+It includes:
+
+- Auth flows (login/register)
+- User gameplay flows (match list, waiting room, realtime and 3v3 draft rooms, result)
+- User profile management and HoyoLab sync
+- Admin management for characters, weapons, costs, users, staffs, staff roles, and permissions
 
 ## Tech Stack
 
-| Category         | Technology                           |
-| ---------------- | ------------------------------------ |
-| Framework        | React 19 + TypeScript                |
-| Build Tool       | Vite                                 |
-| Package Manager  | Bun                                  |
-| Routing          | TanStack Router (file-based routing) |
-| State Management | Redux Toolkit + React Redux          |
-| Server State     | TanStack Query                       |
-| Styling          | Tailwind CSS v4                      |
-| UI Components    | shadcn/ui (new-york style)           |
-| Forms            | React Hook Form + Zod validation     |
-| HTTP Client      | Axios                                |
-| i18n             | i18next + react-i18next              |
-| Icons            | Lucide React                         |
+| Category        | Technology                                          |
+| --------------- | --------------------------------------------------- |
+| Framework       | React 19 + TypeScript                               |
+| Build Tool      | Vite 7                                              |
+| Package Manager | Bun                                                 |
+| Routing         | TanStack Router (file-based) + generated route tree |
+| Server State    | TanStack Query                                      |
+| Client State    | Redux Toolkit + React Redux                         |
+| Styling         | Tailwind CSS v4                                     |
+| UI Components   | shadcn/ui + Radix primitives                        |
+| Forms           | React Hook Form + Zod                               |
+| HTTP            | Axios                                               |
+| Realtime        | Socket.IO client                                    |
+| i18n            | i18next + react-i18next                             |
+| Notifications   | Sonner                                              |
+| Date Utils      | dayjs                                               |
 
-## Project Structure
+## Runtime and Environment
+
+- API base URL is from `VITE_API_BASE_URL` with fallback `http://localhost:5173`.
+- Socket URL is from `VITE_SOCKET_URI` with fallback `http://localhost:3000`.
+- Dev server proxy forwards `^/api` to `http://localhost:3000`.
+- Axios global response interceptor redirects to `/auth/login` on HTTP 401.
+
+## High-Level Structure
 
 ```
 src/
-├── apis/               # API modules by feature
-│   └── {feature}/
-│       ├── index.ts    # API functions
-│       └── types.ts    # Zod schemas & TypeScript types
-├── components/
-│   ├── ui/             # shadcn/ui components
-│   └── {feature}/      # Feature-specific components
-├── hooks/              # Custom hooks
-├── i18n/
-│   ├── keys/           # Translation keys (typed constants)
-│   ├── locales/        # Translation files (en, vi)
-│   ├── types/          # Translation type definitions
-│   ├── index.ts        # i18n configuration
-│   └── namespaces.ts   # Namespace definitions
-├── lib/
-│   ├── constants/      # App constants & enums
-│   ├── redux/          # Redux store & slices
-│   ├── types/          # Shared TypeScript types
-│   ├── http.ts         # Axios instance configuration
-│   └── utils.ts        # Utility functions (cn)
-└── routes/             # TanStack Router file-based routes
-    ├── __root.tsx      # Root layout
-    ├── _userLayout.tsx # User layout wrapper
-    ├── admin/          # Admin routes
-    └── self/           # User profile routes
+  apis/                    # API modules by feature (index.ts + types.ts)
+  components/
+    ui/                    # Shared UI primitives
+    3vs3/                  # 3v3 match components
+    match/                 # Realtime ban/pick components
+    profile/               # Profile + HoyoLab dialogs
+    users/ staffs/ ...     # Admin feature components
+  hooks/                   # Reusable hooks (debounce, socket, labels, etc.)
+  i18n/
+    keys/                  # Typed locale key constants
+    locales/en, locales/vi # Locale dictionaries
+    namespaces.ts          # Namespace helpers
+    index.ts               # i18n initialization
+  lib/
+    constants/             # App enums/constants
+    redux/                 # Store and slices
+    http.ts                # Axios client + interceptors
+    socket.ts              # Socket.IO connection
+  routes/
+    __root.tsx
+    _userLayout.tsx
+    _userLayout/_userProtectedLayout/*
+    _userLayout/room/$roomId/*
+    auth/*
+    admin/*
+  routeTree.gen.ts         # Generated by TanStack Router (do not hand-edit)
 ```
 
-## Coding Patterns & Conventions
+## Routing Architecture
 
-### Path Aliases
+### Root Route
 
-Always use `@/` alias for imports from `src/`:
+- `src/routes/__root.tsx` preloads profile via `selfApi.getSelf()` when Redux auth profile is missing.
+- Root component mounts Providers, global Toaster, background, and notification handler.
 
-```typescript
-import { Button } from "@/components/ui/button";
-import { http } from "@/lib/http";
-import { useAppSelector } from "@/hooks/use-app-selector";
-```
+### Layout and Guards
 
-### API Pattern
+- `src/routes/_userLayout.tsx` enforces dark theme class on `<html>`.
+- `src/routes/_userLayout/_userProtectedLayout.tsx` guards authenticated pages and redirects to `/auth/login` if no profile.
+- `src/routes/admin.tsx` guards admin/staff access and redirects unauthorized users.
 
-APIs are organized by feature with typed functions:
+### User Flows
 
-```typescript
-// src/apis/{feature}/index.ts
-import { http } from "@/lib/http";
-import type { BaseApiResponse } from "@/lib/types";
-import type { FeatureResponse, CreateFeatureInput } from "./types";
+- Public landing route: `/`.
+- Auth shell: `/auth` with nested pages like login/register.
+- Protected user routes include `/match`, `/match/create`, `/profile`, `/cost`.
+- Room routes are nested under `/_userLayout/room/$roomId`:
+  - `/waiting`
+  - `/ban-pick` (realtime and turn-based draft)
+  - `/3vs3`
+  - `/result`
 
-async function listFeatures() {
-	const response =
-		await http.get<BaseApiResponse<FeatureResponse[]>>("/api/features");
-	return response.data;
-}
+### Search Validation Pattern
 
-async function createFeature(input: CreateFeatureInput) {
-	const response = await http.post<BaseApiResponse<FeatureResponse>>(
-		"/api/features",
-		input,
-	);
-	return response.data;
-}
+Use `zodValidator(...)` in route definitions for search params when needed (for example match list, admin lists, and tabbed cost route).
 
-export const featureApi = {
-	listFeatures,
-	createFeature,
-};
-```
+## Realtime Match Patterns
 
-```typescript
-// src/apis/{feature}/types.ts
-import z from "zod";
-import { commonLocaleKeys } from "@/i18n/keys";
-import { getTranslationToken } from "@/i18n/namespaces";
+The room routes use Socket.IO events for synchronization:
 
-export interface FeatureResponse {
-	id: number;
-	name: string;
-	createdAt: string;
-}
+- Join/leave room in route lifecycle (`beforeLoad`/`onLeave`)
+- Sync match state updates
+- Navigate on match status transitions
+- Sync timer inputs and autosave session timing data
 
-export const createFeatureSchema = z.object({
-	name: z
-		.string()
-		.min(
-			1,
-			getTranslationToken("common", commonLocaleKeys.validation_required),
-		),
-});
+Realtime draft (`ban-pick`) includes:
 
-export type CreateFeatureInput = z.infer<typeof createFeatureSchema>;
-```
+- Draft sequence tracking
+- Optimistic local state updates before API confirmation
+- Character pick/ban validation
+- Weapon pick + refinement tracking per character
+- Session cost calculation integration
+- Session completion validation and submission
 
-### Redux Pattern
+The 3v3 flow (`/room/$roomId/3vs3`) has separate pick sequencing and side assignment handling.
 
-Use typed hooks and feature slices:
+## State Management
 
-```typescript
-// Typed hooks (already defined)
-import { useAppDispatch } from "@/hooks/use-app-dispatch";
-import { useAppSelector } from "@/hooks/use-app-selector";
+### Redux (client state)
 
-// Slice example
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+- Store is configured in `src/lib/redux/index.ts`.
+- Current slices:
+  - `auth` (profile)
+  - `theme`
+- Use typed hooks from:
+  - `src/hooks/use-app-selector.ts`
+  - `src/hooks/use-app-dispatch.ts`
 
-export interface FeatureState {
-	data: FeatureResponse | null;
-}
+### TanStack Query (server state)
 
-const initialState: FeatureState = { data: null };
+- Use feature-specific `queryKey` arrays.
+- Keep server data in queries/mutations instead of Redux.
+- Prefer targeted `refetch()` after mutations.
 
-export const featureSlice = createSlice({
-	name: "feature",
-	initialState,
-	reducers: {
-		setData: (state, action: PayloadAction<FeatureResponse | null>) => {
-			state.data = action.payload;
-		},
-	},
-});
+## API Module Pattern
 
-export const { setData } = featureSlice.actions;
-export const selectFeatureData = (state: RootState) => state.feature.data;
-```
+Each feature under `src/apis/{feature}` typically has:
 
-### Component Pattern
+- `index.ts` for request functions
+- `types.ts` for response types, query/input schemas, and inferred types
 
-Use functional components with TypeScript interfaces:
+Conventions:
 
-```tsx
-import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import { getTranslationToken } from "@/i18n/namespaces";
-import { featureLocaleKeys } from "@/i18n/keys";
+- Use shared Axios instance from `@/lib/http`.
+- Return `response.data` (typed `BaseApiResponse<T>`).
+- Build query strings with helper utilities when needed.
 
-export interface FeatureComponentProps {
-	data: FeatureResponse;
-	onAction?: () => void;
-}
+## i18n Pattern
 
-export default function FeatureComponent({
-	data,
-	onAction,
-}: FeatureComponentProps) {
-	const { t } = useTranslation();
+- Locales: English (`en`) and Vietnamese (`vi`).
+- Namespaces include: `common`, `admin`, `auth`, `character-costs`, `characters`, `cost-milestones`, `header`, `match`, `permissions`, `profile`, `staff-roles`, `staffs`, `users`, `weapons`, `weapon-costs`.
+- Use key constants from `src/i18n/keys/*`.
+- Resolve namespaced keys via `getTranslationToken(namespace, key)`.
 
-	return (
-		<div>
-			<h1>{data.name}</h1>
-			<Button onClick={onAction}>
-				{t(getTranslationToken("feature", featureLocaleKeys.action_button))}
-			</Button>
-		</div>
-	);
-}
-```
+Guideline:
 
-### Form Pattern with React Hook Form + Zod
+- Do not hardcode user-facing strings in feature code when translation keys exist.
 
-```tsx
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	createFeatureSchema,
-	type CreateFeatureInput,
-} from "@/apis/feature/types";
-import {
-	Field,
-	FieldError,
-	FieldGroup,
-	FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+## Forms and Validation
 
-function FeatureForm() {
-	const form = useForm<CreateFeatureInput>({
-		resolver: zodResolver(createFeatureSchema),
-		defaultValues: { name: "" },
-	});
+- Use React Hook Form + `zodResolver`.
+- Define schemas in corresponding API `types.ts` files.
+- Prefer controlled field rendering via `Controller` and shared field components.
 
-	const onSubmit = (values: CreateFeatureInput) => {
-		// Handle submission
-	};
+## UI and Styling
 
-	return (
-		<form onSubmit={form.handleSubmit(onSubmit)}>
-			<FieldGroup>
-				<Controller
-					name="name"
-					control={form.control}
-					render={({ field, fieldState }) => (
-						<Field data-invalid={fieldState.invalid}>
-							<FieldLabel htmlFor={field.name}>Name</FieldLabel>
-							<Input
-								{...field}
-								id={field.name}
-								aria-invalid={fieldState.invalid}
-							/>
-							{fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-						</Field>
-					)}
-				/>
-			</FieldGroup>
-		</form>
-	);
-}
-```
+- Use components from `src/components/ui` and feature folders.
+- Tailwind utilities are the primary styling approach.
+- Reuse `cn` from `@/lib/utils` for conditional classes.
+- Existing visual style is glassmorphism + gradient/fx in gameplay/auth surfaces; preserve this unless task asks for redesign.
 
-### TanStack Query Pattern
+## Core Conventions
 
-```tsx
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { featureApi } from "@/apis/feature";
-import { toast } from "sonner";
-
-function FeaturePage() {
-	const { data, isLoading, refetch } = useQuery({
-		queryKey: ["features"],
-		queryFn: featureApi.listFeatures,
-	});
-
-	const createMutation = useMutation({
-		mutationFn: featureApi.createFeature,
-		onSuccess: () => {
-			toast.success("Feature created successfully");
-			refetch();
-		},
-		onError: (error: AxiosError<BaseApiResponse>) => {
-			toast.error(error.response?.data?.message ?? "Failed to create feature");
-		},
-	});
-}
-```
-
-### i18n Pattern
-
-Translation keys are typed constants organized by namespace:
-
-```typescript
-// src/i18n/keys/{namespace}.ts
-export const featureLocaleKeys = {
-	feature_title: "feature_title",
-	feature_action: "feature_action",
-} as const;
-
-// Usage in components
-import { getTranslationToken } from "@/i18n/namespaces";
-import { featureLocaleKeys } from "@/i18n/keys";
-
-const { t } = useTranslation();
-t(getTranslationToken("feature", featureLocaleKeys.feature_title));
-```
-
-### Route Pattern (TanStack Router)
-
-```tsx
-// src/routes/feature/index.tsx
-import { createFileRoute } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
-import { featureQuerySchema } from "@/apis/feature/types";
-
-export const Route = createFileRoute("/feature/")({
-	component: RouteComponent,
-	validateSearch: zodValidator(featureQuerySchema), // Optional search validation
-	beforeLoad: async () => {
-		// Authentication or data prefetching
-	},
-});
-
-function RouteComponent() {
-	return <div>Feature Page</div>;
-}
-```
-
-### Constants Pattern
-
-```typescript
-// src/lib/constants/{feature}.ts
-export const FeatureType = {
-	TYPE_A: 0,
-	TYPE_B: 1,
-} as const;
-
-export type FeatureTypeEnum = (typeof FeatureType)[keyof typeof FeatureType];
-
-// With details/metadata
-export const FeatureTypeDetail = {
-	[FeatureType.TYPE_A]: { key: "type_a", name: "Type A" },
-	[FeatureType.TYPE_B]: { key: "type_b", name: "Type B" },
-} as const;
-```
-
-### shadcn/ui Components
-
-Use components from `@/components/ui/`:
-
-```tsx
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { toast } from "sonner";
-```
-
-### Utility Functions
-
-```typescript
-import { cn } from "@/lib/utils"; // Tailwind class merging
-
-<div className={cn("base-class", condition && "conditional-class")} />
-```
-
-## Key Type Definitions
-
-```typescript
-// Base API Response
-interface BaseApiResponse<T = any> {
-	code: string;
-	message: string;
-	error?: any;
-	data?: T;
-	pagination?: PaginationDto;
-}
-
-// Pagination
-interface PaginationDto {
-	page: number;
-	take: number;
-	totalRecord: number;
-	totalPage: number;
-	nextPage?: number;
-	prevPage?: number;
-}
-```
-
-## Best Practices
-
-1. **Always use typed imports** - Import types with `type` keyword when possible
-2. **Use path aliases** - Always use `@/` instead of relative paths
-3. **Follow feature-based organization** - Group related files by feature
-4. **Use i18n for all user-facing text** - Never hardcode text strings
-5. **Validate forms with Zod** - Define schemas in API types files
-6. **Handle errors gracefully** - Use toast notifications for user feedback
-7. **Use TanStack Query for server state** - Avoid storing server data in Redux
-8. **Keep Redux for client-only state** - Auth profile, theme, etc.
+1. Use `@/` alias imports for `src/*` paths.
+2. Prefer `import type` where applicable.
+3. Keep feature code organized by domain (apis/components/routes/hooks).
+4. Use TanStack Query for API state and Redux for lightweight app/session state.
+5. Handle async errors with user feedback (`toast.error(...)`) and localized messages.
+6. Keep route search params type-safe with Zod when filters/pagination are involved.
+7. Treat `src/routeTree.gen.ts` as generated file.
 
 ## Commands
 
 ```bash
-# Development
+# Start development server
 bun dev
 
-# Build
+# Build (includes TanStack route generation + TypeScript build)
 bun run build
+
+# Preview production build
+bun run preview
 
 # Lint
 bun lint
 
-# Format
+# Format TypeScript files under src/**/*.ts
 bun prettier:fix
 ```

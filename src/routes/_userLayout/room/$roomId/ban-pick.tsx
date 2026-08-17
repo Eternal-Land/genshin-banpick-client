@@ -333,7 +333,9 @@ const parseTimerInputsToRecordForAutosave = (
 	timerInputs: BanPickTimerInputsBySide,
 	isRealtimeMatch: boolean,
 ) => {
-	const blueChamber1 = parseClockToSecondsForAutosave(timerInputs.blue.chamber1);
+	const blueChamber1 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber1,
+	);
 	const redChamber1 = parseClockToSecondsForAutosave(timerInputs.red.chamber1);
 
 	if (blueChamber1.error || redChamber1.error) {
@@ -355,8 +357,12 @@ const parseTimerInputsToRecordForAutosave = (
 		} satisfies SaveSessionRecordInput;
 	}
 
-	const blueChamber2 = parseClockToSecondsForAutosave(timerInputs.blue.chamber2);
-	const blueChamber3 = parseClockToSecondsForAutosave(timerInputs.blue.chamber3);
+	const blueChamber2 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber2,
+	);
+	const blueChamber3 = parseClockToSecondsForAutosave(
+		timerInputs.blue.chamber3,
+	);
 	const redChamber2 = parseClockToSecondsForAutosave(timerInputs.red.chamber2);
 	const redChamber3 = parseClockToSecondsForAutosave(timerInputs.red.chamber3);
 	const blueReset = parseResetForAutosave(timerInputs.blue.reset);
@@ -555,8 +561,9 @@ function RouteComponent() {
 		void (async () => {
 			try {
 				if (match?.id) {
-					const currentSessionCost =
-						await sessionCostApi.getCurrentSessionCost(match.id);
+					const currentSessionCost = await sessionCostApi.getCurrentSessionCost(
+						match.id,
+					);
 					setSessionCost(currentSessionCost.data ?? null);
 
 					const latestMatchState = await matchApi.getMatchState(match.id);
@@ -804,47 +811,41 @@ function RouteComponent() {
 		[draftState.red.picks, pageMatchState],
 	);
 
-	const blueSelectedWeaponRefinementByCharacterIdFromState = useMemo(
-		() => {
-			if (!pageMatchState) {
-				return {} as Record<string, number | undefined>;
+	const blueSelectedWeaponRefinementByCharacterIdFromState = useMemo(() => {
+		if (!pageMatchState) {
+			return {} as Record<string, number | undefined>;
+		}
+
+		const refinements = pageMatchState.blueSelectedWeaponRefinements ?? [];
+		const mapped: Record<string, number | undefined> = {};
+
+		draftState.blue.picks.forEach((character, index) => {
+			const refinement = refinements[index];
+			if (typeof refinement === "number" && refinement > 0) {
+				mapped[getBanPickCharacterId(character)] = refinement;
 			}
+		});
 
-			const refinements = pageMatchState.blueSelectedWeaponRefinements ?? [];
-			const mapped: Record<string, number | undefined> = {};
+		return mapped;
+	}, [draftState.blue.picks, pageMatchState]);
 
-			draftState.blue.picks.forEach((character, index) => {
-				const refinement = refinements[index];
-				if (typeof refinement === "number" && refinement > 0) {
-					mapped[getBanPickCharacterId(character)] = refinement;
-				}
-			});
+	const redSelectedWeaponRefinementByCharacterIdFromState = useMemo(() => {
+		if (!pageMatchState) {
+			return {} as Record<string, number | undefined>;
+		}
 
-			return mapped;
-		},
-		[draftState.blue.picks, pageMatchState],
-	);
+		const refinements = pageMatchState.redSelectedWeaponRefinements ?? [];
+		const mapped: Record<string, number | undefined> = {};
 
-	const redSelectedWeaponRefinementByCharacterIdFromState = useMemo(
-		() => {
-			if (!pageMatchState) {
-				return {} as Record<string, number | undefined>;
+		draftState.red.picks.forEach((character, index) => {
+			const refinement = refinements[index];
+			if (typeof refinement === "number" && refinement > 0) {
+				mapped[getBanPickCharacterId(character)] = refinement;
 			}
+		});
 
-			const refinements = pageMatchState.redSelectedWeaponRefinements ?? [];
-			const mapped: Record<string, number | undefined> = {};
-
-			draftState.red.picks.forEach((character, index) => {
-				const refinement = refinements[index];
-				if (typeof refinement === "number" && refinement > 0) {
-					mapped[getBanPickCharacterId(character)] = refinement;
-				}
-			});
-
-			return mapped;
-		},
-		[draftState.red.picks, pageMatchState],
-	);
+		return mapped;
+	}, [draftState.red.picks, pageMatchState]);
 
 	const blueSelectedWeaponRefinementByCharacterId = useMemo(
 		() => ({
@@ -935,14 +936,18 @@ function RouteComponent() {
 
 		const blueTotalComparableSeconds =
 			blueTimeBonusCost + blueChamberScoreTotal;
-		const redTotalComparableSeconds =
-			redTimeBonusCost + redChamberScoreTotal;
+		const redTotalComparableSeconds = redTimeBonusCost + redChamberScoreTotal;
 
 		return {
 			blueTotalComparableSeconds,
 			redTotalComparableSeconds,
 		};
-	}, [isRealtimeMatch, sessionCost?.blueTimeBonusCost, sessionCost?.redTimeBonusCost, timerInputs]);
+	}, [
+		isRealtimeMatch,
+		sessionCost?.blueTimeBonusCost,
+		sessionCost?.redTimeBonusCost,
+		timerInputs,
+	]);
 
 	const onSelectCharacter = (character: AccountCharacterResponse) => {
 		if (
@@ -1040,7 +1045,7 @@ function RouteComponent() {
 								weaponId,
 								weaponRefinement,
 								weaponRarity: pickedWeapon?.rarity,
-						  }),
+							}),
 					side: PlayerSide.BLUE,
 				},
 			);
@@ -1102,7 +1107,7 @@ function RouteComponent() {
 								weaponId,
 								weaponRefinement,
 								weaponRarity: pickedWeapon?.rarity,
-						  }),
+							}),
 					side: PlayerSide.RED,
 				},
 			);
@@ -1375,6 +1380,7 @@ function RouteComponent() {
 				pageMatchState,
 				record,
 				isRealtimeMatch,
+				false,
 			);
 			if (sessionValidationErrors.length > 0) {
 				toast.error(
@@ -1474,7 +1480,9 @@ function RouteComponent() {
 						canReorderTeam={canReorderBlueTeam}
 						canPickWeapon={profile?.id === bluePlayer?.id}
 						selectedWeaponByCharacterId={blueSelectedWeaponByCharacterId}
-						selectedWeaponRefinementByCharacterId={blueSelectedWeaponRefinementByCharacterId}
+						selectedWeaponRefinementByCharacterId={
+							blueSelectedWeaponRefinementByCharacterId
+						}
 						onPickWeapon={onPickBlueWeapon}
 					/>
 
@@ -1490,7 +1498,9 @@ function RouteComponent() {
 								? profile?.id !== match?.host?.id
 								: !isCurrentUserTurn || !pendingCharacter)
 						}
-						blueTotalComparableSeconds={leadComparison.blueTotalComparableSeconds}
+						blueTotalComparableSeconds={
+							leadComparison.blueTotalComparableSeconds
+						}
 						redTotalComparableSeconds={leadComparison.redTotalComparableSeconds}
 						onSubmit={handleSubmit}
 					/>
@@ -1522,7 +1532,9 @@ function RouteComponent() {
 						canReorderTeam={canReorderRedTeam}
 						canPickWeapon={profile?.id === redPlayer?.id}
 						selectedWeaponByCharacterId={redSelectedWeaponByCharacterId}
-						selectedWeaponRefinementByCharacterId={redSelectedWeaponRefinementByCharacterId}
+						selectedWeaponRefinementByCharacterId={
+							redSelectedWeaponRefinementByCharacterId
+						}
 						onPickWeapon={onPickRedWeapon}
 					/>
 				</div>

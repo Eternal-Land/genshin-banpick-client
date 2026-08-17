@@ -37,6 +37,40 @@ export const DRAFT_SEQUENCE: DraftAction[] = [
 	{ side: "red", type: "pick" },
 ];
 
+/**
+ * Creates the 3v3 draft sequence.
+ * Pattern: Blue ban, Red ban, then Blue pick 1, Red pick 2,
+ * alternating Blue pick 2 and Red pick 2, and ending with Blue pick 1.
+ */
+export const createThreeVsThreeDraftSequence = (): DraftAction[] => {
+	const sequence: DraftAction[] = [];
+	const bansPerSide = 1;
+	const picksPerSide = 24;
+
+	for (let i = 0; i < bansPerSide; i += 1) {
+		sequence.push({ side: "blue", type: "ban" });
+		sequence.push({ side: "red", type: "ban" });
+	}
+
+	sequence.push({ side: "blue", type: "pick" });
+	sequence.push({ side: "red", type: "pick" });
+	sequence.push({ side: "red", type: "pick" });
+
+	const doublePickRounds = (picksPerSide - 2) / 2;
+	for (let i = 0; i < doublePickRounds; i += 1) {
+		sequence.push({ side: "blue", type: "pick" });
+		sequence.push({ side: "blue", type: "pick" });
+		sequence.push({ side: "red", type: "pick" });
+		sequence.push({ side: "red", type: "pick" });
+	}
+
+	sequence.push({ side: "blue", type: "pick" });
+
+	return sequence;
+};
+
+export const THREE_VS_THREE_DRAFT_SEQUENCE = createThreeVsThreeDraftSequence();
+
 export const EMPTY_SESSION_RECORD_INPUT: SaveSessionRecordInput = {
 	blueChamber1: 0,
 	blueChamber2: 0,
@@ -126,8 +160,12 @@ export function mapSelectedWeaponsByCharacterId(
 	return selectedByCharacterId;
 }
 
-export function getExpectedDraftCounts() {
-	return DRAFT_SEQUENCE.reduce(
+export function getExpectedDraftCounts(isThreeVsThreeMatch: boolean = false) {
+	const draftSequence = isThreeVsThreeMatch
+		? THREE_VS_THREE_DRAFT_SEQUENCE
+		: DRAFT_SEQUENCE;
+
+	return draftSequence.reduce(
 		(acc, action) => {
 			if (action.side === "blue") {
 				if (action.type === "ban") {
@@ -156,9 +194,10 @@ export function validateSessionCompletionData(
 	matchState: MatchStateResponse,
 	record: SaveSessionRecordInput,
 	isRealtimeMatch: boolean,
+	isThreeVsThreeMatch: boolean = false,
 ) {
 	const validationErrors: string[] = [];
-	const expectedDraftCounts = getExpectedDraftCounts();
+	const expectedDraftCounts = getExpectedDraftCounts(isThreeVsThreeMatch);
 
 	if (matchState.blueBanChars.length !== expectedDraftCounts.blueBanCount) {
 		validationErrors.push("Blue ban phase is not completed.");
