@@ -40,6 +40,7 @@ export interface UpdateSlotBuildInput {
 	characterId: number;
 	characterConstellation: number;
 	weaponRefinement: number;
+	characterLevel: number;
 }
 
 export const listMatchesQuerySchema = z.object({
