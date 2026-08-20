@@ -7,14 +7,12 @@ import { toast } from "sonner";
 
 import { selfApi } from "@/apis/self";
 import { accountCharactersApi } from "@/apis/account-characters";
-import { userCharactersApi } from "@/apis/user-characters";
 import { hoyolabApi } from "@/apis/hoyolab";
 import type { HoyolabSyncInput } from "@/apis/hoyolab/types";
 import type {
 	AccountCharacterResponse,
 	UpdateAccountCharacterInput,
 } from "@/apis/account-characters/types";
-import type { CharacterResponse } from "@/apis/characters/types";
 import CharacterContainer, {
 	type CharacterContainerProps,
 } from "@/components/player-side/character-container";
@@ -103,23 +101,6 @@ function RouteComponent() {
 	}, [accountCharactersResponse]);
 
 	const accountCharacterItems = accountCharactersResponse?.data ?? [];
-
-	const ownedCharacterIds = useMemo(() => {
-		return new Set(
-			(accountCharactersResponse?.data ?? []).map((item) => item.characterId),
-		);
-	}, [accountCharactersResponse]);
-
-	const { data: characterListResponse, isLoading: isCharacterListLoading } =
-		useQuery({
-			queryKey: ["characters", "available"],
-			queryFn: userCharactersApi.listCharacters,
-		});
-
-	const availableCharacters = useMemo<CharacterResponse[]>(() => {
-		const items = characterListResponse?.data ?? [];
-		return items.filter((item) => !ownedCharacterIds.has(item.id));
-	}, [characterListResponse, ownedCharacterIds]);
 
 	const roleLabel = useMemo(() => {
 		if (!profile) return "";
@@ -545,8 +526,6 @@ function RouteComponent() {
 				<ProfileAddCharacterDialogContent
 					selectedCharacterId={selectedCharacterId}
 					onSelectedCharacterIdChange={setSelectedCharacterId}
-					isCharacterListLoading={isCharacterListLoading}
-					availableCharacters={availableCharacters}
 					characterLevel={characterLevel}
 					onCharacterLevelChange={setCharacterLevel}
 					constellation={constellation}
