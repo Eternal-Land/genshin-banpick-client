@@ -1,6 +1,8 @@
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
-import type { CharacterResponse } from "@/apis/characters/types";
+import { userCharactersApi } from "@/apis/user-characters";
 import { Button } from "@/components/ui/button";
 import {
 	DialogClose,
@@ -13,21 +15,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+	SelectInput,
+	SelectInputContent,
+	SelectInputEmpty,
+	SelectInputOption,
+} from "@/components/select-input";
 import { getTranslationToken } from "@/i18n/namespaces";
 import { profileLocaleKeys } from "@/i18n/keys";
 
 export interface ProfileAddCharacterDialogContentProps {
 	selectedCharacterId: string;
 	onSelectedCharacterIdChange: (value: string) => void;
-	isCharacterListLoading: boolean;
-	availableCharacters: CharacterResponse[];
 	characterLevel: string;
 	onCharacterLevelChange: (value: string) => void;
 	constellation: string;
@@ -39,8 +37,6 @@ export interface ProfileAddCharacterDialogContentProps {
 export default function ProfileAddCharacterDialogContent({
 	selectedCharacterId,
 	onSelectedCharacterIdChange,
-	isCharacterListLoading,
-	availableCharacters,
 	characterLevel,
 	onCharacterLevelChange,
 	constellation,
@@ -49,6 +45,67 @@ export default function ProfileAddCharacterDialogContent({
 	isPending,
 }: ProfileAddCharacterDialogContentProps) {
 	const { t } = useTranslation();
+	const [draftCharacterName, setDraftCharacterName] = useState("");
+	const [searchTerm, setSearchTerm] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
+
+	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			setDebouncedSearch(searchTerm);
+		}, 500);
+
+		return () => clearTimeout(timeoutId);
+	}, [searchTerm]);
+
+	const { data: availableCharactersResponse } = useQuery({
+		queryKey: ["user", "characters", "available", debouncedSearch],
+		queryFn: () =>
+			userCharactersApi.searchCharacters({ query: debouncedSearch }),
+	});
+
+	const availableCharacters = useMemo(
+		() => availableCharactersResponse?.data ?? [],
+		[availableCharactersResponse],
+	);
+
+	const selectedCharacterName = useMemo(
+		() =>
+			availableCharacters.find(
+				(character) => character.id.toString() === selectedCharacterId,
+			)?.name ?? "",
+		[availableCharacters, selectedCharacterId],
+	);
+
+	const displayCharacterValue =
+		selectedCharacterId && selectedCharacterName
+			? selectedCharacterName
+			: draftCharacterName;
+
+	const handleCharacterInputChange = (value: string) => {
+		setDraftCharacterName(value);
+		setSearchTerm(value);
+
+		if (!value.trim()) {
+			onSelectedCharacterIdChange("");
+			return;
+		}
+
+		onSelectedCharacterIdChange("");
+	};
+
+	const handleCharacterSelect = (characterId: string) => {
+		const selectedCharacter = availableCharacters.find(
+			(character) => character.id.toString() === characterId,
+		);
+
+		if (!selectedCharacter) {
+			onSelectedCharacterIdChange("");
+			return;
+		}
+
+		setDraftCharacterName(selectedCharacter.name);
+		onSelectedCharacterIdChange(selectedCharacter.id.toString());
+	};
 
 	return (
 		<DialogContent>
@@ -80,45 +137,44 @@ export default function ProfileAddCharacterDialogContent({
 							),
 						)}
 					</Label>
-					<Select
-						value={selectedCharacterId}
-						onValueChange={onSelectedCharacterIdChange}
-						disabled={isCharacterListLoading}
+					<SelectInput
+						value={displayCharacterValue}
+						placeholder={t(
+							getTranslationToken(
+								"profile",
+								profileLocaleKeys.profile_add_character_select_placeholder,
+							),
+						)}
+						onValueChange={handleCharacterInputChange}
+						wrapperClassName="w-full"
 					>
-						<SelectTrigger className="w-full">
-							<SelectValue
-								placeholder={t(
-									getTranslationToken(
-										"profile",
-										profileLocaleKeys.profile_add_character_select_placeholder,
-									),
-								)}
-							/>
-						</SelectTrigger>
-						<SelectContent className="max-h-[20vh]">
-							<SelectGroup>
-								{availableCharacters.length === 0 ? (
-									<SelectItem value="empty" disabled>
-										{t(
-											getTranslationToken(
-												"profile",
-												profileLocaleKeys.profile_add_character_empty,
-											),
-										)}
-									</SelectItem>
-								) : (
-									availableCharacters.map((character) => (
-										<SelectItem
-											key={character.id}
-											value={character.id.toString()}
-										>
-											{character.name}
-										</SelectItem>
-									))
-								)}
-							</SelectGroup>
-						</SelectContent>
-					</Select>
+						<SelectInputContent className="max-h-[20vh] overflow-y-auto">
+							{availableCharacters.length === 0 ? (
+								<SelectInputEmpty
+									title={t(
+										getTranslationToken(
+											"profile",
+											profileLocaleKeys.profile_add_character_empty,
+										),
+									)}
+								/>
+							) : (
+								availableCharacters.map((character) => (
+									<SelectInputOption
+										key={character.id}
+										value={character.id.toString()}
+										onSelect={(value) => {
+											if (value) {
+												handleCharacterSelect(value);
+											}
+										}}
+									>
+										{character.name}
+									</SelectInputOption>
+								))
+							)}
+						</SelectInputContent>
+					</SelectInput>
 				</div>
 				<div className="grid gap-3 sm:grid-cols-2">
 					<div className="space-y-2">
