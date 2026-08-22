@@ -119,6 +119,23 @@ const matchVi: MatchLocaleObject = {
 	ban_pick_session_completed_next_started:
 		"Hoàn tất ván. Ván tiếp theo đã bắt đầu.",
 	ban_pick_failed_complete_session: "Không thể hoàn tất ván",
+	three_vs_three_loading_character_pool: "Đang tải danh sách nhân vật...",
+	three_vs_three_failed_load_characters: "Không thể tải danh sách nhân vật.",
+	three_vs_three_bans_label: "Bans",
+	three_vs_three_assignment_hint:
+		"Hoàn tất ban/pick. Điền thông tin đội hình, sau đó chủ phòng có thể hoàn tất ván.",
+	three_vs_three_turn_ban_label:
+		"Ban {{step}}/{{total}} - Đến lượt bên {{side}}",
+	three_vs_three_turn_pick_label:
+		"Pick {{step}}/{{total}} - Đến lượt bên {{side}}",
+	three_vs_three_same_final_time: "Hai đội có tổng thời gian bằng nhau",
+	three_vs_three_gap_label: "Chênh lệch: {{seconds}}s",
+	three_vs_three_confirm_ban: "Xác nhận ban",
+	three_vs_three_confirm_pick: "Xác nhận pick",
+	three_vs_three_session_completed: "Hoàn tất ván.",
+	three_vs_three_undo_previous_turn: "Hoàn tác lượt trước",
+	three_vs_three_undoing_previous_turn: "Đang hoàn tác...",
+	three_vs_three_failed_undo_previous_turn: "Không thể hoàn tác lượt trước",
 };
 
 export default matchVi;
