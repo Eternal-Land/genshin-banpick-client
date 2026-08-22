@@ -4,6 +4,7 @@ import type {
 	ListMatchesQuery,
 	MatchResponse,
 	MatchStateResponse,
+	UpdateSlotBuildInput,
 } from "./types";
 import type { BaseApiResponse } from "@/lib/types";
 import { buildSearchParams } from "@/lib/helpers";
@@ -85,6 +86,14 @@ async function completeSession(matchId: string) {
 	return response.data;
 }
 
+async function updateSlotBuild(matchId: string, input: UpdateSlotBuildInput) {
+	const response = await http.put<BaseApiResponse>(
+		`/api/user/match/${matchId}/slot-build`,
+		input,
+	);
+	return response.data;
+}
+
 export const matchApi = {
 	listMatches,
 	createMatch,
@@ -96,4 +105,5 @@ export const matchApi = {
 	banChar,
 	pickWeapon,
 	completeSession,
+	updateSlotBuild,
 } as const;

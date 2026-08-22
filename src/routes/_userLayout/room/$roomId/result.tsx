@@ -174,11 +174,11 @@ function MatchResultComponent() {
 			: (session.record?.blueFinalTime ?? 0);
 
 		const leftBonus = isBlueLeft
-			? Number(session.cost?.blueTimeBonusCost ?? 0)
-			: Number(session.cost?.redTimeBonusCost ?? 0);
+			? Number(session.blueTimeBonus ?? 0)
+			: Number(session.redTimeBonus ?? 0);
 		const rightBonus = isBlueLeft
-			? Number(session.cost?.redTimeBonusCost ?? 0)
-			: Number(session.cost?.blueTimeBonusCost ?? 0);
+			? Number(session.redTimeBonus ?? 0)
+			: Number(session.blueTimeBonus ?? 0);
 
 		const leftTotalTime = leftFinalTime + leftBonus;
 		const rightTotalTime = rightFinalTime + rightBonus;
@@ -228,7 +228,7 @@ function MatchResultComponent() {
 					<h1 className="text-4xl font-bold font-serif bg-linear-to-r from-amber-200 to-amber-500 bg-clip-text text-transparent">
 						{tMatch(matchLocaleKeys.match_result_scoreboard_title)}
 					</h1>
-					<Link to="/">
+					<Link to="/match" search={{ page: 1, take: 10, accountId: profile?.id }}>
 						<Button variant="outline" className="border-white/20">
 							{tMatch(matchLocaleKeys.match_result_back_to_lobby)}
 						</Button>

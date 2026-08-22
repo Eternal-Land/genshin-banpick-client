@@ -3,6 +3,7 @@ export const matchLocaleKeys = {
 	match_type_placeholder: "match_type_placeholder",
 	match_type_turn_based: "match_type_turn_based",
 	match_type_real_time: "match_type_real_time",
+	match_type_three_vs_three: "match_type_three_vs_three",
 	match_status_waiting: "match_status_waiting",
 	match_status_live: "match_status_live",
 	match_status_completed: "match_status_completed",

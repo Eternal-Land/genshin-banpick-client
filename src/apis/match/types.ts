@@ -35,6 +35,14 @@ export interface MatchStateResponse {
 	redSelectedWeaponRefinements: number[];
 }
 
+export interface UpdateSlotBuildInput {
+	teamOrder: number;
+	characterId: number;
+	characterConstellation: number;
+	weaponRefinement: number;
+	characterLevel: number;
+}
+
 export const listMatchesQuerySchema = z.object({
 	...paginationQuerySchema.shape,
 	accountId: z.string().optional(),
