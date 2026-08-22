@@ -120,6 +120,22 @@ const matchEn: MatchLocaleObject = {
 	ban_pick_session_completed_next_started:
 		"Session completed. Next session started.",
 	ban_pick_failed_complete_session: "Failed to complete session",
+	three_vs_three_loading_character_pool: "Loading character pool...",
+	three_vs_three_failed_load_characters: "Failed to load characters.",
+	three_vs_three_bans_label: "Bans",
+	three_vs_three_assignment_hint:
+		"Draft completed. Fill assignment info, then host can complete the match.",
+	three_vs_three_turn_ban_label: "Ban {{step}}/{{total}} - {{side}} side turn",
+	three_vs_three_turn_pick_label:
+		"Pick {{step}}/{{total}} - {{side}} side turn",
+	three_vs_three_same_final_time: "Both teams have the same final time",
+	three_vs_three_gap_label: "Gap: {{seconds}}s",
+	three_vs_three_confirm_ban: "Confirm ban",
+	three_vs_three_confirm_pick: "Confirm pick",
+	three_vs_three_session_completed: "Session completed.",
+	three_vs_three_undo_previous_turn: "Undo previous turn",
+	three_vs_three_undoing_previous_turn: "Undoing...",
+	three_vs_three_failed_undo_previous_turn: "Failed to undo previous turn",
 };
 
 export default matchEn;

@@ -298,11 +298,15 @@ export default function SideAssignmentBoard({
                     constellation:
                         shouldHydrateBuild && (slotBuild?.constellation ?? 0) >= 0
                             ? String(slotBuild?.constellation)
-                            : "",
+                            : character
+                                ? (previous?.constellation || "0")
+                                : "",
                     refinement:
                         shouldHydrateBuild && (slotBuild?.refinement ?? 0) >= 0
                             ? String(slotBuild?.refinement)
-                            : "",
+                            : character
+                                ? (previous?.refinement || "0")
+                                : "",
                 };
             }),
         );
@@ -418,8 +422,8 @@ export default function SideAssignmentBoard({
             slotBuildInputs[slotIndex] ??
             ({
                 level: 90,
-                constellation: "",
-                refinement: "",
+                constellation: "0",
+                refinement: "0",
             } as SlotBuildInput);
         const updatedBuild = updater(currentBuild);
 
