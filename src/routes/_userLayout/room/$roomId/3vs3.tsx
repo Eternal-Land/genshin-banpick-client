@@ -1,5 +1,7 @@
 import { userCharactersApi } from "@/apis/user-characters";
 import { sessionStateApi } from "@/apis/session-state";
+import type { SessionStateTeamCostResponse } from "@/apis/session-state/types";
+import { usersApi } from "@/apis/users";
 import { matchApi } from "@/apis/match";
 import type { MatchStateResponse } from "@/apis/match/types";
 import { sessionCostApi } from "@/apis/session-cost";
@@ -17,7 +19,12 @@ import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { useBanPickFilters } from "@/hooks/use-ban-pick-filters";
 import { useSocketEvent } from "@/hooks/use-socket-event";
-import { MatchStatus, type CharacterElementEnum } from "@/lib/constants";
+import {
+	MatchStatus,
+	PlayerSide,
+	type CharacterElementEnum,
+	type MatchStatusEnum,
+} from "@/lib/constants";
 import { CharacterElementDetail } from "@/lib/constants";
 import { SocketEvent } from "@/lib/constants";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
@@ -30,6 +37,8 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeftRightIcon, StepBack, StepForward } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_userLayout/room/$roomId/3vs3")({
 	component: RouteComponent,
@@ -54,9 +63,50 @@ interface SwapBanPickSlotPositionSocketPayload {
 	updatedBy?: string;
 }
 
+interface UpdatePickSlotSocketPayload {
+	side?: DraftSide;
+	teamOrder?: number;
+	characterId?: number;
+	characterConstellation?: number;
+	weaponRefinement?: number;
+	characterLevel?: number;
+	updatedBy?: string;
+}
+
+interface UpdateTeamCostSocketPayload {
+	teamSide?: DraftSide;
+	chamberIndex?: number;
+	accountId?: string;
+	isUsedStar?: boolean;
+	totalCharacterConstellationCost?: number;
+	totalWeaponRefinementCost?: number;
+	totalCharacterLevelCost?: number;
+	totalChamberTimeBonus?: number;
+	updatedBy?: string;
+}
+
+interface UpdateChamberClearTimeSocketPayload {
+	teamSide?: DraftSide;
+	chamberIndex?: number;
+	clearTimeSeconds?: number;
+	updatedBy?: string;
+}
+
+interface MatchUpdatedSocketPayload {
+	id?: string;
+	status?: MatchStatusEnum;
+}
+
 interface PlayerOption {
 	value: string;
 	label: string;
+}
+
+interface SlotBuildState {
+	characterId: string;
+	constellation: number;
+	refinement: number;
+	level: number;
 }
 
 const BANS_PER_SIDE = 1;
@@ -66,9 +116,18 @@ const PICKS_PER_PLAYER = PICKS_PER_SIDE / TEAM_PLAYER_COUNT;
 const TOTAL_BANS = BANS_PER_SIDE * 2;
 const TOTAL_PICKS = PICKS_PER_SIDE * 2;
 const TOTAL_ACTIONS = THREE_VS_THREE_DRAFT_SEQUENCE.length;
+const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
 const createEmptyAssignmentSlots = () =>
 	Array.from({ length: PICKS_PER_SIDE }, () => null as BanPickCharacter | null);
+
+const createEmptySlotBuilds = () =>
+	Array.from({ length: PICKS_PER_SIDE }).map(() => ({
+		characterId: "",
+		constellation: 0,
+		refinement: 0,
+		level: 90,
+	}));
 
 const mapCharacterToBanPickCharacter = (
 	character: UserCharacterResponse,
@@ -149,6 +208,45 @@ const mapAssignmentSlotsFromSessionState = (
 	return next;
 };
 
+const mapSlotBuildsFromSessionState = (
+	slots: Array<{
+		matchSide: string;
+		teamOrder: number;
+		characterId: number | null;
+		characterConstellation: number | null;
+		weaponRefinement: number | null;
+		characterLevel: number | null;
+	}>,
+	side: DraftSide,
+) => {
+	const normalizedSide = side === "blue" ? "BLUE" : "RED";
+	const next = createEmptySlotBuilds();
+
+	slots
+		.filter((slot) => slot.matchSide === normalizedSide)
+		.sort((left, right) => left.teamOrder - right.teamOrder)
+		.forEach((slot) => {
+			const teamOrderIndex = slot.teamOrder - 1;
+			if (teamOrderIndex < 0 || teamOrderIndex >= next.length) {
+				return;
+			}
+
+			next[teamOrderIndex] = {
+				characterId: slot.characterId ? String(slot.characterId) : "",
+				constellation:
+					typeof slot.characterConstellation === "number"
+						? slot.characterConstellation
+						: 0,
+				refinement:
+					typeof slot.weaponRefinement === "number" ? slot.weaponRefinement : 0,
+				level:
+					typeof slot.characterLevel === "number" ? slot.characterLevel : 90,
+			};
+		});
+
+	return next;
+};
+
 const mapPickedCharactersFromState = (
 	pickedCharacterIds: string[],
 	charactersById: Map<string, BanPickCharacter>,
@@ -206,6 +304,13 @@ const filterCharactersForDraft = (
 	});
 };
 
+// const formatSecondsToClock = (seconds: number) => {
+// 	const totalSeconds = Math.max(0, Math.floor(seconds));
+// 	const minutes = Math.floor(totalSeconds / 60);
+// 	const remainingSeconds = totalSeconds % 60;
+// 	return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+// };
+
 function RouteComponent() {
 	const { roomId } = Route.useParams();
 	const router = useRouter();
@@ -243,7 +348,21 @@ function RouteComponent() {
 	const [redAssignments, setRedAssignments] = useState<
 		Array<BanPickCharacter | null>
 	>(createEmptyAssignmentSlots);
+	const [blueSlotBuilds, setBlueSlotBuilds] = useState<SlotBuildState[]>(
+		createEmptySlotBuilds,
+	);
+	const [redSlotBuilds, setRedSlotBuilds] = useState<SlotBuildState[]>(
+		createEmptySlotBuilds,
+	);
+	const [teamCosts, setTeamCosts] = useState<SessionStateTeamCostResponse[]>([]);
 	const [dragging, setDragging] = useState<DraggingState | null>(null);
+	const [blueChamberBaseTimes, setBlueChamberBaseTimes] = useState<number[]>([
+		0, 0, 0,
+	]);
+	const [redChamberBaseTimes, setRedChamberBaseTimes] = useState<number[]>([
+		0, 0, 0,
+	]);
+	const [isCompletingMatch, setIsCompletingMatch] = useState(false);
 
 	const blueAssignmentInitializedRef = useRef(false);
 	const redAssignmentInitializedRef = useRef(false);
@@ -275,6 +394,18 @@ function RouteComponent() {
 		enabled: Boolean(match?.id && pageMatchState?.currentSession),
 	});
 
+	const [playerSearch, setPlayerSearch] = useState("");
+
+	const { data: usersResponse } = useQuery({
+		queryKey: ["users", "search", "3vs3", playerSearch],
+		queryFn: () =>
+			usersApi.searchUsers({ page: 1, take: 100, search: playerSearch || undefined }),
+	});
+
+	useEffect(() => {
+		setTeamCosts(sessionStateResponse?.data?.teamCosts ?? []);
+	}, [sessionStateResponse?.data?.teamCosts]);
+
 	const allCharacters = useMemo(
 		() => (data?.data ?? []).map(mapCharacterToBanPickCharacter),
 		[data?.data],
@@ -291,12 +422,8 @@ function RouteComponent() {
 	);
 
 	const playerOptions = useMemo<PlayerOption[]>(() => {
-		const players = [match?.bluePlayer, match?.redPlayer, match?.host].filter(
-			(player): player is NonNullable<typeof player> => Boolean(player),
-		);
-
 		const optionMap = new Map<string, PlayerOption>();
-		players.forEach((player) => {
+		(usersResponse?.data ?? []).forEach((player) => {
 			if (!optionMap.has(player.id)) {
 				optionMap.set(player.id, {
 					value: player.id,
@@ -306,7 +433,27 @@ function RouteComponent() {
 		});
 
 		return [...optionMap.values()];
-	}, [match?.bluePlayer, match?.host, match?.redPlayer]);
+	}, [usersResponse?.data]);
+
+	useEffect(() => {
+		const record = sessionStateResponse?.data?.sessionRecord;
+		if (!record) {
+			setBlueChamberBaseTimes([0, 0, 0]);
+			setRedChamberBaseTimes([0, 0, 0]);
+			return;
+		}
+
+		setBlueChamberBaseTimes([
+			record.blueChamber1,
+			record.blueChamber2,
+			record.blueChamber3,
+		]);
+		setRedChamberBaseTimes([
+			record.redChamber1,
+			record.redChamber2,
+			record.redChamber3,
+		]);
+	}, [sessionStateResponse?.data?.sessionRecord]);
 
 	const blueDefaultCost = useMemo(
 		() =>
@@ -405,6 +552,40 @@ function RouteComponent() {
 		[allCharacters, rightElementFilter, rightRarityFilter, rightSearch],
 	);
 
+	const blueFinalTimeSeconds = useMemo(() => {
+		return blueChamberBaseTimes.reduce((total, chamberBaseTime, index) => {
+			const chamberCost = teamCosts.find(
+				(item) => item.teamSide === PlayerSide.BLUE && item.chamberIndex === index + 1,
+			);
+			const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+			const starBonus = chamberCost?.isUsedStar
+				? CHAMBER_STAR_TIME_BONUS_SECONDS
+				: 0;
+			return total + chamberBaseTime + chamberBonus + starBonus;
+		}, 0);
+	}, [blueChamberBaseTimes, teamCosts]);
+
+	const redFinalTimeSeconds = useMemo(() => {
+		return redChamberBaseTimes.reduce((total, chamberBaseTime, index) => {
+			const chamberCost = teamCosts.find(
+				(item) => item.teamSide === PlayerSide.RED && item.chamberIndex === index + 1,
+			);
+			const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+			const starBonus = chamberCost?.isUsedStar
+				? CHAMBER_STAR_TIME_BONUS_SECONDS
+				: 0;
+			return total + chamberBaseTime + chamberBonus + starBonus;
+		}, 0);
+	}, [redChamberBaseTimes, teamCosts]);
+
+	const finalTimeGapSeconds = Math.abs(blueFinalTimeSeconds - redFinalTimeSeconds);
+	const fasterTeamLabel =
+		blueFinalTimeSeconds < redFinalTimeSeconds
+			? "Blue"
+			: redFinalTimeSeconds < blueFinalTimeSeconds
+				? "Red"
+				: "Tie";
+
 	const canBlueInteract =
 		!isDraftCompleted &&
 		currentAction?.side === "blue" &&
@@ -414,8 +595,61 @@ function RouteComponent() {
 		currentAction?.side === "red" &&
 		profile?.id === match?.redPlayer?.id;
 
-	const canBlueReorderAssignments = profile?.id === match?.bluePlayer?.id;
-	const canRedReorderAssignments = profile?.id === match?.redPlayer?.id;
+	const isHost = profile?.id === match?.host?.id;
+	const canEditBlueAssignments =
+		isHost || profile?.id === match?.bluePlayer?.id;
+	const canEditRedAssignments = isHost || profile?.id === match?.redPlayer?.id;
+	const canBlueReorderAssignments = canEditBlueAssignments;
+	const canRedReorderAssignments = canEditRedAssignments;
+
+	const hasAllAssignedCharacters = useMemo(
+		() =>
+			blueAssignments.every((character) => character !== null) &&
+			redAssignments.every((character) => character !== null),
+		[blueAssignments, redAssignments],
+	);
+
+	const hasAllSlotBuilds = useMemo(
+		() =>
+			blueAssignments.every(
+				(character, index) =>
+					!character || blueSlotBuilds[index]?.characterId === character.id,
+			) &&
+			redAssignments.every(
+				(character, index) =>
+					!character || redSlotBuilds[index]?.characterId === character.id,
+			),
+		[blueAssignments, blueSlotBuilds, redAssignments, redSlotBuilds],
+	);
+
+	const hasAllTeamCostAssignments = useMemo(
+		() =>
+			[PlayerSide.BLUE, PlayerSide.RED].every((teamSide) =>
+				Array.from({ length: TEAM_PLAYER_COUNT }).every((_, chamberOffset) => {
+					const chamberIndex = chamberOffset + 1;
+					const teamCost = teamCosts.find(
+						(item) =>
+							item.teamSide === teamSide && item.chamberIndex === chamberIndex,
+					);
+
+					return Boolean(teamCost?.accountId);
+				}),
+			),
+		[teamCosts],
+	);
+
+	const hasAllChamberTimes = useMemo(
+		() =>
+			blueChamberBaseTimes.every((time) => Number(time) > 0) &&
+			redChamberBaseTimes.every((time) => Number(time) > 0),
+		[blueChamberBaseTimes, redChamberBaseTimes],
+	);
+
+	const isAssignmentBoardCompleted =
+		hasAllAssignedCharacters &&
+		hasAllSlotBuilds &&
+		hasAllTeamCostAssignments &&
+		hasAllChamberTimes;
 
 	const applyPickAction = (side: DraftSide, character: BanPickCharacter) => {
 		if (isDraftCompleted || !currentAction || side !== currentAction.side) {
@@ -492,6 +726,8 @@ function RouteComponent() {
 
 			const setSlots =
 				payload.side === "blue" ? setBlueAssignments : setRedAssignments;
+			const setSlotBuilds =
+				payload.side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
 			setSlots((prev) => {
 				if (sourceIndex >= prev.length || targetIndex >= prev.length) {
 					return prev;
@@ -504,6 +740,194 @@ function RouteComponent() {
 				];
 				return next;
 			});
+
+			setSlotBuilds((prev) => {
+				if (sourceIndex >= prev.length || targetIndex >= prev.length) {
+					return prev;
+				}
+
+				const next = [...prev];
+				[next[targetIndex], next[sourceIndex]] = [
+					next[sourceIndex],
+					next[targetIndex],
+				];
+				return next;
+			});
+		},
+	);
+
+	useSocketEvent(
+		SocketEvent.UPDATE_PICK_SLOT,
+		(payload?: UpdatePickSlotSocketPayload) => {
+			const characterConstellation = payload?.characterConstellation;
+			const weaponRefinement = payload?.weaponRefinement;
+			const characterLevel = payload?.characterLevel;
+			if (
+				!payload?.side ||
+				!payload?.teamOrder ||
+				!payload?.characterId ||
+				typeof characterConstellation !== "number" ||
+				typeof weaponRefinement !== "number" ||
+				typeof characterLevel !== "number"
+			) {
+				return;
+			}
+
+			if (payload.updatedBy && payload.updatedBy === profile?.id) {
+				return;
+			}
+
+			const slotIndex = payload.teamOrder - 1;
+			if (slotIndex < 0) {
+				return;
+			}
+
+			const setSlotBuilds =
+				payload.side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
+			setSlotBuilds((prev) => {
+				if (slotIndex >= prev.length) {
+					return prev;
+				}
+
+				const next = [...prev];
+				next[slotIndex] = {
+					characterId: String(payload.characterId),
+					constellation: characterConstellation,
+					refinement: weaponRefinement,
+					level: characterLevel,
+				};
+				return next;
+			});
+		},
+	);
+
+	useSocketEvent(
+		SocketEvent.UPDATE_TEAM_COST,
+		(payload?: UpdateTeamCostSocketPayload) => {
+			if (
+				!payload?.teamSide ||
+				!payload.chamberIndex ||
+				!payload.accountId ||
+				typeof payload.isUsedStar !== "boolean" ||
+				typeof payload.totalChamberTimeBonus !== "number"
+			) {
+				return;
+			}
+
+			// Totals are server-computed, so apply them even for the acting user.
+			setTeamCosts((prev) => {
+				const next = [...prev];
+				const teamSide =
+					payload.teamSide === "blue" ? PlayerSide.BLUE : PlayerSide.RED;
+				const chamberIndex = payload.chamberIndex!;
+				const accountId = payload.accountId!;
+				const totalChamberTimeBonus = payload.totalChamberTimeBonus!;
+				const isUsedStar = payload.isUsedStar!;
+				const index = next.findIndex(
+					(item) =>
+						item.teamSide === teamSide &&
+						item.chamberIndex === chamberIndex,
+				);
+
+				const updated = {
+					id: next[index]?.id ?? 0,
+					matchSessionId: next[index]?.matchSessionId ?? 0,
+					sessionCostId: next[index]?.sessionCostId ?? 0,
+					teamSide,
+					chamberIndex,
+					accountId,
+					totalCharacterConstellationCost:
+						payload.totalCharacterConstellationCost ??
+						next[index]?.totalCharacterConstellationCost ??
+						0,
+					totalWeaponRefinementCost:
+						payload.totalWeaponRefinementCost ??
+						next[index]?.totalWeaponRefinementCost ??
+						0,
+					totalCharacterLevelCost:
+						payload.totalCharacterLevelCost ??
+						next[index]?.totalCharacterLevelCost ??
+						0,
+					totalChamberTimeBonus,
+					isUsedStar,
+				};
+
+				if (index >= 0) {
+					next[index] = updated;
+				} else {
+					next.push(updated);
+				}
+
+				return next;
+			});
+		},
+	);
+
+	const applyChamberClearTimeUpdate = (
+		teamSide: DraftSide,
+		chamberIndex: number,
+		clearTimeSeconds: number,
+	) => {
+		const chamberSlotIndex = chamberIndex - 1;
+		if (chamberSlotIndex < 0 || chamberSlotIndex >= TEAM_PLAYER_COUNT) {
+			return;
+		}
+
+		const chamberValue = Math.max(0, 600 - Math.floor(clearTimeSeconds));
+		const setChamberTimes =
+			teamSide === "blue" ? setBlueChamberBaseTimes : setRedChamberBaseTimes;
+
+		setChamberTimes((prev) => {
+			if (chamberSlotIndex >= prev.length) {
+				return prev;
+			}
+
+			const next = [...prev];
+			next[chamberSlotIndex] = chamberValue;
+			return next;
+		});
+	};
+
+	useSocketEvent(
+		SocketEvent.UPDATE_CHAMBER_CLEAR_TIME,
+		(payload?: UpdateChamberClearTimeSocketPayload) => {
+			if (
+				!payload?.teamSide ||
+				!payload.chamberIndex ||
+				typeof payload.clearTimeSeconds !== "number"
+			) {
+				return;
+			}
+
+			applyChamberClearTimeUpdate(
+				payload.teamSide,
+				payload.chamberIndex,
+				payload.clearTimeSeconds,
+			);
+		},
+	);
+
+	useSocketEvent(
+		SocketEvent.MATCH_UPDATED,
+		(payload?: MatchUpdatedSocketPayload) => {
+			if (!payload?.id || payload.id !== match?.id || !payload.status) {
+				return;
+			}
+
+			if (payload.status === MatchStatus.COMPLETED) {
+				void router.navigate({
+					to: "/room/$roomId/result",
+					params: { roomId },
+				});
+				return;
+			}
+
+			if (payload.status === MatchStatus.WAITING) {
+				void router.navigate({
+					to: "/room/$roomId/waiting",
+					params: { roomId },
+				});
+			}
 		},
 	);
 
@@ -553,6 +977,8 @@ function RouteComponent() {
 			redAssignmentInitializedRef.current = false;
 			setBlueAssignments(createEmptyAssignmentSlots());
 			setRedAssignments(createEmptyAssignmentSlots());
+			setBlueSlotBuilds(createEmptySlotBuilds());
+			setRedSlotBuilds(createEmptySlotBuilds());
 			return;
 		}
 
@@ -569,8 +995,12 @@ function RouteComponent() {
 						bluePicks,
 					),
 				);
+				setBlueSlotBuilds(
+					mapSlotBuildsFromSessionState(sessionStateSlots, "blue"),
+				);
 			} else {
 				setBlueAssignments(toFixedPickSlots(bluePicks));
+				setBlueSlotBuilds(createEmptySlotBuilds());
 			}
 		}
 
@@ -585,8 +1015,12 @@ function RouteComponent() {
 						redPicks,
 					),
 				);
+				setRedSlotBuilds(
+					mapSlotBuildsFromSessionState(sessionStateSlots, "red"),
+				);
 			} else {
 				setRedAssignments(toFixedPickSlots(redPicks));
+				setRedSlotBuilds(createEmptySlotBuilds());
 			}
 		}
 	}, [
@@ -642,6 +1076,14 @@ function RouteComponent() {
 	};
 
 	const onDropAssignment = (side: DraftSide, targetIndex: number) => {
+		if (
+			(side === "blue" && !canBlueReorderAssignments) ||
+			(side === "red" && !canRedReorderAssignments)
+		) {
+			setDragging(null);
+			return;
+		}
+
 		if (!dragging || dragging.side !== side || dragging.index === targetIndex) {
 			setDragging(null);
 			return;
@@ -656,7 +1098,18 @@ function RouteComponent() {
 		const targetTeamOrder = targetIndex + 1;
 
 		const setSlots = side === "blue" ? setBlueAssignments : setRedAssignments;
+		const setSlotBuilds =
+			side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
 		setSlots((prev) => {
+			const next = [...prev];
+			[next[targetIndex], next[dragging.index]] = [
+				next[dragging.index],
+				next[targetIndex],
+			];
+			return next;
+		});
+
+		setSlotBuilds((prev) => {
 			const next = [...prev];
 			[next[targetIndex], next[dragging.index]] = [
 				next[dragging.index],
@@ -682,18 +1135,28 @@ function RouteComponent() {
 		characterId,
 		constellation,
 		refinement,
+		level,
 	}: {
 		side: DraftSide;
 		slotIndex: number;
 		characterId: string;
 		constellation: number;
 		refinement: number;
+		level: number;
 	}) => {
+		if (
+			(side === "blue" && !canEditBlueAssignments) ||
+			(side === "red" && !canEditRedAssignments)
+		) {
+			return;
+		}
+
 		if (!match?.id) {
 			return;
 		}
 
 		const sideSlots = side === "blue" ? blueAssignments : redAssignments;
+		const setSlotBuilds = side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
 		const selectedCharacter = sideSlots[slotIndex];
 		if (!selectedCharacter || selectedCharacter.id !== characterId) {
 			return;
@@ -704,12 +1167,143 @@ function RouteComponent() {
 			return;
 		}
 
-		void matchApi.updateSlotBuild(match.id, {
+		setSlotBuilds((prev) => {
+			if (slotIndex < 0 || slotIndex >= prev.length) {
+				return prev;
+			}
+
+			const next = [...prev];
+			next[slotIndex] = {
+				characterId,
+				constellation,
+				refinement,
+				level,
+			};
+			return next;
+		});
+
+		socket.emit(SocketEvent.UPDATE_PICK_SLOT, {
+			matchId: match.id,
+			side,
 			teamOrder: slotIndex + 1,
 			characterId: numericCharacterId,
 			characterConstellation: constellation,
 			weaponRefinement: refinement,
+			characterLevel: level,
+			updatedBy: profile?.id,
 		});
+	};
+
+	const onUpdateTeamCost = ({
+		side,
+		chamberIndex,
+		accountId,
+		isUsedStar,
+	}: {
+		side: DraftSide;
+		chamberIndex: number;
+		accountId: string;
+		isUsedStar: boolean;
+	}) => {
+		if (
+			(side === "blue" && !canEditBlueAssignments) ||
+			(side === "red" && !canEditRedAssignments)
+		) {
+			return;
+		}
+
+		if (!match?.id) {
+			return;
+		}
+
+		const teamSide = side === "blue" ? 0 : 1;
+		setTeamCosts((prev) => {
+			const index = prev.findIndex(
+				(item) =>
+					item.teamSide === teamSide && item.chamberIndex === chamberIndex,
+			);
+			if (index < 0) {
+				return prev;
+			}
+
+			const next = [...prev];
+			next[index] = {
+				...next[index],
+				accountId,
+				isUsedStar,
+			};
+			return next;
+		});
+
+		socket.emit(SocketEvent.UPDATE_TEAM_COST, {
+			matchId: match.id,
+			teamSide: side,
+			chamberIndex,
+			accountId,
+			isUsedStar,
+			updatedBy: profile?.id,
+		});
+	};
+
+	const onUpdateChamberClearTime = ({
+		side,
+		chamberIndex,
+		clearTimeSeconds,
+	}: {
+		side: DraftSide;
+		chamberIndex: number;
+		clearTimeSeconds: number;
+	}) => {
+		if (
+			(side === "blue" && !canEditBlueAssignments) ||
+			(side === "red" && !canEditRedAssignments)
+		) {
+			return;
+		}
+
+		if (!match?.id || !sessionStateResponse?.data?.matchSessionId) {
+			return;
+		}
+
+		applyChamberClearTimeUpdate(side, chamberIndex, clearTimeSeconds);
+
+		socket.emit(SocketEvent.UPDATE_CHAMBER_CLEAR_TIME, {
+			matchId: match.id,
+			matchSessionId: sessionStateResponse.data.matchSessionId,
+			teamSide: side,
+			chamberIndex,
+			clearTimeSeconds,
+			updatedBy: profile?.id,
+		});
+	};
+
+	const onCompleteMatch = async () => {
+		if (!match?.id || !isHost || !isDraftCompleted || !isAssignmentBoardCompleted) {
+			return;
+		}
+
+		try {
+			setIsCompletingMatch(true);
+			await matchApi.completeSession(match.id);
+
+			const refreshedMatchResponse = await matchApi.getMatch(match.id);
+			const refreshedMatch = refreshedMatchResponse.data;
+
+			if (refreshedMatch?.status === MatchStatus.COMPLETED) {
+				void router.navigate({
+					to: "/room/$roomId/result",
+					params: { roomId: match.id },
+				});
+				return;
+			}
+
+			await router.invalidate();
+			toast.success("Session completed.");
+		} catch {
+			toast.error("Failed to complete match. Please check assignment info.");
+		} finally {
+			setIsCompletingMatch(false);
+		}
 	};
 
 	if (isLoading) {
@@ -742,38 +1336,46 @@ function RouteComponent() {
 						picksPerSide={PICKS_PER_SIDE}
 					/>
 
-					{isDraftCompleted ? (
-						<SideAssignmentBoard
-							side="blue"
-							slots={blueAssignments}
-							teamPlayerCount={TEAM_PLAYER_COUNT}
-							picksPerPlayer={PICKS_PER_PLAYER}
-							playerOptions={playerOptions}
-							defaultCost={blueDefaultCost}
-							canReorder={canBlueReorderAssignments}
-							onDragStart={(dragSide, index) =>
-								setDragging({ side: dragSide, index })
-							}
-							onDrop={onDropAssignment}
-							onDragEnd={() => setDragging(null)}
-							onUpdateSlotBuild={onUpdateSlotBuild}
-						/>
-					) : (
-						<>
+					<div className="flex min-h-0 flex-1 flex-col">
+						{isDraftCompleted ? (
+							<SideAssignmentBoard
+								side="blue"
+								slots={blueAssignments}
+								slotBuilds={blueSlotBuilds}
+								teamCosts={teamCosts.filter((item) => item.teamSide === 0)}
+								chamberBaseTimes={blueChamberBaseTimes}
+								teamPlayerCount={TEAM_PLAYER_COUNT}
+								picksPerPlayer={PICKS_PER_PLAYER}
+								playerOptions={playerOptions}
+								defaultCost={blueDefaultCost}
+								canEdit={canEditBlueAssignments}
+								canReorder={canBlueReorderAssignments}
+								onDragStart={(dragSide, index) =>
+									setDragging({ side: dragSide, index })
+								}
+								onDrop={onDropAssignment}
+								onDragEnd={() => setDragging(null)}
+								onUpdateSlotBuild={onUpdateSlotBuild}
+								onUpdateTeamCost={onUpdateTeamCost}
+								onUpdateChamberClearTime={onUpdateChamberClearTime}
+								onSearchPlayers={setPlayerSearch}
+							/>
+						) : (
+							<div className="flex min-h-0 flex-1 flex-col gap-4">
 							<div className="rounded-xl border border-white/20 bg-white/5 p-4">
 								<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
 									Bans
 								</div>
-								<div className="grid grid-cols-3 gap-2">
+								<div className="grid grid-cols-8 gap-2">
 									{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
 										const committed = blueBans[index];
 										const preview =
 											!isDraftCompleted &&
-											!committed &&
-											pendingPick?.side === "blue" &&
-											currentAction?.side === "blue" &&
-											currentAction?.type === "ban" &&
-											index === blueBans.length
+												!committed &&
+												pendingPick?.side === "blue" &&
+												currentAction?.side === "blue" &&
+												currentAction?.type === "ban" &&
+												index === blueBans.length
 												? pendingPick.character
 												: null;
 
@@ -788,7 +1390,7 @@ function RouteComponent() {
 											<div
 												key={`blue-ban-slot-${index}`}
 												className={cn(
-													"relative h-16 overflow-hidden rounded-md border border-sky-400/40 bg-sky-500/10",
+													"relative h-16 overflow-hidden rounded-md border border-gray-400/40 bg-gray-500/10",
 													isActiveSlot && "animate-pulse border-yellow-400",
 												)}
 											>
@@ -798,6 +1400,7 @@ function RouteComponent() {
 														alt={character.name}
 														className={cn(
 															"h-full w-full object-cover",
+															"grayscale",
 															preview && "opacity-70",
 														)}
 													/>
@@ -831,33 +1434,58 @@ function RouteComponent() {
 								pendingPick={pendingPick}
 								canInteract={canBlueInteract}
 								onSelectCharacter={onSelectCharacter}
+								onlyDisplayNames={true}
 							/>
-						</>
-					)}
+							</div>
+						)}
+					</div>
 				</div>
 
 				<div className="col-span-1 flex flex-col items-center justify-between gap-4 py-4">
 					<div className="w-full rounded-md border border-white/30 bg-white/5 p-3 text-center">
 						<p className="text-sm text-white/80">
 							{isDraftCompleted
-								? "Draft completed. Leaders can now split team members."
+								? "Draft completed. Fill assignment info, then host can complete the match."
 								: currentAction?.type === "ban"
 									? `Ban ${draftStep + 1}/${TOTAL_ACTIONS} - ${currentAction.side === "blue" ? "Blue" : "Red"} side turn`
 									: `Pick ${draftStep + 1 - TOTAL_BANS}/${TOTAL_PICKS} - ${currentAction?.side === "blue" ? "Blue" : "Red"} side turn`}
 						</p>
 					</div>
 
+					<div className="w-full rounded-md p-3 text-center">
+						<p className="mt-2 text-sm text-white/90">
+							{blueFinalTimeSeconds === redFinalTimeSeconds && <ArrowLeftRightIcon className="mx-1 inline h-8 w-8" />}
+							{blueFinalTimeSeconds < redFinalTimeSeconds && <StepForward className="mx-1 inline h-8 w-8 text-blue-400" />}
+							{redFinalTimeSeconds < blueFinalTimeSeconds && <StepBack className="mx-1 inline h-8 w-8 text-red-400" />}
+						</p>
+						<p className="mt-1 text-xs text-white/70">
+							{fasterTeamLabel === "Tie"
+								? "Both teams have the same final time"
+								: <>
+									Gap: <span className={cn(fasterTeamLabel === "Blue" ? "text-blue-400" : "text-red-400")}>{finalTimeGapSeconds}s</span>
+								</>
+							}
+						</p>
+					</div>
+
 					<Button
 						disabled={
-							isDraftCompleted ||
-							!pendingPick ||
-							!currentAction ||
-							pendingPick.side !== currentAction.side
+							isDraftCompleted
+								? !isHost || !isAssignmentBoardCompleted || isCompletingMatch
+								: !pendingPick ||
+									!currentAction ||
+									pendingPick.side !== currentAction.side
 						}
-						onClick={onConfirmPick}
+						onClick={isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick}
 						className="w-full"
 					>
-						{currentAction?.type === "ban" ? "Confirm ban" : "Confirm pick"}
+						{isDraftCompleted
+							? isCompletingMatch
+								? "Completing..."
+								: "Complete match"
+							: currentAction?.type === "ban"
+								? "Confirm ban"
+								: "Confirm pick"}
 					</Button>
 				</div>
 
@@ -869,38 +1497,46 @@ function RouteComponent() {
 						picksPerSide={PICKS_PER_SIDE}
 					/>
 
-					{isDraftCompleted ? (
-						<SideAssignmentBoard
-							side="red"
-							slots={redAssignments}
-							teamPlayerCount={TEAM_PLAYER_COUNT}
-							picksPerPlayer={PICKS_PER_PLAYER}
-							playerOptions={playerOptions}
-							defaultCost={redDefaultCost}
-							canReorder={canRedReorderAssignments}
-							onDragStart={(dragSide, index) =>
-								setDragging({ side: dragSide, index })
-							}
-							onDrop={onDropAssignment}
-							onDragEnd={() => setDragging(null)}
-							onUpdateSlotBuild={onUpdateSlotBuild}
-						/>
-					) : (
-						<>
+					<div className="flex min-h-0 flex-1 flex-col">
+						{isDraftCompleted ? (
+							<SideAssignmentBoard
+								side="red"
+								slots={redAssignments}
+								slotBuilds={redSlotBuilds}
+								teamCosts={teamCosts.filter((item) => item.teamSide === 1)}
+								chamberBaseTimes={redChamberBaseTimes}
+								teamPlayerCount={TEAM_PLAYER_COUNT}
+								picksPerPlayer={PICKS_PER_PLAYER}
+								playerOptions={playerOptions}
+								defaultCost={redDefaultCost}
+								canEdit={canEditRedAssignments}
+								canReorder={canRedReorderAssignments}
+								onDragStart={(dragSide, index) =>
+									setDragging({ side: dragSide, index })
+								}
+								onDrop={onDropAssignment}
+								onDragEnd={() => setDragging(null)}
+								onUpdateSlotBuild={onUpdateSlotBuild}
+								onUpdateTeamCost={onUpdateTeamCost}
+								onUpdateChamberClearTime={onUpdateChamberClearTime}
+								onSearchPlayers={setPlayerSearch}
+							/>
+						) : (
+							<div className="flex min-h-0 flex-1 flex-col gap-4">
 							<div className="rounded-xl border border-white/20 bg-white/5 p-4">
 								<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
 									Bans
 								</div>
-								<div className="grid grid-cols-3 gap-2">
+								<div className="grid grid-cols-8 gap-2">
 									{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
 										const committed = redBans[index];
 										const preview =
 											!isDraftCompleted &&
-											!committed &&
-											pendingPick?.side === "red" &&
-											currentAction?.side === "red" &&
-											currentAction?.type === "ban" &&
-											index === redBans.length
+												!committed &&
+												pendingPick?.side === "red" &&
+												currentAction?.side === "red" &&
+												currentAction?.type === "ban" &&
+												index === redBans.length
 												? pendingPick.character
 												: null;
 
@@ -915,7 +1551,7 @@ function RouteComponent() {
 											<div
 												key={`red-ban-slot-${index}`}
 												className={cn(
-													"relative h-16 overflow-hidden rounded-md border border-red-500/40 bg-red-500/10",
+													"relative h-16 overflow-hidden rounded-md border border-gray-500/40 bg-gray-500/10",
 													isActiveSlot && "animate-pulse border-yellow-400",
 												)}
 											>
@@ -925,6 +1561,7 @@ function RouteComponent() {
 														alt={character.name}
 														className={cn(
 															"h-full w-full object-cover",
+															"grayscale",
 															preview && "opacity-70",
 														)}
 													/>
@@ -959,8 +1596,9 @@ function RouteComponent() {
 								canInteract={canRedInteract}
 								onSelectCharacter={onSelectCharacter}
 							/>
-						</>
-					)}
+							</div>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>

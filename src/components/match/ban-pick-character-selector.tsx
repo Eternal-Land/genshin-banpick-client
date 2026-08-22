@@ -22,6 +22,8 @@ export interface BanPickCharacterSelectorProps {
 	isDraftCompleted: boolean;
 	currentAction?: DraftAction;
 	onSelectCharacter: (character: BanPickCharacter) => void;
+	onlyDisplayNames?: boolean;
+	onlyDisplayLevels?: boolean;
 }
 
 export default function BanPickCharacterSelector({
@@ -37,6 +39,8 @@ export default function BanPickCharacterSelector({
 	isDraftCompleted,
 	currentAction,
 	onSelectCharacter,
+	onlyDisplayNames,
+	onlyDisplayLevels,
 }: BanPickCharacterSelectorProps) {
 	const { t } = useTranslation("match");
 	const activeRingClass =
@@ -64,7 +68,7 @@ export default function BanPickCharacterSelector({
 				{renderElementFilter}
 				{renderRarityFilter}
 			</div>
-			<div className="grid grid-cols-7 auto-rows-min gap-4 overflow-y-auto p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+			<div className="grid flex-1 min-h-0 grid-cols-7 auto-rows-max gap-4 overflow-y-auto p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 				{characters.map((character, index) => {
 					const isSelectedInDraft = selectedCharacterNames.has(character.name);
 					const isDisabled =
@@ -94,6 +98,8 @@ export default function BanPickCharacterSelector({
 								level={character.level}
 								name={character.name}
 								rarity={character.rarity}
+								onlyDisplayNames={onlyDisplayNames ?? false}
+								onlyDisplayLevels={onlyDisplayLevels ?? false}
 							/>
 							<span>
 								{t(matchLocaleKeys.ban_pick_cost_label)}: {character.cost}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
@@ -311,6 +311,18 @@ function RouteComponent() {
 		},
 	];
 
+	const isThreeVsThreeMatch = matchType === MatchType.THREE_VS_THREE;
+
+	useEffect(() => {
+		if (!isThreeVsThreeMatch) {
+			return;
+		}
+
+		if (sessionCount !== 1) {
+			setSessionCount(1);
+		}
+	}, [isThreeVsThreeMatch, sessionCount]);
+
 	const createMatchMutation = useMutation({
 		mutationFn: () => {
 			const left = selectedPlayerA;
@@ -381,7 +393,14 @@ function RouteComponent() {
 
 				<Select
 					value={sessionCount ? String(sessionCount) : undefined}
-					onValueChange={(value) => setSessionCount(Number(value))}
+					onValueChange={(value) => {
+						const nextSessionCount = Number(value);
+						if (isThreeVsThreeMatch && nextSessionCount !== 1) {
+							return;
+						}
+
+						setSessionCount(nextSessionCount);
+					}}
 				>
 					<SelectTrigger className="w-full max-w-[25vw] min-w-[10vw]">
 						<SelectValue
@@ -389,11 +408,20 @@ function RouteComponent() {
 						/>
 					</SelectTrigger>
 					<SelectContent>
-						{sessionOptions.map((option) => (
-							<SelectItem key={option.value} value={String(option.value)}>
+						{sessionOptions.map((option) => {
+							const isDisabled =
+								isThreeVsThreeMatch && option.value !== 1;
+
+							return (
+								<SelectItem
+									key={option.value}
+									value={String(option.value)}
+									disabled={isDisabled}
+								>
 								{option.label}
-							</SelectItem>
-						))}
+								</SelectItem>
+							);
+						})}
 					</SelectContent>
 				</Select>
 			</div>

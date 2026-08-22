@@ -7,8 +7,10 @@ export interface SessionStateBanPickSlotResponse {
 	slotType: string;
 	matchSide: string;
 	characterId: number | null;
+	characterConstellation: number | null;
 	weaponId: number | null;
 	weaponRefinement: number | null;
+	characterLevel: number | null;
 }
 
 export interface SessionStateTeamCostResponse {
@@ -25,8 +27,24 @@ export interface SessionStateTeamCostResponse {
 	isUsedStar: boolean;
 }
 
+export interface SessionStateRecordResponse {
+	id: number;
+	matchSessionId: number;
+	blueChamber1: number;
+	blueChamber2: number;
+	blueChamber3: number;
+	blueResetTimes: number;
+	blueFinalTime: number;
+	redChamber1: number;
+	redChamber2: number;
+	redChamber3: number;
+	redResetTimes: number;
+	redFinalTime: number;
+}
+
 export interface SessionStateResponse {
 	matchSessionId: number;
 	banPickSlots: SessionStateBanPickSlotResponse[];
 	teamCosts: SessionStateTeamCostResponse[];
+	sessionRecord: SessionStateRecordResponse | null;
 }

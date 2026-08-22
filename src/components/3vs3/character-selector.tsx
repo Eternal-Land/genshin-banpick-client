@@ -19,6 +19,8 @@ interface CharacterSelectorProps {
   pendingPick: PendingPickState | null;
   canInteract: boolean;
   onSelectCharacter: (side: DraftSide, character: BanPickCharacter) => void;
+  onlyDisplayNames?: boolean;
+  onlyDisplayLevels?: boolean;
 }
 
 export default function CharacterSelector({
@@ -34,9 +36,11 @@ export default function CharacterSelector({
   pendingPick,
   canInteract,
   onSelectCharacter,
+  onlyDisplayNames,
+  onlyDisplayLevels,
 }: CharacterSelectorProps) {
   return (
-    <div className="flex h-full flex-col gap-3 rounded-xl border border-white/20 bg-white/5 p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border border-white/20 bg-white/5 p-4">
       <div className="flex items-center justify-between gap-2">
         <Input
           value={search}
@@ -53,7 +57,7 @@ export default function CharacterSelector({
           onSelect={onSelectRarity}
         />
       </div>
-      <div className="grid grid-cols-7 auto-rows-min gap-3 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="grid flex-1 min-h-0 grid-cols-7 auto-rows-min gap-3 overflow-y-auto p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {characters.map((character) => {
           const isSelected = selectedCharacterIds.has(character.id);
           const isPending =
@@ -84,6 +88,8 @@ export default function CharacterSelector({
                 level={character.level}
                 name={character.name}
                 rarity={character.rarity}
+                onlyDisplayNames={onlyDisplayNames}
+                onlyDisplayLevels={onlyDisplayLevels}
               />
             </button>
           );

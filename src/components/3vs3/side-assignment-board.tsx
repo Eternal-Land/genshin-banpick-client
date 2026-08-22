@@ -6,6 +6,7 @@ import {
 } from "@/components/select-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
 import {
@@ -40,10 +41,24 @@ interface SlotBuildInput {
 interface SideAssignmentBoardProps {
     side: DraftSide;
     slots: Array<BanPickCharacter | null>;
+    slotBuilds: Array<{
+        characterId: string;
+        constellation: number;
+        refinement: number;
+        level: number;
+    }>;
+    teamCosts: Array<{
+        accountId: string;
+        chamberIndex: number;
+        isUsedStar: boolean;
+        totalChamberTimeBonus: number;
+    }>;
+    chamberBaseTimes: number[];
     teamPlayerCount: number;
     picksPerPlayer: number;
     playerOptions: PlayerOption[];
     defaultCost: string;
+    canEdit: boolean;
     canReorder: boolean;
     onDragStart: (side: DraftSide, index: number) => void;
     onDrop: (side: DraftSide, index: number) => void;
@@ -54,14 +69,29 @@ interface SideAssignmentBoardProps {
         characterId: string;
         constellation: number;
         refinement: number;
+        level: number;
     }) => void;
+    onUpdateTeamCost: (params: {
+        side: DraftSide;
+        chamberIndex: number;
+        accountId: string;
+        isUsedStar: boolean;
+    }) => void;
+    onUpdateChamberClearTime: (params: {
+        side: DraftSide;
+        chamberIndex: number;
+        clearTimeSeconds: number;
+    }) => void;
+    onSearchPlayers?: (search: string) => void;
 }
 
 const SLOT_BUILD_UPDATE_DEBOUNCE_MS = 500;
+const TEAM_COST_UPDATE_DEBOUNCE_MS = 500;
+const CHAMBER_CLEAR_TIME_UPDATE_DEBOUNCE_MS = 500;
+const PLAYER_SEARCH_DEBOUNCE_MS = 500;
+const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
 const COMPLETE_TIME_REGEX = /^\d{2}:[0-5]\d$/;
-
-const normalizeCostInput = (value: string) => value.replace(/\D/g, "");
 
 const formatCompleteTimeInput = (rawValue: string) => {
     const digits = rawValue.replace(/\D/g, "").slice(0, 4);
@@ -81,6 +111,33 @@ const formatCompleteTimeInput = (rawValue: string) => {
 
 const isValidCompleteTime = (value: string) =>
     value.length === 0 || COMPLETE_TIME_REGEX.test(value);
+
+const parseCompleteTimeToSeconds = (value: string) => {
+    if (!COMPLETE_TIME_REGEX.test(value)) {
+        return 0;
+    }
+
+    const [minutes, seconds] = value.split(":").map(Number);
+    return minutes * 60 + seconds;
+};
+
+const mapChamberValueToClearTimeInput = (chamberValue?: number) => {
+    if (!Number.isFinite(chamberValue) || (chamberValue ?? 0) <= 0) {
+        return "";
+    }
+
+    const clearTimeSeconds = Math.max(0, 600 - Math.floor(chamberValue ?? 0));
+    const minutes = Math.floor(clearTimeSeconds / 60);
+    const seconds = clearTimeSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+// const formatSecondsToClock = (value: number) => {
+//     const totalSeconds = Math.max(0, Math.floor(value));
+//     const minutes = Math.floor(totalSeconds / 60);
+//     const seconds = totalSeconds % 60;
+//     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+// };
 
 const normalizeBuildNumberInput = (value: string) => value.replace(/\D/g, "").slice(0, 2);
 
@@ -118,15 +175,22 @@ const getPointerPosition = (event: DraggableEvent) => {
 export default function SideAssignmentBoard({
     side,
     slots,
+    slotBuilds,
+    teamCosts,
+    chamberBaseTimes,
     teamPlayerCount,
     picksPerPlayer,
     playerOptions,
     defaultCost,
+    canEdit,
     canReorder,
     onDragStart,
     onDrop,
     onDragEnd,
     onUpdateSlotBuild,
+    onUpdateTeamCost,
+    onUpdateChamberClearTime,
+    onSearchPlayers,
 }: SideAssignmentBoardProps) {
     const isBlue = side === "blue";
     const [chamberTagInputs, setChamberTagInputs] = useState<ChamberTagInput[]>([]);
@@ -134,6 +198,12 @@ export default function SideAssignmentBoard({
     const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
     const [dragResetToken, setDragResetToken] = useState(0);
     const slotBuildTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const teamCostTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const chamberClearTimeTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+    const debouncedSearchPlayers = useDebounce(
+        (search: string) => onSearchPlayers?.(search),
+        PLAYER_SEARCH_DEBOUNCE_MS,
+    );
 
     const defaultPlayer = useMemo(
         () => playerOptions[0]?.label ?? "",
@@ -157,45 +227,86 @@ export default function SideAssignmentBoard({
         });
     }, [picksPerPlayer, teamPlayerCount]);
 
+    const resolveChamberTotalTime = (index: number, fallbackTime = 0) => {
+        const chamberBaseTime =
+            chamberBaseTimes[index] ??
+            parseCompleteTimeToSeconds(chamberTagInputs[index]?.completeTime ?? "") ??
+            fallbackTime;
+        const chamberCost = teamCosts.find((item) => item.chamberIndex === index + 1);
+        const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+        const starBonus = chamberCost?.isUsedStar ? CHAMBER_STAR_TIME_BONUS_SECONDS : 0;
+
+        return chamberBaseTime + chamberBonus + starBonus;
+    };
+
+    const finalTimeSeconds = useMemo(() => {
+        return chamberSlotRanges.reduce((total, _, index) => {
+            return total + resolveChamberTotalTime(index);
+        }, 0);
+    }, [chamberBaseTimes, chamberSlotRanges, chamberTagInputs, teamCosts]);
+
     useEffect(() => {
         setChamberTagInputs((prev) =>
             Array.from({ length: chamberSlotRanges.length }).map((_, index) => {
                 const previous = prev[index];
+                const teamCost = teamCosts.find(
+                    (item) => item.chamberIndex === index + 1,
+                );
+                const completeTimeFromSessionRecord = mapChamberValueToClearTimeInput(
+                    chamberBaseTimes[index],
+                );
+                const persistedPlayer = playerOptions.find(
+                    (option) => option.value === teamCost?.accountId,
+                );
 
                 if (previous) {
                     return {
                         ...previous,
-                        player: previous.player || defaultPlayer,
+                        player: persistedPlayer?.label ?? (previous.player || defaultPlayer),
                         cost: previous.cost || defaultCost,
+                        star: teamCost?.isUsedStar ?? previous.star,
+                        completeTime:
+                            completeTimeFromSessionRecord || previous.completeTime,
                     };
                 }
 
                 return {
-                    player: defaultPlayer,
+                    player: persistedPlayer?.label ?? defaultPlayer,
                     cost: defaultCost,
-                    star: false,
-                    completeTime: "",
+                    star: teamCost?.isUsedStar ?? false,
+                    completeTime: completeTimeFromSessionRecord,
                 };
             }),
         );
-    }, [chamberSlotRanges.length, defaultCost, defaultPlayer]);
+    }, [chamberBaseTimes, chamberSlotRanges.length, defaultCost, defaultPlayer, playerOptions, teamCosts]);
 
     useEffect(() => {
         setSlotBuildInputs((prev) =>
             Array.from({ length: slots.length }).map((_, index) => {
                 const previous = prev[index];
-                if (previous) {
-                    return previous;
-                }
+                const character = slots[index];
+                const slotBuild = slotBuilds[index];
+                const shouldHydrateBuild =
+                    Boolean(character) &&
+                    Boolean(slotBuild) &&
+                    slotBuild.characterId === character?.id;
 
                 return {
-                    level: 90,
-                    constellation: "",
-                    refinement: "",
+                    level: shouldHydrateBuild && (slotBuild?.level ?? 0) > 0
+                        ? (slotBuild?.level as 90 | 95 | 100)
+                        : (previous?.level ?? 90),
+                    constellation:
+                        shouldHydrateBuild && (slotBuild?.constellation ?? 0) >= 0
+                            ? String(slotBuild?.constellation)
+                            : "",
+                    refinement:
+                        shouldHydrateBuild && (slotBuild?.refinement ?? 0) >= 0
+                            ? String(slotBuild?.refinement)
+                            : "",
                 };
             }),
         );
-    }, [slots.length]);
+    }, [slotBuilds, slots]);
 
     useEffect(() => {
         return () => {
@@ -203,52 +314,123 @@ export default function SideAssignmentBoard({
                 clearTimeout(timerId);
             });
             slotBuildTimersRef.current = {};
+            Object.values(teamCostTimersRef.current).forEach((timerId) => {
+                clearTimeout(timerId);
+            });
+            teamCostTimersRef.current = {};
+            Object.values(chamberClearTimeTimersRef.current).forEach((timerId) => {
+                clearTimeout(timerId);
+            });
+            chamberClearTimeTimersRef.current = {};
         };
     }, []);
 
     const updateChamberTag = (
         chamberIndex: number,
         updater: (prev: ChamberTagInput) => ChamberTagInput,
+        options?: {
+            syncTeamCost?: boolean;
+        },
     ) => {
+        if (!canEdit) {
+            return;
+        }
+
+        const current =
+            chamberTagInputs[chamberIndex] ??
+            ({
+                player: defaultPlayer,
+                cost: defaultCost,
+                star: false,
+                completeTime: "",
+            } as ChamberTagInput);
+        const updated = updater(current);
+
         setChamberTagInputs((prev) => {
             const next = [...prev];
-            const current =
-                next[chamberIndex] ??
-                ({
-                    player: defaultPlayer,
-                    cost: defaultCost,
-                    star: false,
-                    completeTime: "",
-                } as ChamberTagInput);
-
-            next[chamberIndex] = updater(current);
+            next[chamberIndex] = updated;
             return next;
         });
+
+        const shouldSyncTeamCost = options?.syncTeamCost ?? true;
+        if (!shouldSyncTeamCost) {
+            return;
+        }
+
+        const player = playerOptions.find((option) => option.label === updated.player);
+        if (!player) {
+            return;
+        }
+
+        const existingTimer = teamCostTimersRef.current[chamberIndex];
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        teamCostTimersRef.current[chamberIndex] = setTimeout(() => {
+            onUpdateTeamCost({
+                side,
+                chamberIndex: chamberIndex + 1,
+                accountId: player.value,
+                isUsedStar: updated.star,
+            });
+            delete teamCostTimersRef.current[chamberIndex];
+        }, TEAM_COST_UPDATE_DEBOUNCE_MS);
+    };
+
+    const scheduleChamberClearTimeUpdate = (
+        chamberIndex: number,
+        completeTime: string,
+    ) => {
+        if (!canEdit) {
+            return;
+        }
+
+        const existingTimer = chamberClearTimeTimersRef.current[chamberIndex];
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        if (!COMPLETE_TIME_REGEX.test(completeTime)) {
+            delete chamberClearTimeTimersRef.current[chamberIndex];
+            return;
+        }
+
+        chamberClearTimeTimersRef.current[chamberIndex] = setTimeout(() => {
+            onUpdateChamberClearTime({
+                side,
+                chamberIndex: chamberIndex + 1,
+                clearTimeSeconds: parseCompleteTimeToSeconds(completeTime),
+            });
+            delete chamberClearTimeTimersRef.current[chamberIndex];
+        }, CHAMBER_CLEAR_TIME_UPDATE_DEBOUNCE_MS);
     };
 
     const updateSlotBuildInput = (
         slotIndex: number,
         updater: (prev: SlotBuildInput) => SlotBuildInput,
     ) => {
-        let nextBuild: SlotBuildInput | null = null;
+        if (!canEdit) {
+            return;
+        }
+
+        const currentBuild =
+            slotBuildInputs[slotIndex] ??
+            ({
+                level: 90,
+                constellation: "",
+                refinement: "",
+            } as SlotBuildInput);
+        const updatedBuild = updater(currentBuild);
 
         setSlotBuildInputs((prev) => {
             const next = [...prev];
-            const current =
-                next[slotIndex] ??
-                ({
-                    level: 90,
-                    constellation: "",
-                    refinement: "",
-                } as SlotBuildInput);
-            const updated = updater(current);
-            nextBuild = updated;
-            next[slotIndex] = updated;
+            next[slotIndex] = updatedBuild;
             return next;
         });
 
         const character = slots[slotIndex];
-        if (!character || !nextBuild) {
+        if (!character) {
             return;
         }
 
@@ -258,8 +440,8 @@ export default function SideAssignmentBoard({
         }
 
         slotBuildTimersRef.current[slotIndex] = setTimeout(() => {
-            const constellation = Number.parseInt(nextBuild?.constellation ?? "", 10);
-            const refinement = Number.parseInt(nextBuild?.refinement ?? "", 10);
+            const constellation = Number.parseInt(updatedBuild.constellation, 10);
+            const refinement = Number.parseInt(updatedBuild.refinement, 10);
 
             onUpdateSlotBuild({
                 side,
@@ -267,6 +449,7 @@ export default function SideAssignmentBoard({
                 characterId: character.id,
                 constellation: Number.isNaN(constellation) ? 0 : constellation,
                 refinement: Number.isNaN(refinement) ? 0 : refinement,
+                level: updatedBuild.level,
             });
         }, SLOT_BUILD_UPDATE_DEBOUNCE_MS);
     };
@@ -291,8 +474,8 @@ export default function SideAssignmentBoard({
     };
 
     return (
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 overflow-y-auto">
-            <div className="mb-3 flex items-center justify-between">
+        <div className="h-full rounded-xl border border-white/20 bg-white/5 p-4 overflow-y-auto">
+            <div className={cn("mb-3 flex items-center gap-3")}>
                 <h3
                     className={cn(
                         "text-sm font-semibold uppercase tracking-wider",
@@ -301,6 +484,9 @@ export default function SideAssignmentBoard({
                 >
                     Final time:
                 </h3>
+                <div className="text-sm font-semibold text-yellow-400/90">
+                    {finalTimeSeconds}s
+                </div>
             </div>
 
             <div className="grid grid-rows-3 gap-3">
@@ -314,104 +500,104 @@ export default function SideAssignmentBoard({
                         label: string;
                         control: ReactNode;
                     }> = [
-                        {
-                            key: "player",
-                            label: "Player:",
-                            control: (
-                                <SelectInput
-                                    value={chamberTagInputs[playerIndex]?.player ?? ""}
-                                    placeholder="Select player"
-                                    onValueChange={(value) => {
-                                        updateChamberTag(playerIndex, (prev) => ({
-                                            ...prev,
-                                            player: value,
-                                        }));
-                                    }}
-                                    inputClassName="h-8"
-                                >
-                                    <SelectInputContent>
-                                        {playerOptions.map((player) => (
-                                            <SelectInputOption
-                                                key={`${side}-player-option-${player.value}`}
-                                                value={player.label}
-                                            >
-                                                {player.label}
-                                            </SelectInputOption>
-                                        ))}
-                                    </SelectInputContent>
-                                </SelectInput>
-                            ),
-                        },
-                        {
-                            key: "cost",
-                            label: "Cost:",
-                            control: (
-                                <Input
-                                    value={chamberTagInputs[playerIndex]?.cost ?? ""}
-                                    onChange={(event) => {
-                                        updateChamberTag(playerIndex, (prev) => ({
-                                            ...prev,
-                                            cost: normalizeCostInput(event.target.value),
-                                        }));
-                                    }}
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    className="h-8"
-                                />
-                            ),
-                        },
-                        {
-                            key: "star",
-                            label: "Star:",
-                            control: (
-                                <div className="flex h-8 items-center">
-                                    <Checkbox
-                                        checked={chamberTagInputs[playerIndex]?.star ?? false}
-                                        onCheckedChange={(checked) => {
+                            {
+                                key: "player",
+                                label: "Player:",
+                                control: (
+                                    <SelectInput
+                                        value={chamberTagInputs[playerIndex]?.player ?? ""}
+                                        placeholder="Select player"
+                                        disabled={!canEdit}
+                                        onValueChange={(value) => {
                                             updateChamberTag(playerIndex, (prev) => ({
                                                 ...prev,
-                                                star: checked === true,
+                                                player: value,
                                             }));
+                                            debouncedSearchPlayers(value);
                                         }}
-                                        id={`${side}-chamber-star-${playerIndex + 1}`}
-                                    />
-                                </div>
-                            ),
-                        },
-                        {
-                            key: "complete-time",
-                            label: "Time clear:",
-                            control: (
-                                <Input
-                                    value={chamberTagInputs[playerIndex]?.completeTime ?? ""}
-                                    onChange={(event) => {
-                                        updateChamberTag(playerIndex, (prev) => ({
-                                            ...prev,
-                                            completeTime: formatCompleteTimeInput(
+                                        inputClassName="h-8"
+                                    >
+                                        <SelectInputContent>
+                                            {playerOptions.map((player) => (
+                                                <SelectInputOption
+                                                    key={`${side}-player-option-${player.value}`}
+                                                    value={player.label}
+                                                >
+                                                    {player.label}
+                                                </SelectInputOption>
+                                            ))}
+                                        </SelectInputContent>
+                                    </SelectInput>
+                                ),
+                            },
+                            {
+                                key: "cost",
+                                label: "Cost:",
+                                control: (
+                                    <div className="h-8 flex items-center text-xs text-white/70">
+                                        {`${teamCosts.find((item) => item.chamberIndex === playerIndex + 1)?.totalChamberTimeBonus ?? 0}s`}
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: "star",
+                                label: "Star:",
+                                control: (
+                                    <div className="flex h-8 items-center">
+                                        <Checkbox
+                                            checked={chamberTagInputs[playerIndex]?.star ?? false}
+                                            disabled={!canEdit}
+                                            onCheckedChange={(checked) => {
+                                                updateChamberTag(playerIndex, (prev) => ({
+                                                    ...prev,
+                                                    star: checked === true,
+                                                }));
+                                            }}
+                                            id={`${side}-chamber-star-${playerIndex + 1}`}
+                                        />
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: "complete-time",
+                                label: "Time clear:",
+                                control: (
+                                    <Input
+                                        value={chamberTagInputs[playerIndex]?.completeTime ?? ""}
+                                        disabled={!canEdit}
+                                        onChange={(event) => {
+                                            const nextCompleteTime = formatCompleteTimeInput(
                                                 event.target.value,
-                                            ),
-                                        }));
-                                    }}
-                                    placeholder="00:00"
-                                    className={cn(
-                                        "h-8",
-                                        !isValidCompleteTime(
-                                            chamberTagInputs[playerIndex]?.completeTime ?? "",
-                                        ) && "border-red-500 focus-visible:ring-red-500",
-                                    )}
-                                />
-                            ),
-                        },
-                        {
-                            key: "total-time",
-                            label: "Total time:",
-                            control: (
-                                <div className="text-xs text-white/70">
-                                    {chamberTagInputs[playerIndex]?.completeTime ?? "0"}s
-                                </div>
-                            ),
-                        }
-                    ];
+                                            );
+                                            updateChamberTag(playerIndex, (prev) => ({
+                                                ...prev,
+                                                completeTime: nextCompleteTime,
+                                            }), { syncTeamCost: false });
+                                            scheduleChamberClearTimeUpdate(
+                                                playerIndex,
+                                                nextCompleteTime,
+                                            );
+                                        }}
+                                        placeholder="00:00"
+                                        className={cn(
+                                            "h-8",
+                                            !isValidCompleteTime(
+                                                chamberTagInputs[playerIndex]?.completeTime ?? "",
+                                            ) && "border-red-500 focus-visible:ring-red-500",
+                                        )}
+                                    />
+                                ),
+                            },
+                            {
+                                key: "total-time",
+                                label: "Total time:",
+                                control: (
+                                    <div className="text-xs text-white/70">
+                                        {resolveChamberTotalTime(playerIndex)}s
+                                    </div>
+                                ),
+                            }
+                        ];
 
                     return (
                         <div
@@ -419,9 +605,9 @@ export default function SideAssignmentBoard({
                             className="flex flex-col rounded-lg border border-white/15 bg-black/30 p-3"
                         >
                             <div className="mb-2 text-xs font-medium text-white/70">
-                                Chamber {playerIndex + 1}: {range.startTeamOrder}-{range.endTeamOrder}
+                                Chamber {playerIndex + 1}
                             </div>
-                            <div className="flex justify-between gap-3">
+                            <div className={cn("flex justify-between gap-3", !isBlue && "flex-row-reverse")}>
                                 <div className="grid min-w-80 grid-cols-[100px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
                                     {chamberTagRows.map((row) => (
                                         <div key={`${side}-${playerIndex}-${row.key}`} className="contents">
@@ -436,6 +622,10 @@ export default function SideAssignmentBoard({
                                         const globalIndex = start + slotIndex;
                                         const slotBuild = slotBuildInputs[globalIndex];
                                         const level = slotBuild?.level ?? 90;
+                                        const rarityBackground =
+                                            character?.rarity === 5
+                                                ? "bg-linear-180 from-[#9A6D43] to-[#DE9552]"
+                                                : "bg-linear-180 from-[#4D4280] to-[#935DB1]";
 
                                         return (
                                             <div
@@ -481,7 +671,7 @@ export default function SideAssignmentBoard({
                                                             "z-20 pointer-events-none shadow-lg shadow-black/40",
                                                         )}
                                                     >
-                                                        <div className="relative h-20 overflow-hidden rounded-t-lg border border-white/20 bg-white/5">
+                                                        <div className={cn("relative h-20 overflow-hidden rounded-t-lg", rarityBackground)}>
                                                             {character ? (
                                                                 <img
                                                                     src={character.imageUrl}
@@ -502,7 +692,7 @@ export default function SideAssignmentBoard({
                                                                         <span className="text-[12px]">Level</span>
                                                                         <SelectInput
                                                                             value={String(level)}
-                                                                            disabled={!canReorder || !character}
+                                                                            disabled={!canEdit || !character}
                                                                             onValueChange={(value) => {
                                                                                 const nextLevel = Number(value);
                                                                                 if (
@@ -557,11 +747,13 @@ export default function SideAssignmentBoard({
                                                                         ),
                                                                     }));
                                                                 }}
-                                                                disabled={!character}
+                                                                disabled={!character || !canEdit}
                                                                 placeholder="0"
                                                                 className="h-6 w-6 px-1 py-0 text-center text-[10px] rounded-none border-none bg-transparent"
                                                                 onClick={(event) => event.stopPropagation()}
                                                                 onMouseDown={(event) => event.stopPropagation()}
+                                                                min={0}
+                                                                max={6}
                                                             />
                                                             <span>R</span>
                                                             <Input
@@ -574,11 +766,13 @@ export default function SideAssignmentBoard({
                                                                         ),
                                                                     }));
                                                                 }}
-                                                                disabled={!character}
+                                                                disabled={!character || !canEdit}
                                                                 placeholder="0"
                                                                 className="h-6 w-6 px-1 py-0 text-center text-[10px] rounded-none border-none bg-transparent"
                                                                 onClick={(event) => event.stopPropagation()}
                                                                 onMouseDown={(event) => event.stopPropagation()}
+                                                                min={0}
+                                                                max={5}
                                                             />
                                                         </div>
                                                     </div>
