@@ -38,6 +38,8 @@ export interface MatchSessionReportItemResponse {
 	redFinalTime: number | null;
 	blueResultTotal: number | null;
 	redResultTotal: number | null;
+	blueTimeBonus: number;
+	redTimeBonus: number;
 	resultDifference: number | null;
 	record: SessionRecordResponse | null;
 	cost: SessionCostResponse | null;

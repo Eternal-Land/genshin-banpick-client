@@ -15,6 +15,8 @@ export interface CharacterContainerProps {
 	constellation: number;
 	element: CharacterElementEnum;
 	imageUrl: string;
+	onlyDisplayNames?: boolean;
+	onlyDisplayLevels?: boolean;
 }
 
 export default function CharacterContainer({
@@ -24,6 +26,8 @@ export default function CharacterContainer({
 	constellation,
 	element: elementId,
 	imageUrl,
+	onlyDisplayNames,
+	onlyDisplayLevels,
 }: CharacterContainerProps) {
 	const { t } = useTranslation();
 	const element = CharacterElementDetail[elementId];
@@ -78,16 +82,23 @@ export default function CharacterContainer({
 					className="hover:scale-115 transition-transform duration-300"
 				/>
 			</div>
-			<div className="text-center">
-				<span
-					className={cn(
-						"text-black text-sm",
-						level > 90 ? "text-yellow-700" : "",
-					)}
-				>
-					{t(getTranslationToken("common", commonLocaleKeys.level))} {level}
-				</span>
-			</div>
+			{!onlyDisplayNames && !onlyDisplayLevels && (
+				<div className="text-center">
+					<span
+						className={cn(
+							"text-black text-sm",
+							level > 90 ? "text-yellow-700" : "",
+						)}
+					>
+						{t(getTranslationToken("common", commonLocaleKeys.level))} {level}
+					</span>
+				</div>
+			)}
+			{onlyDisplayNames && (
+				<div className="flex justify-center w-full overflow-hidden pt-1 px-2">
+					<span className="text-black text-center text-sm w-full truncate">{name}</span>
+				</div>
+			)}
 		</div>
 	);
 }

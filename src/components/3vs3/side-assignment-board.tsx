@@ -58,6 +58,7 @@ interface SideAssignmentBoardProps {
     picksPerPlayer: number;
     playerOptions: PlayerOption[];
     defaultCost: string;
+    canEdit: boolean;
     canReorder: boolean;
     onDragStart: (side: DraftSide, index: number) => void;
     onDrop: (side: DraftSide, index: number) => void;
@@ -88,6 +89,7 @@ const SLOT_BUILD_UPDATE_DEBOUNCE_MS = 500;
 const TEAM_COST_UPDATE_DEBOUNCE_MS = 500;
 const CHAMBER_CLEAR_TIME_UPDATE_DEBOUNCE_MS = 500;
 const PLAYER_SEARCH_DEBOUNCE_MS = 500;
+const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
 const COMPLETE_TIME_REGEX = /^\d{2}:[0-5]\d$/;
 
@@ -180,6 +182,7 @@ export default function SideAssignmentBoard({
     picksPerPlayer,
     playerOptions,
     defaultCost,
+    canEdit,
     canReorder,
     onDragStart,
     onDrop,
@@ -224,16 +227,21 @@ export default function SideAssignmentBoard({
         });
     }, [picksPerPlayer, teamPlayerCount]);
 
+    const resolveChamberTotalTime = (index: number, fallbackTime = 0) => {
+        const chamberBaseTime =
+            chamberBaseTimes[index] ??
+            parseCompleteTimeToSeconds(chamberTagInputs[index]?.completeTime ?? "") ??
+            fallbackTime;
+        const chamberCost = teamCosts.find((item) => item.chamberIndex === index + 1);
+        const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+        const starBonus = chamberCost?.isUsedStar ? CHAMBER_STAR_TIME_BONUS_SECONDS : 0;
+
+        return chamberBaseTime + chamberBonus + starBonus;
+    };
+
     const finalTimeSeconds = useMemo(() => {
         return chamberSlotRanges.reduce((total, _, index) => {
-            const chamberBaseTime =
-                chamberBaseTimes[index] ??
-                parseCompleteTimeToSeconds(chamberTagInputs[index]?.completeTime ?? "");
-            const chamberBonus =
-                teamCosts.find((item) => item.chamberIndex === index + 1)
-                    ?.totalChamberTimeBonus ?? 0;
-
-            return total + chamberBaseTime + chamberBonus;
+            return total + resolveChamberTotalTime(index);
         }, 0);
     }, [chamberBaseTimes, chamberSlotRanges, chamberTagInputs, teamCosts]);
 
@@ -324,6 +332,10 @@ export default function SideAssignmentBoard({
             syncTeamCost?: boolean;
         },
     ) => {
+        if (!canEdit) {
+            return;
+        }
+
         const current =
             chamberTagInputs[chamberIndex] ??
             ({
@@ -370,6 +382,10 @@ export default function SideAssignmentBoard({
         chamberIndex: number,
         completeTime: string,
     ) => {
+        if (!canEdit) {
+            return;
+        }
+
         const existingTimer = chamberClearTimeTimersRef.current[chamberIndex];
         if (existingTimer) {
             clearTimeout(existingTimer);
@@ -394,6 +410,10 @@ export default function SideAssignmentBoard({
         slotIndex: number,
         updater: (prev: SlotBuildInput) => SlotBuildInput,
     ) => {
+        if (!canEdit) {
+            return;
+        }
+
         const currentBuild =
             slotBuildInputs[slotIndex] ??
             ({
@@ -454,7 +474,7 @@ export default function SideAssignmentBoard({
     };
 
     return (
-        <div className="rounded-xl border border-white/20 bg-white/5 p-4 overflow-y-auto">
+        <div className="h-full rounded-xl border border-white/20 bg-white/5 p-4 overflow-y-auto">
             <div className={cn("mb-3 flex items-center gap-3")}>
                 <h3
                     className={cn(
@@ -487,6 +507,7 @@ export default function SideAssignmentBoard({
                                     <SelectInput
                                         value={chamberTagInputs[playerIndex]?.player ?? ""}
                                         placeholder="Select player"
+                                        disabled={!canEdit}
                                         onValueChange={(value) => {
                                             updateChamberTag(playerIndex, (prev) => ({
                                                 ...prev,
@@ -525,6 +546,7 @@ export default function SideAssignmentBoard({
                                     <div className="flex h-8 items-center">
                                         <Checkbox
                                             checked={chamberTagInputs[playerIndex]?.star ?? false}
+                                            disabled={!canEdit}
                                             onCheckedChange={(checked) => {
                                                 updateChamberTag(playerIndex, (prev) => ({
                                                     ...prev,
@@ -542,6 +564,7 @@ export default function SideAssignmentBoard({
                                 control: (
                                     <Input
                                         value={chamberTagInputs[playerIndex]?.completeTime ?? ""}
+                                        disabled={!canEdit}
                                         onChange={(event) => {
                                             const nextCompleteTime = formatCompleteTimeInput(
                                                 event.target.value,
@@ -570,11 +593,7 @@ export default function SideAssignmentBoard({
                                 label: "Total time:",
                                 control: (
                                     <div className="text-xs text-white/70">
-                                        {
-                                            (chamberBaseTimes[playerIndex] ??
-                                                parseCompleteTimeToSeconds(chamberTagInputs[playerIndex]?.completeTime ?? "")) +
-                                                (teamCosts.find((item) => item.chamberIndex === playerIndex + 1)?.totalChamberTimeBonus ?? 0)
-                                        }s
+                                        {resolveChamberTotalTime(playerIndex)}s
                                     </div>
                                 ),
                             }
@@ -673,7 +692,7 @@ export default function SideAssignmentBoard({
                                                                         <span className="text-[12px]">Level</span>
                                                                         <SelectInput
                                                                             value={String(level)}
-                                                                            disabled={!canReorder || !character}
+                                                                            disabled={!canEdit || !character}
                                                                             onValueChange={(value) => {
                                                                                 const nextLevel = Number(value);
                                                                                 if (
@@ -728,7 +747,7 @@ export default function SideAssignmentBoard({
                                                                         ),
                                                                     }));
                                                                 }}
-                                                                disabled={!character || !canReorder}
+                                                                disabled={!character || !canEdit}
                                                                 placeholder="0"
                                                                 className="h-6 w-6 px-1 py-0 text-center text-[10px] rounded-none border-none bg-transparent"
                                                                 onClick={(event) => event.stopPropagation()}
@@ -747,7 +766,7 @@ export default function SideAssignmentBoard({
                                                                         ),
                                                                     }));
                                                                 }}
-                                                                disabled={!character || !canReorder}
+                                                                disabled={!character || !canEdit}
                                                                 placeholder="0"
                                                                 className="h-6 w-6 px-1 py-0 text-center text-[10px] rounded-none border-none bg-transparent"
                                                                 onClick={(event) => event.stopPropagation()}
