@@ -117,4 +117,21 @@ export const matchLocaleKeys = {
 	ban_pick_session_completed_next_started:
 		"ban_pick_session_completed_next_started",
 	ban_pick_failed_complete_session: "ban_pick_failed_complete_session",
+	three_vs_three_loading_character_pool:
+		"three_vs_three_loading_character_pool",
+	three_vs_three_failed_load_characters:
+		"three_vs_three_failed_load_characters",
+	three_vs_three_bans_label: "three_vs_three_bans_label",
+	three_vs_three_assignment_hint: "three_vs_three_assignment_hint",
+	three_vs_three_turn_ban_label: "three_vs_three_turn_ban_label",
+	three_vs_three_turn_pick_label: "three_vs_three_turn_pick_label",
+	three_vs_three_same_final_time: "three_vs_three_same_final_time",
+	three_vs_three_gap_label: "three_vs_three_gap_label",
+	three_vs_three_confirm_ban: "three_vs_three_confirm_ban",
+	three_vs_three_confirm_pick: "three_vs_three_confirm_pick",
+	three_vs_three_session_completed: "three_vs_three_session_completed",
+	three_vs_three_undo_previous_turn: "three_vs_three_undo_previous_turn",
+	three_vs_three_undoing_previous_turn: "three_vs_three_undoing_previous_turn",
+	three_vs_three_failed_undo_previous_turn:
+		"three_vs_three_failed_undo_previous_turn",
 } as const;

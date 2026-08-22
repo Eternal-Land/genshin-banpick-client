@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/hooks/use-app-selector";
 import { useBanPickFilters } from "@/hooks/use-ban-pick-filters";
 import { useSocketEvent } from "@/hooks/use-socket-event";
+import { matchLocaleKeys } from "@/i18n/keys";
+import { getTranslationToken } from "@/i18n/namespaces";
 import {
 	MatchStatus,
 	PlayerSide,
@@ -37,6 +39,7 @@ import {
 	useRouter,
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowLeftRightIcon, StepBack, StepForward } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,6 +130,16 @@ const createEmptySlotBuilds = () =>
 		constellation: 0,
 		refinement: 0,
 		level: 90,
+	}));
+
+const createSlotBuildsFromAssignments = (
+	assignments: Array<BanPickCharacter | null>,
+) =>
+	assignments.map((character) => ({
+		characterId: character?.id ?? "",
+		constellation: character?.constellation ?? 0,
+		refinement: 0,
+		level: character?.level ?? 90,
 	}));
 
 const mapCharacterToBanPickCharacter = (
@@ -314,6 +327,9 @@ const filterCharactersForDraft = (
 function RouteComponent() {
 	const { roomId } = Route.useParams();
 	const router = useRouter();
+	const { t } = useTranslation();
+	const tMatch = (key: string, options?: Record<string, string | number>) =>
+		t(getTranslationToken("match", key), options);
 	const profile = useAppSelector(selectAuthProfile);
 	const { match, matchState } = useLoaderData({
 		from: "/_userLayout/room/$roomId",
@@ -363,6 +379,7 @@ function RouteComponent() {
 		0, 0, 0,
 	]);
 	const [isCompletingMatch, setIsCompletingMatch] = useState(false);
+	const [isUndoingPreviousTurn, setIsUndoingPreviousTurn] = useState(false);
 
 	const blueAssignmentInitializedRef = useRef(false);
 	const redAssignmentInitializedRef = useRef(false);
@@ -579,12 +596,12 @@ function RouteComponent() {
 	}, [redChamberBaseTimes, teamCosts]);
 
 	const finalTimeGapSeconds = Math.abs(blueFinalTimeSeconds - redFinalTimeSeconds);
-	const fasterTeamLabel =
+	const fasterTeam =
 		blueFinalTimeSeconds < redFinalTimeSeconds
-			? "Blue"
+			? "blue"
 			: redFinalTimeSeconds < blueFinalTimeSeconds
-				? "Red"
-				: "Tie";
+				? "red"
+				: "tie";
 
 	const canBlueInteract =
 		!isDraftCompleted &&
@@ -983,10 +1000,10 @@ function RouteComponent() {
 		}
 
 		const sessionStateSlots = sessionStateResponse?.data?.banPickSlots ?? [];
+		const hasSessionStateSlots = sessionStateSlots.length > 0;
 
 		if (!blueAssignmentInitializedRef.current) {
-			blueAssignmentInitializedRef.current = true;
-			if (sessionStateSlots.length > 0) {
+			if (hasSessionStateSlots) {
 				setBlueAssignments(
 					mapAssignmentSlotsFromSessionState(
 						sessionStateSlots,
@@ -998,15 +1015,18 @@ function RouteComponent() {
 				setBlueSlotBuilds(
 					mapSlotBuildsFromSessionState(sessionStateSlots, "blue"),
 				);
+				blueAssignmentInitializedRef.current = true;
 			} else {
-				setBlueAssignments(toFixedPickSlots(bluePicks));
-				setBlueSlotBuilds(createEmptySlotBuilds());
+				const fallbackBlueAssignments = toFixedPickSlots(bluePicks);
+				setBlueAssignments(fallbackBlueAssignments);
+				setBlueSlotBuilds(
+					createSlotBuildsFromAssignments(fallbackBlueAssignments),
+				);
 			}
 		}
 
 		if (!redAssignmentInitializedRef.current) {
-			redAssignmentInitializedRef.current = true;
-			if (sessionStateSlots.length > 0) {
+			if (hasSessionStateSlots) {
 				setRedAssignments(
 					mapAssignmentSlotsFromSessionState(
 						sessionStateSlots,
@@ -1018,9 +1038,13 @@ function RouteComponent() {
 				setRedSlotBuilds(
 					mapSlotBuildsFromSessionState(sessionStateSlots, "red"),
 				);
+				redAssignmentInitializedRef.current = true;
 			} else {
-				setRedAssignments(toFixedPickSlots(redPicks));
-				setRedSlotBuilds(createEmptySlotBuilds());
+				const fallbackRedAssignments = toFixedPickSlots(redPicks);
+				setRedAssignments(fallbackRedAssignments);
+				setRedSlotBuilds(
+					createSlotBuildsFromAssignments(fallbackRedAssignments),
+				);
 			}
 		}
 	}, [
@@ -1222,11 +1246,24 @@ function RouteComponent() {
 				(item) =>
 					item.teamSide === teamSide && item.chamberIndex === chamberIndex,
 			);
+			const next = [...prev];
 			if (index < 0) {
-				return prev;
+				next.push({
+					id: 0,
+					matchSessionId: sessionStateResponse?.data?.matchSessionId ?? 0,
+					sessionCostId: 0,
+					teamSide,
+					chamberIndex,
+					accountId,
+					totalCharacterConstellationCost: 0,
+					totalWeaponRefinementCost: 0,
+					totalCharacterLevelCost: 0,
+					totalChamberTimeBonus: 0,
+					isUsedStar,
+				});
+				return next;
 			}
 
-			const next = [...prev];
 			next[index] = {
 				...next[index],
 				accountId,
@@ -1298,18 +1335,58 @@ function RouteComponent() {
 			}
 
 			await router.invalidate();
-			toast.success("Session completed.");
+			toast.success(
+				tMatch(matchLocaleKeys.three_vs_three_session_completed),
+			);
 		} catch {
-			toast.error("Failed to complete match. Please check assignment info.");
+			toast.error(tMatch(matchLocaleKeys.ban_pick_failed_complete_session));
 		} finally {
 			setIsCompletingMatch(false);
+		}
+	};
+
+	const onUndoPreviousTurn = async () => {
+		if (!match?.id || !isHost || draftStep <= 0 || isUndoingPreviousTurn) {
+			return;
+		}
+
+		try {
+			setIsUndoingPreviousTurn(true);
+			await new Promise<void>((resolve, reject) => {
+				socket
+					.timeout(5000)
+					.emit(
+						SocketEvent.UNDO_LAST_BAN_PICK_TURN,
+						{ matchId: match.id, updatedBy: profile?.id },
+						(error: unknown, response?: { ok?: boolean }) => {
+							if (error) {
+								reject(error);
+								return;
+							}
+
+							if (!response?.ok) {
+								reject(new Error("Undo previous turn failed"));
+								return;
+							}
+
+							resolve();
+						},
+					);
+			});
+			setPendingPick(null);
+		} catch {
+			toast.error(
+				tMatch(matchLocaleKeys.three_vs_three_failed_undo_previous_turn),
+			);
+		} finally {
+			setIsUndoingPreviousTurn(false);
 		}
 	};
 
 	if (isLoading) {
 		return (
 			<div className="flex h-dvh items-center justify-center text-white/70">
-				Loading character pool...
+				{tMatch(matchLocaleKeys.three_vs_three_loading_character_pool)}
 			</div>
 		);
 	}
@@ -1317,7 +1394,7 @@ function RouteComponent() {
 	if (isError) {
 		return (
 			<div className="flex h-dvh items-center justify-center text-red-400">
-				Failed to load characters.
+				{tMatch(matchLocaleKeys.three_vs_three_failed_load_characters)}
 			</div>
 		);
 	}
@@ -1362,80 +1439,80 @@ function RouteComponent() {
 							/>
 						) : (
 							<div className="flex min-h-0 flex-1 flex-col gap-4">
-							<div className="rounded-xl border border-white/20 bg-white/5 p-4">
-								<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
-									Bans
-								</div>
-								<div className="grid grid-cols-8 gap-2">
-									{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
-										const committed = blueBans[index];
-										const preview =
-											!isDraftCompleted &&
-												!committed &&
-												pendingPick?.side === "blue" &&
+								<div className="rounded-xl border border-white/20 bg-white/5 p-4">
+									<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
+										{tMatch(matchLocaleKeys.three_vs_three_bans_label)}
+									</div>
+									<div className="grid grid-cols-8 gap-2">
+										{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
+											const committed = blueBans[index];
+											const preview =
+												!isDraftCompleted &&
+													!committed &&
+													pendingPick?.side === "blue" &&
+													currentAction?.side === "blue" &&
+													currentAction?.type === "ban" &&
+													index === blueBans.length
+													? pendingPick.character
+													: null;
+
+											const character = committed ?? preview;
+											const isActiveSlot =
+												!isDraftCompleted &&
 												currentAction?.side === "blue" &&
 												currentAction?.type === "ban" &&
-												index === blueBans.length
-												? pendingPick.character
-												: null;
+												index === blueBans.length;
 
-										const character = committed ?? preview;
-										const isActiveSlot =
-											!isDraftCompleted &&
-											currentAction?.side === "blue" &&
-											currentAction?.type === "ban" &&
-											index === blueBans.length;
-
-										return (
-											<div
-												key={`blue-ban-slot-${index}`}
-												className={cn(
-													"relative h-16 overflow-hidden rounded-md border border-gray-400/40 bg-gray-500/10",
-													isActiveSlot && "animate-pulse border-yellow-400",
-												)}
-											>
-												{character ? (
-													<img
-														src={character.imageUrl}
-														alt={character.name}
-														className={cn(
-															"h-full w-full object-cover",
-															"grayscale",
-															preview && "opacity-70",
-														)}
-													/>
-												) : null}
-											</div>
-										);
-									})}
+											return (
+												<div
+													key={`blue-ban-slot-${index}`}
+													className={cn(
+														"relative h-16 overflow-hidden rounded-md border border-gray-400/40 bg-gray-500/10",
+														isActiveSlot && "animate-pulse border-yellow-400",
+													)}
+												>
+													{character ? (
+														<img
+															src={character.imageUrl}
+															alt={character.name}
+															className={cn(
+																"h-full w-full object-cover",
+																"grayscale",
+																preview && "opacity-70",
+															)}
+														/>
+													) : null}
+												</div>
+											);
+										})}
+									</div>
 								</div>
-							</div>
 
-							<PickSlots
-								side="blue"
-								picks={bluePicks}
-								picksPerSide={PICKS_PER_SIDE}
-								currentPickSide={currentPickSide}
-								isPickTurn={currentAction?.type === "pick"}
-								pendingPick={pendingPick}
-								isDraftCompleted={isDraftCompleted}
-							/>
+								<PickSlots
+									side="blue"
+									picks={bluePicks}
+									picksPerSide={PICKS_PER_SIDE}
+									currentPickSide={currentPickSide}
+									isPickTurn={currentAction?.type === "pick"}
+									pendingPick={pendingPick}
+									isDraftCompleted={isDraftCompleted}
+								/>
 
-							<CharacterSelector
-								side="blue"
-								characters={blueFilteredCharacters}
-								search={leftSearch}
-								onSearchChange={setLeftSearch}
-								selectedElement={leftElementFilter}
-								onSelectElement={setLeftElementFilter}
-								selectedRarity={leftRarityFilter}
-								onSelectRarity={setLeftRarityFilter}
-								selectedCharacterIds={selectedCharacterIds}
-								pendingPick={pendingPick}
-								canInteract={canBlueInteract}
-								onSelectCharacter={onSelectCharacter}
-								onlyDisplayNames={true}
-							/>
+								<CharacterSelector
+									side="blue"
+									characters={blueFilteredCharacters}
+									search={leftSearch}
+									onSearchChange={setLeftSearch}
+									selectedElement={leftElementFilter}
+									onSelectElement={setLeftElementFilter}
+									selectedRarity={leftRarityFilter}
+									onSelectRarity={setLeftRarityFilter}
+									selectedCharacterIds={selectedCharacterIds}
+									pendingPick={pendingPick}
+									canInteract={canBlueInteract}
+									onSelectCharacter={onSelectCharacter}
+									onlyDisplayNames={true}
+								/>
 							</div>
 						)}
 					</div>
@@ -1445,10 +1522,24 @@ function RouteComponent() {
 					<div className="w-full rounded-md border border-white/30 bg-white/5 p-3 text-center">
 						<p className="text-sm text-white/80">
 							{isDraftCompleted
-								? "Draft completed. Fill assignment info, then host can complete the match."
+								? tMatch(matchLocaleKeys.three_vs_three_assignment_hint)
 								: currentAction?.type === "ban"
-									? `Ban ${draftStep + 1}/${TOTAL_ACTIONS} - ${currentAction.side === "blue" ? "Blue" : "Red"} side turn`
-									: `Pick ${draftStep + 1 - TOTAL_BANS}/${TOTAL_PICKS} - ${currentAction?.side === "blue" ? "Blue" : "Red"} side turn`}
+									? tMatch(matchLocaleKeys.three_vs_three_turn_ban_label, {
+										step: draftStep + 1,
+										total: TOTAL_ACTIONS,
+										side:
+											currentAction.side === "blue"
+												? tMatch(matchLocaleKeys.match_result_blue_fallback)
+												: tMatch(matchLocaleKeys.match_result_red_fallback),
+									})
+									: tMatch(matchLocaleKeys.three_vs_three_turn_pick_label, {
+										step: draftStep + 1 - TOTAL_BANS,
+										total: TOTAL_PICKS,
+										side:
+											currentAction?.side === "blue"
+												? tMatch(matchLocaleKeys.match_result_blue_fallback)
+												: tMatch(matchLocaleKeys.match_result_red_fallback),
+									})}
 						</p>
 					</div>
 
@@ -1459,34 +1550,50 @@ function RouteComponent() {
 							{redFinalTimeSeconds < blueFinalTimeSeconds && <StepBack className="mx-1 inline h-8 w-8 text-red-400" />}
 						</p>
 						<p className="mt-1 text-xs text-white/70">
-							{fasterTeamLabel === "Tie"
-								? "Both teams have the same final time"
+							{fasterTeam === "tie"
+								? tMatch(matchLocaleKeys.three_vs_three_same_final_time)
 								: <>
-									Gap: <span className={cn(fasterTeamLabel === "Blue" ? "text-blue-400" : "text-red-400")}>{finalTimeGapSeconds}s</span>
+									<span className={cn(fasterTeam === "blue" ? "text-blue-400" : "text-red-400")}>
+										{tMatch(matchLocaleKeys.three_vs_three_gap_label, { seconds: finalTimeGapSeconds })}
+									</span>
 								</>
 							}
 						</p>
 					</div>
 
-					<Button
-						disabled={
-							isDraftCompleted
-								? !isHost || !isAssignmentBoardCompleted || isCompletingMatch
-								: !pendingPick ||
+					<div className="space-y-4">
+						<Button
+							disabled={!isHost || draftStep <= 0 || isUndoingPreviousTurn || isCompletingMatch || isDraftCompleted}
+							onClick={() => void onUndoPreviousTurn()}
+							className="w-full"
+							variant="outline"
+						>
+							{isUndoingPreviousTurn
+								? tMatch(matchLocaleKeys.three_vs_three_undoing_previous_turn)
+								: tMatch(matchLocaleKeys.three_vs_three_undo_previous_turn)}
+						</Button>
+
+						<Button
+							disabled={
+								isDraftCompleted
+									? !isHost || !isAssignmentBoardCompleted || isCompletingMatch || isUndoingPreviousTurn
+									: !pendingPick ||
 									!currentAction ||
-									pendingPick.side !== currentAction.side
-						}
-						onClick={isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick}
-						className="w-full"
-					>
-						{isDraftCompleted
-							? isCompletingMatch
-								? "Completing..."
-								: "Complete match"
-							: currentAction?.type === "ban"
-								? "Confirm ban"
-								: "Confirm pick"}
-					</Button>
+									pendingPick.side !== currentAction.side ||
+									isUndoingPreviousTurn
+							}
+							onClick={isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick}
+							className="w-full"
+						>
+							{isDraftCompleted
+								? isCompletingMatch
+									? tMatch(matchLocaleKeys.ban_pick_submitting)
+									: tMatch(matchLocaleKeys.ban_pick_complete_session)
+								: currentAction?.type === "ban"
+									? tMatch(matchLocaleKeys.three_vs_three_confirm_ban)
+									: tMatch(matchLocaleKeys.three_vs_three_confirm_pick)}
+						</Button>
+					</div>
 				</div>
 
 				<div className="col-span-3 flex h-full flex-col gap-4 overflow-hidden">
@@ -1523,79 +1630,79 @@ function RouteComponent() {
 							/>
 						) : (
 							<div className="flex min-h-0 flex-1 flex-col gap-4">
-							<div className="rounded-xl border border-white/20 bg-white/5 p-4">
-								<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
-									Bans
-								</div>
-								<div className="grid grid-cols-8 gap-2">
-									{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
-										const committed = redBans[index];
-										const preview =
-											!isDraftCompleted &&
-												!committed &&
-												pendingPick?.side === "red" &&
+								<div className="rounded-xl border border-white/20 bg-white/5 p-4">
+									<div className="mb-2 text-xs uppercase tracking-wider text-white/70">
+										{tMatch(matchLocaleKeys.three_vs_three_bans_label)}
+									</div>
+									<div className="grid grid-cols-8 gap-2">
+										{Array.from({ length: BANS_PER_SIDE }).map((_, index) => {
+											const committed = redBans[index];
+											const preview =
+												!isDraftCompleted &&
+													!committed &&
+													pendingPick?.side === "red" &&
+													currentAction?.side === "red" &&
+													currentAction?.type === "ban" &&
+													index === redBans.length
+													? pendingPick.character
+													: null;
+
+											const character = committed ?? preview;
+											const isActiveSlot =
+												!isDraftCompleted &&
 												currentAction?.side === "red" &&
 												currentAction?.type === "ban" &&
-												index === redBans.length
-												? pendingPick.character
-												: null;
+												index === redBans.length;
 
-										const character = committed ?? preview;
-										const isActiveSlot =
-											!isDraftCompleted &&
-											currentAction?.side === "red" &&
-											currentAction?.type === "ban" &&
-											index === redBans.length;
-
-										return (
-											<div
-												key={`red-ban-slot-${index}`}
-												className={cn(
-													"relative h-16 overflow-hidden rounded-md border border-gray-500/40 bg-gray-500/10",
-													isActiveSlot && "animate-pulse border-yellow-400",
-												)}
-											>
-												{character ? (
-													<img
-														src={character.imageUrl}
-														alt={character.name}
-														className={cn(
-															"h-full w-full object-cover",
-															"grayscale",
-															preview && "opacity-70",
-														)}
-													/>
-												) : null}
-											</div>
-										);
-									})}
+											return (
+												<div
+													key={`red-ban-slot-${index}`}
+													className={cn(
+														"relative h-16 overflow-hidden rounded-md border border-gray-500/40 bg-gray-500/10",
+														isActiveSlot && "animate-pulse border-yellow-400",
+													)}
+												>
+													{character ? (
+														<img
+															src={character.imageUrl}
+															alt={character.name}
+															className={cn(
+																"h-full w-full object-cover",
+																"grayscale",
+																preview && "opacity-70",
+															)}
+														/>
+													) : null}
+												</div>
+											);
+										})}
+									</div>
 								</div>
-							</div>
 
-							<PickSlots
-								side="red"
-								picks={redPicks}
-								picksPerSide={PICKS_PER_SIDE}
-								currentPickSide={currentPickSide}
-								isPickTurn={currentAction?.type === "pick"}
-								pendingPick={pendingPick}
-								isDraftCompleted={isDraftCompleted}
-							/>
+								<PickSlots
+									side="red"
+									picks={redPicks}
+									picksPerSide={PICKS_PER_SIDE}
+									currentPickSide={currentPickSide}
+									isPickTurn={currentAction?.type === "pick"}
+									pendingPick={pendingPick}
+									isDraftCompleted={isDraftCompleted}
+								/>
 
-							<CharacterSelector
-								side="red"
-								characters={redFilteredCharacters}
-								search={rightSearch}
-								onSearchChange={setRightSearch}
-								selectedElement={rightElementFilter}
-								onSelectElement={setRightElementFilter}
-								selectedRarity={rightRarityFilter}
-								onSelectRarity={setRightRarityFilter}
-								selectedCharacterIds={selectedCharacterIds}
-								pendingPick={pendingPick}
-								canInteract={canRedInteract}
-								onSelectCharacter={onSelectCharacter}
-							/>
+								<CharacterSelector
+									side="red"
+									characters={redFilteredCharacters}
+									search={rightSearch}
+									onSearchChange={setRightSearch}
+									selectedElement={rightElementFilter}
+									onSelectElement={setRightElementFilter}
+									selectedRarity={rightRarityFilter}
+									onSelectRarity={setRightRarityFilter}
+									selectedCharacterIds={selectedCharacterIds}
+									pendingPick={pendingPick}
+									canInteract={canRedInteract}
+									onSelectCharacter={onSelectCharacter}
+								/>
 							</div>
 						)}
 					</div>
