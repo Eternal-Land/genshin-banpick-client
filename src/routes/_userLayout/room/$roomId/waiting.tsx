@@ -6,7 +6,12 @@ import { useAppSelector } from "@/hooks/use-app-selector";
 import { useSocketEvent } from "@/hooks/use-socket-event";
 import { matchLocaleKeys } from "@/i18n/keys";
 import { getTranslationToken } from "@/i18n/namespaces";
-import { MatchStatus, MatchType, SocketEvent, type MatchTypeEnum } from "@/lib/constants";
+import {
+	MatchStatus,
+	MatchType,
+	SocketEvent,
+	type MatchTypeEnum,
+} from "@/lib/constants";
 import { IconAssets } from "@/lib/constants/icon-assets";
 import { selectAuthProfile } from "@/lib/redux/auth.slice";
 import { useMutation } from "@tanstack/react-query";
@@ -94,6 +99,7 @@ function RouteComponent() {
 	const findMatchPath = (matchType: MatchTypeEnum): string | null => {
 		switch (matchType) {
 			case MatchType.REALTIME:
+			case MatchType.TURN_BASED:
 				return "/room/$roomId/ban-pick";
 			case MatchType.THREE_VS_THREE:
 				return "/room/$roomId/3vs3";
@@ -121,7 +127,7 @@ function RouteComponent() {
 			if (!matchPath) {
 				return;
 			}
-			
+
 			try {
 				const response = await matchApi.getMatch(roomId);
 				if (response.data?.status === MatchStatus.LIVE) {
@@ -281,7 +287,8 @@ function RouteComponent() {
 									: tMatch(matchLocaleKeys.match_waiting_connecting)}
 							</h3>
 							<p className="text-cyan-200/60 font-mono mt-1 text-sm">
-								{tMatch(matchLocaleKeys.match_waiting_uid_label)}: {bluePlayer?.ingameUuid || "--------"}
+								{tMatch(matchLocaleKeys.match_waiting_uid_label)}:{" "}
+								{bluePlayer?.ingameUuid || "--------"}
 							</p>
 						</div>
 					</div>
@@ -350,7 +357,9 @@ function RouteComponent() {
 									</div>
 									<CopyLinkButton
 										link={window.location.href}
-										label={tMatch(matchLocaleKeys.match_waiting_copy_invite_link)}
+										label={tMatch(
+											matchLocaleKeys.match_waiting_copy_invite_link,
+										)}
 										onCopySuccess={tMatch(
 											matchLocaleKeys.match_waiting_copy_success,
 										)}
@@ -362,7 +371,9 @@ function RouteComponent() {
 							) : (
 								<div className="flex flex-col items-center gap-4 w-full px-4">
 									<div className="text-emerald-400 font-medium text-lg animate-pulse">
-										{tMatch(matchLocaleKeys.match_waiting_all_players_connected)}
+										{tMatch(
+											matchLocaleKeys.match_waiting_all_players_connected,
+										)}
 									</div>
 									{isHost ? (
 										<Button
@@ -451,7 +462,8 @@ function RouteComponent() {
 									: tMatch(matchLocaleKeys.match_waiting_connecting)}
 							</h3>
 							<p className="text-rose-200/60 font-mono mt-1 text-sm">
-								{tMatch(matchLocaleKeys.match_waiting_uid_label)}: {redPlayer?.ingameUuid || "--------"}
+								{tMatch(matchLocaleKeys.match_waiting_uid_label)}:{" "}
+								{redPlayer?.ingameUuid || "--------"}
 							</p>
 						</div>
 					</div>
