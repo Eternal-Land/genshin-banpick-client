@@ -141,6 +141,22 @@ const mapChamberValueToClearTimeInput = (chamberValue?: number) => {
 
 const normalizeBuildNumberInput = (value: string) => value.replace(/\D/g, "").slice(0, 2);
 
+const normalizeRefinementInput = (value: string) => {
+    const normalized = value.replace(/[^\d.]/g, "");
+    const decimalIndex = normalized.indexOf(".");
+    const integerPart = decimalIndex >= 0
+        ? normalized.slice(0, decimalIndex)
+        : normalized;
+    const decimalPart = decimalIndex >= 0
+        ? normalized.slice(decimalIndex + 1).replace(/\./g, "").slice(0, 1)
+        : "";
+
+    return `${integerPart}${decimalIndex >= 0 ? `.${decimalPart}` : ""}`.replace(
+        /^0+(?=\.)/,
+        "",
+    );
+};
+
 const DEFAULT_CHAMBER_SLOT_RANGES = [
     { startTeamOrder: 1, endTeamOrder: 8 },
     { startTeamOrder: 9, endTeamOrder: 16 },
@@ -413,6 +429,7 @@ export default function SideAssignmentBoard({
     const updateSlotBuildInput = (
         slotIndex: number,
         updater: (prev: SlotBuildInput) => SlotBuildInput,
+        options?: { immediate?: boolean },
     ) => {
         if (!canEdit) {
             return;
@@ -443,9 +460,9 @@ export default function SideAssignmentBoard({
             clearTimeout(existingTimer);
         }
 
-        slotBuildTimersRef.current[slotIndex] = setTimeout(() => {
+        const emitSlotBuildUpdate = () => {
             const constellation = Number.parseInt(updatedBuild.constellation, 10);
-            const refinement = Number.parseInt(updatedBuild.refinement, 10);
+            const refinement = Number.parseFloat(updatedBuild.refinement);
 
             onUpdateSlotBuild({
                 side,
@@ -455,7 +472,17 @@ export default function SideAssignmentBoard({
                 refinement: Number.isNaN(refinement) ? 0 : refinement,
                 level: updatedBuild.level,
             });
-        }, SLOT_BUILD_UPDATE_DEBOUNCE_MS);
+        };
+
+        if (options?.immediate) {
+            emitSlotBuildUpdate();
+            return;
+        }
+
+        slotBuildTimersRef.current[slotIndex] = setTimeout(
+            emitSlotBuildUpdate,
+            SLOT_BUILD_UPDATE_DEBOUNCE_MS,
+        );
     };
 
     const resolveDropIndex = (event: DraggableEvent, fallbackIndex: number) => {
@@ -611,8 +638,8 @@ export default function SideAssignmentBoard({
                             <div className="mb-2 text-xs font-medium text-white/70">
                                 Chamber {playerIndex + 1}
                             </div>
-                            <div className={cn("flex justify-between gap-3", !isBlue && "flex-row-reverse")}>
-                                <div className="grid min-w-80 grid-cols-[100px_minmax(0,1fr)] items-center gap-x-2 gap-y-2">
+                            <div className={cn("flex flex-col gap-3 2xl:flex-row 2xl:justify-between", !isBlue && "2xl:flex-row-reverse")}>
+                                <div className="grid w-full grid-cols-[100px_minmax(0,1fr)] items-center gap-x-2 gap-y-2 2xl:w-auto 2xl:min-w-80">
                                     {chamberTagRows.map((row) => (
                                         <div key={`${side}-${playerIndex}-${row.key}`} className="contents">
                                             <div className="text-right text-xs text-white/70">{row.label}</div>
@@ -621,7 +648,7 @@ export default function SideAssignmentBoard({
                                     ))}
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid w-full grid-cols-4 gap-2 2xl:w-auto">
                                     {playerSlots.map((character, slotIndex) => {
                                         const globalIndex = start + slotIndex;
                                         const slotBuild = slotBuildInputs[globalIndex];
@@ -710,7 +737,7 @@ export default function SideAssignmentBoard({
                                                                                 updateSlotBuildInput(globalIndex, (prev) => ({
                                                                                     ...prev,
                                                                                     level: nextLevel,
-                                                                                }));
+                                                                                }), { immediate: true });
                                                                             }}
                                                                             inputClassName="h-4 border-none bg-transparent px-1 py-0 text-[10px] text-center text-white "
                                                                         >
@@ -765,7 +792,7 @@ export default function SideAssignmentBoard({
                                                                 onChange={(event) => {
                                                                     updateSlotBuildInput(globalIndex, (prev) => ({
                                                                         ...prev,
-                                                                        refinement: normalizeBuildNumberInput(
+                                                                        refinement: normalizeRefinementInput(
                                                                             event.target.value,
                                                                         ),
                                                                     }));
