@@ -1710,7 +1710,7 @@ function RouteComponent() {
 									pendingPick={pendingPick}
 									canInteract={canBlueInteract}
 									onSelectCharacter={onSelectCharacter}
-									onlyDisplayNames={true}
+									onlyDisplayNames
 								/>
 							</div>
 						)}
@@ -1972,6 +1972,7 @@ function RouteComponent() {
 									pendingPick={pendingPick}
 									canInteract={canRedInteract}
 									onSelectCharacter={onSelectCharacter}
+									onlyDisplayNames
 								/>
 							</div>
 						)}
