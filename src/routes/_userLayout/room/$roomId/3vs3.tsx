@@ -40,7 +40,13 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftRightIcon, StepBack, StepForward } from "lucide-react";
+import {
+	ArrowLeftRightIcon,
+	PauseCircle,
+	PlayCircle,
+	StepBack,
+	StepForward,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_userLayout/room/$roomId/3vs3")({
@@ -409,6 +415,7 @@ function RouteComponent() {
 	]);
 	const [isCompletingMatch, setIsCompletingMatch] = useState(false);
 	const [isUndoingPreviousTurn, setIsUndoingPreviousTurn] = useState(false);
+	const [isUpdatingPause, setIsUpdatingPause] = useState(false);
 	const [nowMs, setNowMs] = useState(() => Date.now());
 
 	const blueAssignmentInitializedRef = useRef(false);
@@ -586,6 +593,7 @@ function RouteComponent() {
 	const draftStep =
 		blueBans.length + redBans.length + bluePicks.length + redPicks.length;
 	const isDraftCompleted = draftStep >= TOTAL_ACTIONS;
+	const isTimerPaused = Boolean(pageMatchState?.pausedAt);
 	const currentAction = !isDraftCompleted
 		? THREE_VS_THREE_DRAFT_SEQUENCE[draftStep]
 		: undefined;
@@ -601,8 +609,14 @@ function RouteComponent() {
 			return null;
 		}
 
-		return Math.ceil((turnExpiredAtMs - nowMs) / 1000);
-	}, [nowMs, pageMatchState?.turnExpiredAt]);
+		const pausedAtMs = pageMatchState.pausedAt
+			? new Date(pageMatchState.pausedAt).getTime()
+			: null;
+		const anchorMs =
+			pausedAtMs !== null && Number.isFinite(pausedAtMs) ? pausedAtMs : nowMs;
+
+		return Math.ceil((turnExpiredAtMs - anchorMs) / 1000);
+	}, [nowMs, pageMatchState?.pausedAt, pageMatchState?.turnExpiredAt]);
 
 	const overtimeSeconds = useMemo(() => {
 		if (turnTimeRemainingSeconds === null) {
@@ -751,14 +765,20 @@ function RouteComponent() {
 
 	const canBlueInteract =
 		!isDraftCompleted &&
+		!isTimerPaused &&
 		currentAction?.side === "blue" &&
 		profile?.id === match?.bluePlayer?.id;
 	const canRedInteract =
 		!isDraftCompleted &&
+		!isTimerPaused &&
 		currentAction?.side === "red" &&
 		profile?.id === match?.redPlayer?.id;
 
 	const isHost = profile?.id === match?.host?.id;
+	const isParticipant =
+		profile?.id === match?.host?.id ||
+		profile?.id === match?.bluePlayer?.id ||
+		profile?.id === match?.redPlayer?.id;
 	const canEditBlueAssignments =
 		isHost || profile?.id === match?.bluePlayer?.id;
 	const canEditRedAssignments = isHost || profile?.id === match?.redPlayer?.id;
@@ -1221,7 +1241,7 @@ function RouteComponent() {
 	};
 
 	const onConfirmPick = () => {
-		if (!pendingPick || isDraftCompleted || !currentAction) {
+		if (!pendingPick || isDraftCompleted || !currentAction || isTimerPaused) {
 			return;
 		}
 
@@ -1532,6 +1552,29 @@ function RouteComponent() {
 		}
 	};
 
+	const onTogglePause = async () => {
+		if (!match?.id || !isParticipant || isDraftCompleted || isUpdatingPause) {
+			return;
+		}
+
+		try {
+			setIsUpdatingPause(true);
+			if (isTimerPaused) {
+				await matchApi.resumeMatchTimer(match.id);
+			} else {
+				await matchApi.pauseMatchTimer(match.id);
+			}
+		} catch {
+			if (isTimerPaused) {
+				toast.error(tMatch(matchLocaleKeys.three_vs_three_failed_resume_timer));
+			} else {
+				toast.error(tMatch(matchLocaleKeys.three_vs_three_failed_pause_timer));
+			}
+		} finally {
+			setIsUpdatingPause(false);
+		}
+	};
+
 	if (isLoading) {
 		return (
 			<div className="flex h-dvh items-center justify-center text-white/70">
@@ -1697,6 +1740,11 @@ function RouteComponent() {
 													: tMatch(matchLocaleKeys.match_result_red_fallback),
 										})}
 						</p>
+						{isTimerPaused && (
+							<p className="mt-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+								{tMatch(matchLocaleKeys.three_vs_three_timer_paused)}
+							</p>
+						)}
 					</div>
 
 					<div className="w-full rounded-md p-3 text-center">
@@ -1733,10 +1781,42 @@ function RouteComponent() {
 					<div className="space-y-4">
 						<Button
 							disabled={
+								!isParticipant ||
+								isDraftCompleted ||
+								isUndoingPreviousTurn ||
+								isCompletingMatch ||
+								isUpdatingPause
+							}
+							onClick={() => void onTogglePause()}
+							className="w-full"
+							variant="secondary"
+						>
+							{isUpdatingPause ? (
+								isTimerPaused ? (
+									tMatch(matchLocaleKeys.three_vs_three_resuming_timer)
+								) : (
+									tMatch(matchLocaleKeys.three_vs_three_pausing_timer)
+								)
+							) : isTimerPaused ? (
+								<>
+									<PlayCircle className="mr-2 inline h-4 w-4" />
+									{tMatch(matchLocaleKeys.three_vs_three_resume_timer)}
+								</>
+							) : (
+								<>
+									<PauseCircle className="mr-2 inline h-4 w-4" />
+									{tMatch(matchLocaleKeys.three_vs_three_pause_timer)}
+								</>
+							)}
+						</Button>
+
+						<Button
+							disabled={
 								!isHost ||
 								draftStep <= 0 ||
 								isUndoingPreviousTurn ||
 								isCompletingMatch ||
+								isUpdatingPause ||
 								isDraftCompleted
 							}
 							onClick={() => void onUndoPreviousTurn()}
@@ -1754,11 +1834,14 @@ function RouteComponent() {
 									? !isHost ||
 										!isAssignmentBoardCompleted ||
 										isCompletingMatch ||
-										isUndoingPreviousTurn
+										isUndoingPreviousTurn ||
+										isUpdatingPause
 									: !pendingPick ||
 										!currentAction ||
+										isTimerPaused ||
 										pendingPick.side !== currentAction.side ||
-										isUndoingPreviousTurn
+										isUndoingPreviousTurn ||
+										isUpdatingPause
 							}
 							onClick={
 								isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick

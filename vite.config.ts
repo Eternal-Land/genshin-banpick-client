@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
 		host: "0.0.0.0",
 		proxy: {
 			"^/api": {
-				target: loadEnv(mode, process.cwd(), "").VITE_API_BASE_URL,
+				target: loadEnv(mode, process.cwd(), "").LOCAL_DEV_API_URL,
 				changeOrigin: true,
 			},
 		},
