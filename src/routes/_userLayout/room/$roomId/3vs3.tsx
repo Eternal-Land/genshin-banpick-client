@@ -40,7 +40,13 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftRightIcon, StepBack, StepForward } from "lucide-react";
+import {
+	ArrowLeftRightIcon,
+	PauseCircle,
+	PlayCircle,
+	StepBack,
+	StepForward,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_userLayout/room/$roomId/3vs3")({
@@ -120,6 +126,13 @@ const TOTAL_BANS = BANS_PER_SIDE * 2;
 const TOTAL_PICKS = PICKS_PER_SIDE * 2;
 const TOTAL_ACTIONS = THREE_VS_THREE_DRAFT_SEQUENCE.length;
 const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
+
+function calculatePunishTime(remainTimeSec: number) {
+	if (remainTimeSec >= 0) {
+		return 0;
+	}
+	return Math.floor(-remainTimeSec / 20) * 5;
+}
 
 const createEmptyAssignmentSlots = () =>
 	Array.from({ length: PICKS_PER_SIDE }, () => null as BanPickCharacter | null);
@@ -324,6 +337,26 @@ const filterCharactersForDraft = (
 // 	return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 // };
 
+const formatSignedSecondsToClock = (seconds: number) => {
+	const normalized = Number.isFinite(seconds) ? Math.floor(seconds) : 0;
+	const sign = normalized < 0 ? "-" : "";
+	const absolute = Math.abs(normalized);
+	const minutes = Math.floor(absolute / 60);
+	const remainingSeconds = absolute % 60;
+
+	return `${sign}${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+};
+
+const formatSecondsToClock = (seconds: number) => {
+	const normalized = Number.isFinite(seconds)
+		? Math.max(0, Math.floor(seconds))
+		: 0;
+	const minutes = Math.floor(normalized / 60);
+	const remainingSeconds = normalized % 60;
+
+	return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+};
+
 function RouteComponent() {
 	const { roomId } = Route.useParams();
 	const router = useRouter();
@@ -370,7 +403,9 @@ function RouteComponent() {
 	const [redSlotBuilds, setRedSlotBuilds] = useState<SlotBuildState[]>(
 		createEmptySlotBuilds,
 	);
-	const [teamCosts, setTeamCosts] = useState<SessionStateTeamCostResponse[]>([]);
+	const [teamCosts, setTeamCosts] = useState<SessionStateTeamCostResponse[]>(
+		[],
+	);
 	const [dragging, setDragging] = useState<DraggingState | null>(null);
 	const [blueChamberBaseTimes, setBlueChamberBaseTimes] = useState<number[]>([
 		0, 0, 0,
@@ -380,9 +415,21 @@ function RouteComponent() {
 	]);
 	const [isCompletingMatch, setIsCompletingMatch] = useState(false);
 	const [isUndoingPreviousTurn, setIsUndoingPreviousTurn] = useState(false);
+	const [isUpdatingPause, setIsUpdatingPause] = useState(false);
+	const [nowMs, setNowMs] = useState(() => Date.now());
 
 	const blueAssignmentInitializedRef = useRef(false);
 	const redAssignmentInitializedRef = useRef(false);
+
+	useEffect(() => {
+		const intervalId = window.setInterval(() => {
+			setNowMs(Date.now());
+		}, 250);
+
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, []);
 
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["user", "characters", "3vs3"],
@@ -416,7 +463,11 @@ function RouteComponent() {
 	const { data: usersResponse } = useQuery({
 		queryKey: ["users", "search", "3vs3", playerSearch],
 		queryFn: () =>
-			usersApi.searchUsers({ page: 1, take: 100, search: playerSearch || undefined }),
+			usersApi.searchUsers({
+				page: 1,
+				take: 100,
+				search: playerSearch || undefined,
+			}),
 	});
 
 	useEffect(() => {
@@ -542,10 +593,104 @@ function RouteComponent() {
 	const draftStep =
 		blueBans.length + redBans.length + bluePicks.length + redPicks.length;
 	const isDraftCompleted = draftStep >= TOTAL_ACTIONS;
+	const isTimerPaused = Boolean(pageMatchState?.pausedAt);
 	const currentAction = !isDraftCompleted
 		? THREE_VS_THREE_DRAFT_SEQUENCE[draftStep]
 		: undefined;
 	const currentPickSide = !isDraftCompleted ? currentAction?.side : undefined;
+
+	const turnTimeRemainingSeconds = useMemo(() => {
+		if (!pageMatchState?.turnExpiredAt) {
+			return null;
+		}
+
+		const turnExpiredAtMs = new Date(pageMatchState.turnExpiredAt).getTime();
+		if (!Number.isFinite(turnExpiredAtMs)) {
+			return null;
+		}
+
+		const pausedAtMs = pageMatchState.pausedAt
+			? new Date(pageMatchState.pausedAt).getTime()
+			: null;
+		const anchorMs =
+			pausedAtMs !== null && Number.isFinite(pausedAtMs) ? pausedAtMs : nowMs;
+
+		return Math.ceil((turnExpiredAtMs - anchorMs) / 1000);
+	}, [nowMs, pageMatchState?.pausedAt, pageMatchState?.turnExpiredAt]);
+
+	const overtimeSeconds = useMemo(() => {
+		if (turnTimeRemainingSeconds === null) {
+			return 0;
+		}
+
+		return Math.max(0, -turnTimeRemainingSeconds);
+	}, [turnTimeRemainingSeconds]);
+
+	const activeTurnSide = useMemo(() => {
+		if (pageMatchState?.currentTurn === PlayerSide.BLUE) {
+			return "blue" as const;
+		}
+
+		if (pageMatchState?.currentTurn === PlayerSide.RED) {
+			return "red" as const;
+		}
+
+		return null;
+	}, [pageMatchState?.currentTurn]);
+
+	const blueRemainingTimeSeconds = useMemo(() => {
+		const base = Number(pageMatchState?.blueTimeRemain ?? 0);
+		if (activeTurnSide !== "blue") {
+			return base;
+		}
+
+		return base - overtimeSeconds;
+	}, [activeTurnSide, overtimeSeconds, pageMatchState?.blueTimeRemain]);
+
+	const redRemainingTimeSeconds = useMemo(() => {
+		const base = Number(pageMatchState?.redTimeRemain ?? 0);
+		if (activeTurnSide !== "red") {
+			return base;
+		}
+
+		return base - overtimeSeconds;
+	}, [activeTurnSide, overtimeSeconds, pageMatchState?.redTimeRemain]);
+
+	const blueTurnTimeDisplay = useMemo(() => {
+		if (activeTurnSide !== "blue" || turnTimeRemainingSeconds === null) {
+			return "--:--";
+		}
+
+		return formatSecondsToClock(turnTimeRemainingSeconds);
+	}, [activeTurnSide, turnTimeRemainingSeconds]);
+
+	const redTurnTimeDisplay = useMemo(() => {
+		if (activeTurnSide !== "red" || turnTimeRemainingSeconds === null) {
+			return "--:--";
+		}
+
+		return formatSecondsToClock(turnTimeRemainingSeconds);
+	}, [activeTurnSide, turnTimeRemainingSeconds]);
+
+	const blueRemainingTimeDisplay = useMemo(
+		() => formatSignedSecondsToClock(blueRemainingTimeSeconds),
+		[blueRemainingTimeSeconds],
+	);
+
+	const bluePunishTime = useMemo(
+		() => calculatePunishTime(blueRemainingTimeSeconds),
+		[blueRemainingTimeSeconds],
+	);
+
+	const redRemainingTimeDisplay = useMemo(
+		() => formatSignedSecondsToClock(redRemainingTimeSeconds),
+		[redRemainingTimeSeconds],
+	);
+
+	const redPunishTime = useMemo(
+		() => calculatePunishTime(redRemainingTimeSeconds),
+		[redRemainingTimeSeconds],
+	);
 
 	const blueFilteredCharacters = useMemo(
 		() =>
@@ -570,32 +715,47 @@ function RouteComponent() {
 	);
 
 	const blueFinalTimeSeconds = useMemo(() => {
-		return blueChamberBaseTimes.reduce((total, chamberBaseTime, index) => {
-			const chamberCost = teamCosts.find(
-				(item) => item.teamSide === PlayerSide.BLUE && item.chamberIndex === index + 1,
-			);
-			const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
-			const starBonus = chamberCost?.isUsedStar
-				? CHAMBER_STAR_TIME_BONUS_SECONDS
-				: 0;
-			return total + chamberBaseTime + chamberBonus + starBonus;
-		}, 0);
-	}, [blueChamberBaseTimes, teamCosts]);
+		const chamberTotal = blueChamberBaseTimes.reduce(
+			(total, chamberBaseTime, index) => {
+				const chamberCost = teamCosts.find(
+					(item) =>
+						item.teamSide === PlayerSide.BLUE &&
+						item.chamberIndex === index + 1,
+				);
+				const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+				const starBonus = chamberCost?.isUsedStar
+					? CHAMBER_STAR_TIME_BONUS_SECONDS
+					: 0;
+				return total + chamberBaseTime + chamberBonus + starBonus;
+			},
+			0,
+		);
+
+		return chamberTotal + bluePunishTime;
+	}, [blueChamberBaseTimes, bluePunishTime, teamCosts]);
 
 	const redFinalTimeSeconds = useMemo(() => {
-		return redChamberBaseTimes.reduce((total, chamberBaseTime, index) => {
-			const chamberCost = teamCosts.find(
-				(item) => item.teamSide === PlayerSide.RED && item.chamberIndex === index + 1,
-			);
-			const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
-			const starBonus = chamberCost?.isUsedStar
-				? CHAMBER_STAR_TIME_BONUS_SECONDS
-				: 0;
-			return total + chamberBaseTime + chamberBonus + starBonus;
-		}, 0);
-	}, [redChamberBaseTimes, teamCosts]);
+		const chamberTotal = redChamberBaseTimes.reduce(
+			(total, chamberBaseTime, index) => {
+				const chamberCost = teamCosts.find(
+					(item) =>
+						item.teamSide === PlayerSide.RED && item.chamberIndex === index + 1,
+				);
+				const chamberBonus = chamberCost?.totalChamberTimeBonus ?? 0;
+				const starBonus = chamberCost?.isUsedStar
+					? CHAMBER_STAR_TIME_BONUS_SECONDS
+					: 0;
+				return total + chamberBaseTime + chamberBonus + starBonus;
+			},
+			0,
+		);
 
-	const finalTimeGapSeconds = Math.abs(blueFinalTimeSeconds - redFinalTimeSeconds);
+		return chamberTotal + redPunishTime;
+	}, [redChamberBaseTimes, redPunishTime, teamCosts]);
+
+	const finalTimeGapSeconds = Math.abs(
+		blueFinalTimeSeconds - redFinalTimeSeconds,
+	);
 	const fasterTeam =
 		blueFinalTimeSeconds < redFinalTimeSeconds
 			? "blue"
@@ -605,14 +765,20 @@ function RouteComponent() {
 
 	const canBlueInteract =
 		!isDraftCompleted &&
+		!isTimerPaused &&
 		currentAction?.side === "blue" &&
 		profile?.id === match?.bluePlayer?.id;
 	const canRedInteract =
 		!isDraftCompleted &&
+		!isTimerPaused &&
 		currentAction?.side === "red" &&
 		profile?.id === match?.redPlayer?.id;
 
 	const isHost = profile?.id === match?.host?.id;
+	const isParticipant =
+		profile?.id === match?.host?.id ||
+		profile?.id === match?.bluePlayer?.id ||
+		profile?.id === match?.redPlayer?.id;
 	const canEditBlueAssignments =
 		isHost || profile?.id === match?.bluePlayer?.id;
 	const canEditRedAssignments = isHost || profile?.id === match?.redPlayer?.id;
@@ -842,8 +1008,7 @@ function RouteComponent() {
 				const isUsedStar = payload.isUsedStar!;
 				const index = next.findIndex(
 					(item) =>
-						item.teamSide === teamSide &&
-						item.chamberIndex === chamberIndex,
+						item.teamSide === teamSide && item.chamberIndex === chamberIndex,
 				);
 
 				const updated = {
@@ -1076,7 +1241,7 @@ function RouteComponent() {
 	};
 
 	const onConfirmPick = () => {
-		if (!pendingPick || isDraftCompleted || !currentAction) {
+		if (!pendingPick || isDraftCompleted || !currentAction || isTimerPaused) {
 			return;
 		}
 
@@ -1180,7 +1345,8 @@ function RouteComponent() {
 		}
 
 		const sideSlots = side === "blue" ? blueAssignments : redAssignments;
-		const setSlotBuilds = side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
+		const setSlotBuilds =
+			side === "blue" ? setBlueSlotBuilds : setRedSlotBuilds;
 		const selectedCharacter = sideSlots[slotIndex];
 		if (!selectedCharacter || selectedCharacter.id !== characterId) {
 			return;
@@ -1315,7 +1481,12 @@ function RouteComponent() {
 	};
 
 	const onCompleteMatch = async () => {
-		if (!match?.id || !isHost || !isDraftCompleted || !isAssignmentBoardCompleted) {
+		if (
+			!match?.id ||
+			!isHost ||
+			!isDraftCompleted ||
+			!isAssignmentBoardCompleted
+		) {
 			return;
 		}
 
@@ -1335,9 +1506,7 @@ function RouteComponent() {
 			}
 
 			await router.invalidate();
-			toast.success(
-				tMatch(matchLocaleKeys.three_vs_three_session_completed),
-			);
+			toast.success(tMatch(matchLocaleKeys.three_vs_three_session_completed));
 		} catch {
 			toast.error(tMatch(matchLocaleKeys.ban_pick_failed_complete_session));
 		} finally {
@@ -1383,6 +1552,29 @@ function RouteComponent() {
 		}
 	};
 
+	const onTogglePause = async () => {
+		if (!match?.id || !isParticipant || isDraftCompleted || isUpdatingPause) {
+			return;
+		}
+
+		try {
+			setIsUpdatingPause(true);
+			if (isTimerPaused) {
+				await matchApi.resumeMatchTimer(match.id);
+			} else {
+				await matchApi.pauseMatchTimer(match.id);
+			}
+		} catch {
+			if (isTimerPaused) {
+				toast.error(tMatch(matchLocaleKeys.three_vs_three_failed_resume_timer));
+			} else {
+				toast.error(tMatch(matchLocaleKeys.three_vs_three_failed_pause_timer));
+			}
+		} finally {
+			setIsUpdatingPause(false);
+		}
+	};
+
 	if (isLoading) {
 		return (
 			<div className="flex h-dvh items-center justify-center text-white/70">
@@ -1411,6 +1603,12 @@ function RouteComponent() {
 						player={match?.bluePlayer}
 						picksCount={bluePicks.length}
 						picksPerSide={PICKS_PER_SIDE}
+						turnTimeDisplay={blueTurnTimeDisplay}
+						remainingTimeDisplay={blueRemainingTimeDisplay}
+						remainingTimeSeconds={blueRemainingTimeSeconds}
+						isActiveTurn={activeTurnSide === "blue"}
+						isOvertime={activeTurnSide === "blue" && overtimeSeconds > 0}
+						punishTime={bluePunishTime}
 					/>
 
 					<div className="flex min-h-0 flex-1 flex-col">
@@ -1421,6 +1619,7 @@ function RouteComponent() {
 								slotBuilds={blueSlotBuilds}
 								teamCosts={teamCosts.filter((item) => item.teamSide === 0)}
 								chamberBaseTimes={blueChamberBaseTimes}
+								punishTimeSeconds={bluePunishTime}
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
 								playerOptions={playerOptions}
@@ -1448,11 +1647,11 @@ function RouteComponent() {
 											const committed = blueBans[index];
 											const preview =
 												!isDraftCompleted &&
-													!committed &&
-													pendingPick?.side === "blue" &&
-													currentAction?.side === "blue" &&
-													currentAction?.type === "ban" &&
-													index === blueBans.length
+												!committed &&
+												pendingPick?.side === "blue" &&
+												currentAction?.side === "blue" &&
+												currentAction?.type === "ban" &&
+												index === blueBans.length
 													? pendingPick.character
 													: null;
 
@@ -1525,45 +1724,101 @@ function RouteComponent() {
 								? tMatch(matchLocaleKeys.three_vs_three_assignment_hint)
 								: currentAction?.type === "ban"
 									? tMatch(matchLocaleKeys.three_vs_three_turn_ban_label, {
-										step: draftStep + 1,
-										total: TOTAL_ACTIONS,
-										side:
-											currentAction.side === "blue"
-												? tMatch(matchLocaleKeys.match_result_blue_fallback)
-												: tMatch(matchLocaleKeys.match_result_red_fallback),
-									})
+											step: draftStep + 1,
+											total: TOTAL_ACTIONS,
+											side:
+												currentAction.side === "blue"
+													? tMatch(matchLocaleKeys.match_result_blue_fallback)
+													: tMatch(matchLocaleKeys.match_result_red_fallback),
+										})
 									: tMatch(matchLocaleKeys.three_vs_three_turn_pick_label, {
-										step: draftStep + 1 - TOTAL_BANS,
-										total: TOTAL_PICKS,
-										side:
-											currentAction?.side === "blue"
-												? tMatch(matchLocaleKeys.match_result_blue_fallback)
-												: tMatch(matchLocaleKeys.match_result_red_fallback),
-									})}
+											step: draftStep + 1 - TOTAL_BANS,
+											total: TOTAL_PICKS,
+											side:
+												currentAction?.side === "blue"
+													? tMatch(matchLocaleKeys.match_result_blue_fallback)
+													: tMatch(matchLocaleKeys.match_result_red_fallback),
+										})}
 						</p>
+						{isTimerPaused && (
+							<p className="mt-2 text-xs font-semibold uppercase tracking-wider text-amber-300">
+								{tMatch(matchLocaleKeys.three_vs_three_timer_paused)}
+							</p>
+						)}
 					</div>
 
 					<div className="w-full rounded-md p-3 text-center">
 						<p className="mt-2 text-sm text-white/90">
-							{blueFinalTimeSeconds === redFinalTimeSeconds && <ArrowLeftRightIcon className="mx-1 inline h-8 w-8" />}
-							{blueFinalTimeSeconds < redFinalTimeSeconds && <StepForward className="mx-1 inline h-8 w-8 text-blue-400" />}
-							{redFinalTimeSeconds < blueFinalTimeSeconds && <StepBack className="mx-1 inline h-8 w-8 text-red-400" />}
+							{blueFinalTimeSeconds === redFinalTimeSeconds && (
+								<ArrowLeftRightIcon className="mx-1 inline h-8 w-8" />
+							)}
+							{blueFinalTimeSeconds < redFinalTimeSeconds && (
+								<StepForward className="mx-1 inline h-8 w-8 text-blue-400" />
+							)}
+							{redFinalTimeSeconds < blueFinalTimeSeconds && (
+								<StepBack className="mx-1 inline h-8 w-8 text-red-400" />
+							)}
 						</p>
 						<p className="mt-1 text-xs text-white/70">
-							{fasterTeam === "tie"
-								? tMatch(matchLocaleKeys.three_vs_three_same_final_time)
-								: <>
-									<span className={cn(fasterTeam === "blue" ? "text-blue-400" : "text-red-400")}>
-										{tMatch(matchLocaleKeys.three_vs_three_gap_label, { seconds: finalTimeGapSeconds })}
+							{fasterTeam === "tie" ? (
+								tMatch(matchLocaleKeys.three_vs_three_same_final_time)
+							) : (
+								<>
+									<span
+										className={cn(
+											fasterTeam === "blue" ? "text-blue-400" : "text-red-400",
+										)}
+									>
+										{tMatch(matchLocaleKeys.three_vs_three_gap_label, {
+											seconds: finalTimeGapSeconds,
+										})}
 									</span>
 								</>
-							}
+							)}
 						</p>
 					</div>
 
 					<div className="space-y-4">
 						<Button
-							disabled={!isHost || draftStep <= 0 || isUndoingPreviousTurn || isCompletingMatch || isDraftCompleted}
+							disabled={
+								!isParticipant ||
+								isDraftCompleted ||
+								isUndoingPreviousTurn ||
+								isCompletingMatch ||
+								isUpdatingPause
+							}
+							onClick={() => void onTogglePause()}
+							className="w-full"
+							variant="secondary"
+						>
+							{isUpdatingPause ? (
+								isTimerPaused ? (
+									tMatch(matchLocaleKeys.three_vs_three_resuming_timer)
+								) : (
+									tMatch(matchLocaleKeys.three_vs_three_pausing_timer)
+								)
+							) : isTimerPaused ? (
+								<>
+									<PlayCircle className="mr-2 inline h-4 w-4" />
+									{tMatch(matchLocaleKeys.three_vs_three_resume_timer)}
+								</>
+							) : (
+								<>
+									<PauseCircle className="mr-2 inline h-4 w-4" />
+									{tMatch(matchLocaleKeys.three_vs_three_pause_timer)}
+								</>
+							)}
+						</Button>
+
+						<Button
+							disabled={
+								!isHost ||
+								draftStep <= 0 ||
+								isUndoingPreviousTurn ||
+								isCompletingMatch ||
+								isUpdatingPause ||
+								isDraftCompleted
+							}
 							onClick={() => void onUndoPreviousTurn()}
 							className="w-full"
 							variant="outline"
@@ -1576,13 +1831,21 @@ function RouteComponent() {
 						<Button
 							disabled={
 								isDraftCompleted
-									? !isHost || !isAssignmentBoardCompleted || isCompletingMatch || isUndoingPreviousTurn
+									? !isHost ||
+										!isAssignmentBoardCompleted ||
+										isCompletingMatch ||
+										isUndoingPreviousTurn ||
+										isUpdatingPause
 									: !pendingPick ||
-									!currentAction ||
-									pendingPick.side !== currentAction.side ||
-									isUndoingPreviousTurn
+										!currentAction ||
+										isTimerPaused ||
+										pendingPick.side !== currentAction.side ||
+										isUndoingPreviousTurn ||
+										isUpdatingPause
 							}
-							onClick={isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick}
+							onClick={
+								isDraftCompleted ? () => void onCompleteMatch() : onConfirmPick
+							}
 							className="w-full"
 						>
 							{isDraftCompleted
@@ -1602,6 +1865,12 @@ function RouteComponent() {
 						player={match?.redPlayer}
 						picksCount={redPicks.length}
 						picksPerSide={PICKS_PER_SIDE}
+						turnTimeDisplay={redTurnTimeDisplay}
+						remainingTimeDisplay={redRemainingTimeDisplay}
+						remainingTimeSeconds={redRemainingTimeSeconds}
+						isActiveTurn={activeTurnSide === "red"}
+						isOvertime={activeTurnSide === "red" && overtimeSeconds > 0}
+						punishTime={redPunishTime}
 					/>
 
 					<div className="flex min-h-0 flex-1 flex-col">
@@ -1612,6 +1881,7 @@ function RouteComponent() {
 								slotBuilds={redSlotBuilds}
 								teamCosts={teamCosts.filter((item) => item.teamSide === 1)}
 								chamberBaseTimes={redChamberBaseTimes}
+								punishTimeSeconds={redPunishTime}
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
 								playerOptions={playerOptions}
@@ -1639,11 +1909,11 @@ function RouteComponent() {
 											const committed = redBans[index];
 											const preview =
 												!isDraftCompleted &&
-													!committed &&
-													pendingPick?.side === "red" &&
-													currentAction?.side === "red" &&
-													currentAction?.type === "ban" &&
-													index === redBans.length
+												!committed &&
+												pendingPick?.side === "red" &&
+												currentAction?.side === "red" &&
+												currentAction?.type === "ban" &&
+												index === redBans.length
 													? pendingPick.character
 													: null;
 

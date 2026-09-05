@@ -53,6 +53,20 @@ async function startMatch(matchId: string) {
 	return response.data;
 }
 
+async function pauseMatchTimer(matchId: string) {
+	const response = await http.put<BaseApiResponse>(
+		`/api/user/match/${matchId}/pause`,
+	);
+	return response.data;
+}
+
+async function resumeMatchTimer(matchId: string) {
+	const response = await http.put<BaseApiResponse>(
+		`/api/user/match/${matchId}/resume`,
+	);
+	return response.data;
+}
+
 async function pickChar(matchId: string, charId: string) {
 	const response = await http.put<BaseApiResponse>(
 		`/api/user/match/${matchId}/pick-char/${charId}`,
@@ -101,6 +115,8 @@ export const matchApi = {
 	getMatchState,
 	deleteMatch,
 	startMatch,
+	pauseMatchTimer,
+	resumeMatchTimer,
 	pickChar,
 	banChar,
 	pickWeapon,

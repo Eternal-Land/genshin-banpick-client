@@ -33,6 +33,11 @@ export interface MatchStateResponse {
 	redSelectedChars: string[];
 	redSelectedWeapons: string[];
 	redSelectedWeaponRefinements: number[];
+	startedAt: string;
+	pausedAt: string | null;
+	turnExpiredAt: string | null;
+	blueTimeRemain: number;
+	redTimeRemain: number;
 }
 
 export interface UpdateSlotBuildInput {

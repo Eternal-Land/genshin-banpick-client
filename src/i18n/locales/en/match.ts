@@ -136,6 +136,13 @@ const matchEn: MatchLocaleObject = {
 	three_vs_three_undo_previous_turn: "Undo previous turn",
 	three_vs_three_undoing_previous_turn: "Undoing...",
 	three_vs_three_failed_undo_previous_turn: "Failed to undo previous turn",
+	three_vs_three_pause_timer: "Pause timer",
+	three_vs_three_resume_timer: "Resume timer",
+	three_vs_three_pausing_timer: "Pausing...",
+	three_vs_three_resuming_timer: "Resuming...",
+	three_vs_three_timer_paused: "Timer paused",
+	three_vs_three_failed_pause_timer: "Failed to pause timer",
+	three_vs_three_failed_resume_timer: "Failed to resume timer",
 };
 
 export default matchEn;

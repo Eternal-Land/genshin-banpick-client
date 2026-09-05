@@ -28,7 +28,6 @@ export interface MatchSessionReportItemResponse {
 	matchSessionId: number;
 	sessionIndex: number;
 	sessionStatus: number;
-	currentTurn: PlayerSideEnum;
 	totalCostBlue: number;
 	totalCostRed: number;
 	blueParticipant: ProfileResponse | null;

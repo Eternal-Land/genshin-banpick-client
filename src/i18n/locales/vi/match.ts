@@ -136,6 +136,13 @@ const matchVi: MatchLocaleObject = {
 	three_vs_three_undo_previous_turn: "Hoàn tác lượt trước",
 	three_vs_three_undoing_previous_turn: "Đang hoàn tác...",
 	three_vs_three_failed_undo_previous_turn: "Không thể hoàn tác lượt trước",
+	three_vs_three_pause_timer: "Tạm dừng timer",
+	three_vs_three_resume_timer: "Tiếp tục timer",
+	three_vs_three_pausing_timer: "Đang tạm dừng...",
+	three_vs_three_resuming_timer: "Đang tiếp tục...",
+	three_vs_three_timer_paused: "Timer đang tạm dừng",
+	three_vs_three_failed_pause_timer: "Không thể tạm dừng timer",
+	three_vs_three_failed_resume_timer: "Không thể tiếp tục timer",
 };
 
 export default matchVi;

@@ -134,4 +134,11 @@ export const matchLocaleKeys = {
 	three_vs_three_undoing_previous_turn: "three_vs_three_undoing_previous_turn",
 	three_vs_three_failed_undo_previous_turn:
 		"three_vs_three_failed_undo_previous_turn",
+	three_vs_three_pause_timer: "three_vs_three_pause_timer",
+	three_vs_three_resume_timer: "three_vs_three_resume_timer",
+	three_vs_three_pausing_timer: "three_vs_three_pausing_timer",
+	three_vs_three_resuming_timer: "three_vs_three_resuming_timer",
+	three_vs_three_timer_paused: "three_vs_three_timer_paused",
+	three_vs_three_failed_pause_timer: "three_vs_three_failed_pause_timer",
+	three_vs_three_failed_resume_timer: "three_vs_three_failed_resume_timer",
 } as const;
