@@ -58,13 +58,6 @@ interface DraggingState {
 	index: number;
 }
 
-interface ThreeVsThreePickSocketPayload {
-	side?: DraftSide;
-	type?: "ban" | "pick";
-	character?: BanPickCharacter;
-	updatedBy?: string;
-}
-
 interface SwapBanPickSlotPositionSocketPayload {
 	side?: DraftSide;
 	sourceTeamOrder?: number;
@@ -869,21 +862,6 @@ function RouteComponent() {
 
 		setPendingPick(null);
 	};
-
-	useSocketEvent(
-		SocketEvent.UPDATE_BAN_PICK_SLOT,
-		(payload?: ThreeVsThreePickSocketPayload) => {
-			if (!payload?.character || !payload?.side) {
-				return;
-			}
-
-			if (payload.updatedBy && payload.updatedBy === profile?.id) {
-				return;
-			}
-
-			applyPickAction(payload.side, payload.character);
-		},
-	);
 
 	useSocketEvent(
 		SocketEvent.SWAP_BAN_PICK_SLOT_POSITION,
