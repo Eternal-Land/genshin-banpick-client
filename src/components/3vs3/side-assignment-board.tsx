@@ -94,20 +94,27 @@ const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
 const COMPLETE_TIME_REGEX = /^\d{2}:[0-5]\d$/;
 
-const formatCompleteTimeInput = (rawValue: string) => {
+const formatCompleteTimeInput = (rawValue: string, cursorPosition: number) => {
 	const digits = rawValue.replace(/\D/g, "").slice(0, 4);
 	const minutes = digits.slice(0, 2);
 	const seconds = digits.slice(2, 4);
+	const digitsBeforeCursor = rawValue
+		.slice(0, cursorPosition)
+		.replace(/\D/g, "").length;
+	const formattedCursorPosition = Math.min(digitsBeforeCursor, digits.length);
+	const formattedValue =
+		seconds.length > 0
+			? `${minutes}:${seconds}`
+			: minutes.length === 2
+				? `${minutes}:`
+				: minutes;
+	const cursorOffset =
+		formattedValue.includes(":") && formattedCursorPosition >= 2 ? 1 : 0;
 
-	if (seconds.length > 0) {
-		return `${minutes}:${seconds}`;
-	}
-
-	if (minutes.length === 2) {
-		return `${minutes}:`;
-	}
-
-	return minutes;
+	return {
+		value: formattedValue,
+		cursorPosition: formattedCursorPosition + cursorOffset,
+	};
 };
 
 const isValidCompleteTime = (value: string) =>
@@ -230,6 +237,9 @@ export default function SideAssignmentBoard({
 	const chamberClearTimeTimersRef = useRef<
 		Record<number, ReturnType<typeof setTimeout>>
 	>({});
+	const chamberClearTimeInputRefs = useRef<
+		Record<number, HTMLInputElement | null>
+	>({});
 	const debouncedSearchPlayers = useDebounce(
 		(search: string) => onSearchPlayers?.(search),
 		PLAYER_SEARCH_DEBOUNCE_MS,
@@ -294,6 +304,8 @@ export default function SideAssignmentBoard({
 		setChamberTagInputs((prev) =>
 			Array.from({ length: chamberSlotRanges.length }).map((_, index) => {
 				const previous = prev[index];
+				const isEditingCompleteTime =
+					chamberClearTimeInputRefs.current[index] === document.activeElement;
 				const teamCost = teamCosts.find(
 					(item) => item.chamberIndex === index + 1,
 				);
@@ -311,8 +323,9 @@ export default function SideAssignmentBoard({
 							persistedPlayer?.label ?? (previous.player || defaultPlayer),
 						cost: previous.cost || defaultCost,
 						star: teamCost?.isUsedStar ?? previous.star,
-						completeTime:
-							completeTimeFromSessionRecord || previous.completeTime,
+						completeTime: isEditingCompleteTime
+							? previous.completeTime
+							: completeTimeFromSessionRecord,
 					};
 				}
 
@@ -451,7 +464,7 @@ export default function SideAssignmentBoard({
 			clearTimeout(existingTimer);
 		}
 
-		if (!COMPLETE_TIME_REGEX.test(completeTime)) {
+		if (completeTime.length > 0 && !COMPLETE_TIME_REGEX.test(completeTime)) {
 			delete chamberClearTimeTimersRef.current[chamberIndex];
 			return;
 		}
@@ -460,10 +473,35 @@ export default function SideAssignmentBoard({
 			onUpdateChamberClearTime({
 				side,
 				chamberIndex: chamberIndex + 1,
-				clearTimeSeconds: parseCompleteTimeToSeconds(completeTime),
+				clearTimeSeconds:
+						completeTime.length === 0
+							? 600
+							: parseCompleteTimeToSeconds(completeTime),
 			});
 			delete chamberClearTimeTimersRef.current[chamberIndex];
 		}, CHAMBER_CLEAR_TIME_UPDATE_DEBOUNCE_MS);
+	};
+
+	const commitChamberClearTimeUpdate = (
+		chamberIndex: number,
+		completeTime: string,
+	) => {
+		const existingTimer = chamberClearTimeTimersRef.current[chamberIndex];
+		if (existingTimer) {
+			clearTimeout(existingTimer);
+			delete chamberClearTimeTimersRef.current[chamberIndex];
+		}
+
+		if (completeTime.length > 0 && !COMPLETE_TIME_REGEX.test(completeTime)) {
+			return;
+		}
+
+		onUpdateChamberClearTime({
+			side,
+			chamberIndex: chamberIndex + 1,
+			clearTimeSeconds:
+				completeTime.length === 0 ? 600 : parseCompleteTimeToSeconds(completeTime),
+		});
 	};
 
 	const updateSlotBuildInput = (
@@ -634,12 +672,17 @@ export default function SideAssignmentBoard({
 							label: "Time clear:",
 							control: (
 								<Input
+									ref={(element) => {
+										chamberClearTimeInputRefs.current[playerIndex] = element;
+									}}
 									value={chamberTagInputs[playerIndex]?.completeTime ?? ""}
 									disabled={!canEdit}
 									onChange={(event) => {
-										const nextCompleteTime = formatCompleteTimeInput(
-											event.target.value,
-										);
+										const { value: nextCompleteTime, cursorPosition } =
+											formatCompleteTimeInput(
+												event.target.value,
+												event.target.selectionStart ?? event.target.value.length,
+											);
 										updateChamberTag(
 											playerIndex,
 											(prev) => ({
@@ -651,6 +694,23 @@ export default function SideAssignmentBoard({
 										scheduleChamberClearTimeUpdate(
 											playerIndex,
 											nextCompleteTime,
+										);
+										requestAnimationFrame(() => {
+											const input = chamberClearTimeInputRefs.current[playerIndex];
+											if (input && input === document.activeElement) {
+												input.setSelectionRange(cursorPosition, cursorPosition);
+											}
+										});
+									}}
+									onKeyDown={(event) => {
+										if (event.key !== "Enter") {
+											return;
+										}
+
+										event.preventDefault();
+										commitChamberClearTimeUpdate(
+											playerIndex,
+											event.currentTarget.value,
 										);
 									}}
 									placeholder="00:00"
