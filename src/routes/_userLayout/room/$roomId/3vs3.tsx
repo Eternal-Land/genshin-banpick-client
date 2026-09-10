@@ -1,7 +1,6 @@
 import { userCharactersApi } from "@/apis/user-characters";
 import { sessionStateApi } from "@/apis/session-state";
 import type { SessionStateTeamCostResponse } from "@/apis/session-state/types";
-import { usersApi } from "@/apis/users";
 import { matchApi } from "@/apis/match";
 import type { MatchStateResponse } from "@/apis/match/types";
 import { sessionCostApi } from "@/apis/session-cost";
@@ -78,7 +77,7 @@ interface UpdatePickSlotSocketPayload {
 interface UpdateTeamCostSocketPayload {
 	teamSide?: DraftSide;
 	chamberIndex?: number;
-	accountId?: string;
+	accountId?: string | null;
 	isUsedStar?: boolean;
 	totalCharacterConstellationCost?: number;
 	totalWeaponRefinementCost?: number;
@@ -97,11 +96,6 @@ interface UpdateChamberClearTimeSocketPayload {
 interface MatchUpdatedSocketPayload {
 	id?: string;
 	status?: MatchStatusEnum;
-}
-
-interface PlayerOption {
-	value: string;
-	label: string;
 }
 
 interface SlotBuildState {
@@ -451,18 +445,6 @@ function RouteComponent() {
 		enabled: Boolean(match?.id && pageMatchState?.currentSession),
 	});
 
-	const [playerSearch, setPlayerSearch] = useState("");
-
-	const { data: usersResponse } = useQuery({
-		queryKey: ["users", "search", "3vs3", playerSearch],
-		queryFn: () =>
-			usersApi.searchUsers({
-				page: 1,
-				take: 100,
-				search: playerSearch || undefined,
-			}),
-	});
-
 	useEffect(() => {
 		setTeamCosts(sessionStateResponse?.data?.teamCosts ?? []);
 	}, [sessionStateResponse?.data?.teamCosts]);
@@ -481,20 +463,6 @@ function RouteComponent() {
 			),
 		[allCharacters],
 	);
-
-	const playerOptions = useMemo<PlayerOption[]>(() => {
-		const optionMap = new Map<string, PlayerOption>();
-		(usersResponse?.data ?? []).forEach((player) => {
-			if (!optionMap.has(player.id)) {
-				optionMap.set(player.id, {
-					value: player.id,
-					label: player.displayName,
-				});
-			}
-		});
-
-		return [...optionMap.values()];
-	}, [usersResponse?.data]);
 
 	useEffect(() => {
 		const record = sessionStateResponse?.data?.sessionRecord;
@@ -968,7 +936,7 @@ function RouteComponent() {
 			if (
 				!payload?.teamSide ||
 				!payload.chamberIndex ||
-				!payload.accountId ||
+				(typeof payload.accountId !== "string" && payload.accountId !== null) ||
 				typeof payload.isUsedStar !== "boolean" ||
 				typeof payload.totalChamberTimeBonus !== "number"
 			) {
@@ -981,7 +949,7 @@ function RouteComponent() {
 				const teamSide =
 					payload.teamSide === "blue" ? PlayerSide.BLUE : PlayerSide.RED;
 				const chamberIndex = payload.chamberIndex!;
-				const accountId = payload.accountId!;
+				const accountId = payload.accountId ?? null;
 				const totalChamberTimeBonus = payload.totalChamberTimeBonus!;
 				const isUsedStar = payload.isUsedStar!;
 				const index = next.findIndex(
@@ -1370,7 +1338,7 @@ function RouteComponent() {
 	}: {
 		side: DraftSide;
 		chamberIndex: number;
-		accountId: string;
+			accountId: string;
 		isUsedStar: boolean;
 	}) => {
 		if (
@@ -1600,7 +1568,6 @@ function RouteComponent() {
 								punishTimeSeconds={bluePunishTime}
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
-								playerOptions={playerOptions}
 								defaultCost={blueDefaultCost}
 								canEdit={canEditBlueAssignments}
 								canReorder={canBlueReorderAssignments}
@@ -1612,7 +1579,6 @@ function RouteComponent() {
 								onUpdateSlotBuild={onUpdateSlotBuild}
 								onUpdateTeamCost={onUpdateTeamCost}
 								onUpdateChamberClearTime={onUpdateChamberClearTime}
-								onSearchPlayers={setPlayerSearch}
 							/>
 						) : (
 							<div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -1862,7 +1828,6 @@ function RouteComponent() {
 								punishTimeSeconds={redPunishTime}
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
-								playerOptions={playerOptions}
 								defaultCost={redDefaultCost}
 								canEdit={canEditRedAssignments}
 								canReorder={canRedReorderAssignments}
@@ -1874,7 +1839,6 @@ function RouteComponent() {
 								onUpdateSlotBuild={onUpdateSlotBuild}
 								onUpdateTeamCost={onUpdateTeamCost}
 								onUpdateChamberClearTime={onUpdateChamberClearTime}
-								onSearchPlayers={setPlayerSearch}
 							/>
 						) : (
 							<div className="flex min-h-0 flex-1 flex-col gap-4">
