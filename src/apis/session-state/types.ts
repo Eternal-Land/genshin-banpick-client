@@ -19,7 +19,7 @@ export interface SessionStateTeamCostResponse {
 	sessionCostId: number;
 	teamSide: PlayerSideEnum;
 	chamberIndex: number;
-	accountId: string;
+	accountId: string | null;
 	totalCharacterConstellationCost: number;
 	totalWeaponRefinementCost: number;
 	totalCharacterLevelCost: number;
