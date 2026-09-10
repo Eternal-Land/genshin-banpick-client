@@ -6,7 +6,6 @@ import {
 } from "@/components/select-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
 import {
@@ -19,11 +18,6 @@ import {
 } from "react";
 import Draggable, { type DraggableEvent } from "react-draggable";
 import type { DraftSide } from "./types";
-
-interface PlayerOption {
-	value: string;
-	label: string;
-}
 
 interface ChamberTagInput {
 	player: string;
@@ -48,7 +42,7 @@ interface SideAssignmentBoardProps {
 		level: number;
 	}>;
 	teamCosts: Array<{
-		accountId: string;
+		accountId: string | null;
 		chamberIndex: number;
 		isUsedStar: boolean;
 		totalChamberTimeBonus: number;
@@ -57,7 +51,6 @@ interface SideAssignmentBoardProps {
 	punishTimeSeconds: number;
 	teamPlayerCount: number;
 	picksPerPlayer: number;
-	playerOptions: PlayerOption[];
 	defaultCost: string;
 	canEdit: boolean;
 	canReorder: boolean;
@@ -83,13 +76,12 @@ interface SideAssignmentBoardProps {
 		chamberIndex: number;
 		clearTimeSeconds: number;
 	}) => void;
-	onSearchPlayers?: (search: string) => void;
 }
 
 const SLOT_BUILD_UPDATE_DEBOUNCE_MS = 500;
 const TEAM_COST_UPDATE_DEBOUNCE_MS = 500;
+const PLAYER_INPUT_UPDATE_DEBOUNCE_MS = 500;
 const CHAMBER_CLEAR_TIME_UPDATE_DEBOUNCE_MS = 500;
-const PLAYER_SEARCH_DEBOUNCE_MS = 500;
 const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
 const COMPLETE_TIME_REGEX = /^\d{2}:[0-5]\d$/;
@@ -209,7 +201,6 @@ export default function SideAssignmentBoard({
 	punishTimeSeconds,
 	teamPlayerCount,
 	picksPerPlayer,
-	playerOptions,
 	defaultCost,
 	canEdit,
 	canReorder,
@@ -219,7 +210,6 @@ export default function SideAssignmentBoard({
 	onUpdateSlotBuild,
 	onUpdateTeamCost,
 	onUpdateChamberClearTime,
-	onSearchPlayers,
 }: SideAssignmentBoardProps) {
 	const isBlue = side === "blue";
 	const [chamberTagInputs, setChamberTagInputs] = useState<ChamberTagInput[]>(
@@ -234,21 +224,16 @@ export default function SideAssignmentBoard({
 	const teamCostTimersRef = useRef<
 		Record<number, ReturnType<typeof setTimeout>>
 	>({});
+	const playerInputTimersRef = useRef<
+		Record<number, ReturnType<typeof setTimeout>>
+	>({});
 	const chamberClearTimeTimersRef = useRef<
 		Record<number, ReturnType<typeof setTimeout>>
 	>({});
 	const chamberClearTimeInputRefs = useRef<
 		Record<number, HTMLInputElement | null>
 	>({});
-	const debouncedSearchPlayers = useDebounce(
-		(search: string) => onSearchPlayers?.(search),
-		PLAYER_SEARCH_DEBOUNCE_MS,
-	);
-
-	const defaultPlayer = useMemo(
-		() => playerOptions[0]?.label ?? "",
-		[playerOptions],
-	);
+	const playerInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 	const draggableNodeRefs = useMemo(
 		() =>
 			Array.from({ length: slots.length }).map(() =>
@@ -304,6 +289,8 @@ export default function SideAssignmentBoard({
 		setChamberTagInputs((prev) =>
 			Array.from({ length: chamberSlotRanges.length }).map((_, index) => {
 				const previous = prev[index];
+				const isEditingPlayer =
+					playerInputRefs.current[index] === document.activeElement;
 				const isEditingCompleteTime =
 					chamberClearTimeInputRefs.current[index] === document.activeElement;
 				const teamCost = teamCosts.find(
@@ -312,15 +299,14 @@ export default function SideAssignmentBoard({
 				const completeTimeFromSessionRecord = mapChamberValueToClearTimeInput(
 					chamberBaseTimes[index],
 				);
-				const persistedPlayer = playerOptions.find(
-					(option) => option.value === teamCost?.accountId,
-				);
-
 				if (previous) {
 					return {
 						...previous,
-						player:
-							persistedPlayer?.label ?? (previous.player || defaultPlayer),
+						player: isEditingPlayer
+							? previous.player
+							: teamCost
+								? (teamCost.accountId ?? "")
+								: previous.player,
 						cost: previous.cost || defaultCost,
 						star: teamCost?.isUsedStar ?? previous.star,
 						completeTime: isEditingCompleteTime
@@ -330,7 +316,7 @@ export default function SideAssignmentBoard({
 				}
 
 				return {
-					player: persistedPlayer?.label ?? defaultPlayer,
+					player: isEditingPlayer ? "" : (teamCost?.accountId ?? ""),
 					cost: defaultCost,
 					star: teamCost?.isUsedStar ?? false,
 					completeTime: completeTimeFromSessionRecord,
@@ -341,8 +327,6 @@ export default function SideAssignmentBoard({
 		chamberBaseTimes,
 		chamberSlotRanges.length,
 		defaultCost,
-		defaultPlayer,
-		playerOptions,
 		teamCosts,
 	]);
 
@@ -389,6 +373,10 @@ export default function SideAssignmentBoard({
 				clearTimeout(timerId);
 			});
 			teamCostTimersRef.current = {};
+			Object.values(playerInputTimersRef.current).forEach((timerId) => {
+				clearTimeout(timerId);
+			});
+			playerInputTimersRef.current = {};
 			Object.values(chamberClearTimeTimersRef.current).forEach((timerId) => {
 				clearTimeout(timerId);
 			});
@@ -410,7 +398,7 @@ export default function SideAssignmentBoard({
 		const current =
 			chamberTagInputs[chamberIndex] ??
 			({
-				player: defaultPlayer,
+				player: "",
 				cost: defaultCost,
 				star: false,
 				completeTime: "",
@@ -428,11 +416,10 @@ export default function SideAssignmentBoard({
 			return;
 		}
 
-		const player = playerOptions.find(
-			(option) => option.label === updated.player,
-		);
-		if (!player) {
-			return;
+		const playerInputTimer = playerInputTimersRef.current[chamberIndex];
+		if (playerInputTimer) {
+			clearTimeout(playerInputTimer);
+			delete playerInputTimersRef.current[chamberIndex];
 		}
 
 		const existingTimer = teamCostTimersRef.current[chamberIndex];
@@ -444,11 +431,32 @@ export default function SideAssignmentBoard({
 			onUpdateTeamCost({
 				side,
 				chamberIndex: chamberIndex + 1,
-				accountId: player.value,
+				accountId: updated.player,
 				isUsedStar: updated.star,
 			});
 			delete teamCostTimersRef.current[chamberIndex];
 		}, TEAM_COST_UPDATE_DEBOUNCE_MS);
+	};
+
+	const schedulePlayerInputUpdate = (
+		chamberIndex: number,
+		accountId: string,
+		isUsedStar: boolean,
+	) => {
+		const existingTimer = playerInputTimersRef.current[chamberIndex];
+		if (existingTimer) {
+			clearTimeout(existingTimer);
+		}
+
+		playerInputTimersRef.current[chamberIndex] = setTimeout(() => {
+			onUpdateTeamCost({
+				side,
+				chamberIndex: chamberIndex + 1,
+				accountId,
+				isUsedStar,
+			});
+			delete playerInputTimersRef.current[chamberIndex];
+		}, PLAYER_INPUT_UPDATE_DEBOUNCE_MS);
 	};
 
 	const scheduleChamberClearTimeUpdate = (
@@ -613,30 +621,33 @@ export default function SideAssignmentBoard({
 							key: "player",
 							label: "Player:",
 							control: (
-								<SelectInput
-									value={chamberTagInputs[playerIndex]?.player ?? ""}
-									placeholder="Select player"
-									disabled={!canEdit}
-									onValueChange={(value) => {
-										updateChamberTag(playerIndex, (prev) => ({
-											...prev,
-											player: value,
-										}));
-										debouncedSearchPlayers(value);
+								<Input
+									ref={(element) => {
+										playerInputRefs.current[playerIndex] = element;
 									}}
-									inputClassName="h-8"
-								>
-									<SelectInputContent>
-										{playerOptions.map((player) => (
-											<SelectInputOption
-												key={`${side}-player-option-${player.value}`}
-												value={player.label}
-											>
-												{player.label}
-											</SelectInputOption>
-										))}
-									</SelectInputContent>
-								</SelectInput>
+									value={chamberTagInputs[playerIndex]?.player ?? ""}
+									placeholder="Enter player"
+									disabled={!canEdit}
+									onChange={(event) => {
+										const accountId = event.target.value;
+									updateChamberTag(playerIndex, (prev) => ({
+											...prev,
+											player: accountId,
+										}), { syncTeamCost: false });
+										schedulePlayerInputUpdate(
+											playerIndex,
+											accountId,
+											chamberTagInputs[playerIndex]?.star ?? false,
+										);
+									}}
+									onKeyDown={(event) => {
+										if (event.key === "Enter") {
+											event.preventDefault();
+											event.currentTarget.blur();
+										}
+									}}
+									className="h-8"
+								/>
 							),
 						},
 						{
