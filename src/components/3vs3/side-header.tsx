@@ -8,7 +8,7 @@ interface SideHeaderProps {
 	picksCount: number;
 	picksPerSide: number;
 	turnTimeDisplay: string;
-	punishTime: number;
+	// punishTime: number;
 	remainingTimeDisplay: string;
 	remainingTimeSeconds: number;
 	isActiveTurn: boolean;
@@ -23,7 +23,7 @@ export default function SideHeader({
 	remainingTimeSeconds,
 	isActiveTurn,
 	isOvertime,
-	punishTime,
+	// punishTime,
 }: SideHeaderProps) {
 	const isBlue = side === "blue";
 	const remainingTimeClassName =
@@ -95,7 +95,7 @@ export default function SideHeader({
 							)}
 						>
 							{remainingTimeDisplay}
-							{punishTime > 0 ? ` (+${punishTime}s)` : ""}
+							{/* {punishTime > 0 ? ` (+${punishTime}s)` : ""} */}
 						</span>
 					</div>
 				</div>

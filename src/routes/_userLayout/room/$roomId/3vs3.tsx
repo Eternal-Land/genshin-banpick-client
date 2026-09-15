@@ -114,12 +114,12 @@ const TOTAL_PICKS = PICKS_PER_SIDE * 2;
 const TOTAL_ACTIONS = THREE_VS_THREE_DRAFT_SEQUENCE.length;
 const CHAMBER_STAR_TIME_BONUS_SECONDS = -15;
 
-function calculatePunishTime(remainTimeSec: number) {
-	if (remainTimeSec >= 0) {
-		return 0;
-	}
-	return Math.floor(-remainTimeSec / 20) * 5;
-}
+// function calculatePunishTime(remainTimeSec: number) {
+// 	if (remainTimeSec >= 0) {
+// 		return 0;
+// 	}
+// 	return Math.floor(-remainTimeSec / 20) * 5;
+// }
 
 const createEmptyAssignmentSlots = () =>
 	Array.from({ length: PICKS_PER_SIDE }, () => null as BanPickCharacter | null);
@@ -638,20 +638,20 @@ function RouteComponent() {
 		[blueRemainingTimeSeconds],
 	);
 
-	const bluePunishTime = useMemo(
-		() => calculatePunishTime(blueRemainingTimeSeconds),
-		[blueRemainingTimeSeconds],
-	);
+// 	const bluePunishTime = useMemo(
+// 		() => calculatePunishTime(blueRemainingTimeSeconds),
+// 		[blueRemainingTimeSeconds],
+// 	);
 
 	const redRemainingTimeDisplay = useMemo(
 		() => formatSignedSecondsToClock(redRemainingTimeSeconds),
 		[redRemainingTimeSeconds],
 	);
 
-	const redPunishTime = useMemo(
-		() => calculatePunishTime(redRemainingTimeSeconds),
-		[redRemainingTimeSeconds],
-	);
+// 	const redPunishTime = useMemo(
+// 		() => calculatePunishTime(redRemainingTimeSeconds),
+// 		[redRemainingTimeSeconds],
+// 	);
 
 	const blueFilteredCharacters = useMemo(
 		() =>
@@ -691,9 +691,10 @@ function RouteComponent() {
 			},
 			0,
 		);
-
-		return chamberTotal + bluePunishTime;
-	}, [blueChamberBaseTimes, bluePunishTime, teamCosts]);
+	// 	return chamberTotal + bluePunishTime;
+	// }, [blueChamberBaseTimes, bluePunishTime, teamCosts]);
+		return chamberTotal;
+	}, [blueChamberBaseTimes, teamCosts]);
 
 	const redFinalTimeSeconds = useMemo(() => {
 		const chamberTotal = redChamberBaseTimes.reduce(
@@ -710,9 +711,10 @@ function RouteComponent() {
 			},
 			0,
 		);
-
-		return chamberTotal + redPunishTime;
-	}, [redChamberBaseTimes, redPunishTime, teamCosts]);
+	// return chamberTotal + redPunishTime;
+	// }, [redChamberBaseTimes, redPunishTime, teamCosts]);
+		return chamberTotal;
+	}, [redChamberBaseTimes, teamCosts]);
 
 	const finalTimeGapSeconds = Math.abs(
 		blueFinalTimeSeconds - redFinalTimeSeconds,
@@ -1554,7 +1556,7 @@ function RouteComponent() {
 						remainingTimeSeconds={blueRemainingTimeSeconds}
 						isActiveTurn={activeTurnSide === "blue"}
 						isOvertime={activeTurnSide === "blue" && overtimeSeconds > 0}
-						punishTime={bluePunishTime}
+						/* punishTime={bluePunishTime} */
 					/>
 
 					<div className="flex min-h-0 flex-1 flex-col">
@@ -1565,7 +1567,7 @@ function RouteComponent() {
 								slotBuilds={blueSlotBuilds}
 								teamCosts={teamCosts.filter((item) => item.teamSide === 0)}
 								chamberBaseTimes={blueChamberBaseTimes}
-								punishTimeSeconds={bluePunishTime}
+								/* punishTimeSeconds={bluePunishTime} */
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
 								defaultCost={blueDefaultCost}
@@ -1814,7 +1816,7 @@ function RouteComponent() {
 						remainingTimeSeconds={redRemainingTimeSeconds}
 						isActiveTurn={activeTurnSide === "red"}
 						isOvertime={activeTurnSide === "red" && overtimeSeconds > 0}
-						punishTime={redPunishTime}
+						/* punishTime={redPunishTime} */
 					/>
 
 					<div className="flex min-h-0 flex-1 flex-col">
@@ -1825,7 +1827,7 @@ function RouteComponent() {
 								slotBuilds={redSlotBuilds}
 								teamCosts={teamCosts.filter((item) => item.teamSide === 1)}
 								chamberBaseTimes={redChamberBaseTimes}
-								punishTimeSeconds={redPunishTime}
+								/* punishTimeSeconds={redPunishTime} */
 								teamPlayerCount={TEAM_PLAYER_COUNT}
 								picksPerPlayer={PICKS_PER_PLAYER}
 								defaultCost={redDefaultCost}
