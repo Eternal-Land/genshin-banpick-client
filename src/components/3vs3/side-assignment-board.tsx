@@ -48,7 +48,7 @@ interface SideAssignmentBoardProps {
 		totalChamberTimeBonus: number;
 	}>;
 	chamberBaseTimes: number[];
-	punishTimeSeconds: number;
+	// punishTimeSeconds: number;
 	teamPlayerCount: number;
 	picksPerPlayer: number;
 	defaultCost: string;
@@ -198,7 +198,7 @@ export default function SideAssignmentBoard({
 	slotBuilds,
 	teamCosts,
 	chamberBaseTimes,
-	punishTimeSeconds,
+	// punishTimeSeconds,
 	teamPlayerCount,
 	picksPerPlayer,
 	defaultCost,
@@ -276,12 +276,11 @@ export default function SideAssignmentBoard({
 			return total + resolveChamberTotalTime(index);
 		}, 0);
 
-		return chamberTotal + punishTimeSeconds;
+		return chamberTotal;
 	}, [
 		chamberBaseTimes,
 		chamberSlotRanges,
 		chamberTagInputs,
-		punishTimeSeconds,
 		teamCosts,
 	]);
 
